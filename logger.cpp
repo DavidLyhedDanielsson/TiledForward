@@ -98,8 +98,8 @@ void Logger::Log(LOG_TYPE logType, const std::string& text)
 	message += text;
 
 	if(printStackTrace 
-	   && (logType == LOG_TYPE::WARNING 
-		   || logType == LOG_TYPE::FATAL 
+	   && (logType == LOG_TYPE::WARNING
+		   || logType == LOG_TYPE::FATAL
 		   || logType == LOG_TYPE::WARNING_NOWRITE 
 		   || logType == LOG_TYPE::FATAL_NOWRITE))
 	{
@@ -164,21 +164,41 @@ void Logger::Log(LOG_TYPE logType, const std::string& text)
 		char** strings = backtrace_symbols(stackTrace, size);
 		for(int i = 0; i < size; i++)
 		{
+            //Find address
 			int begin = 0;
-			while(strings[i][begin] != '(' && strings[i][begin] != ' '
+			while(strings[i][begin] != '('
+				  && strings[i][begin] != ' '
 				  && strings[i][begin] != 0)
 				++begin;
 
 			char syscom[256];
 			char fileBuffer[512]; //Should be big enough for file paths
 
+            //Concat into command to pipe to file
 			sprintf(syscom, "addr2line %p -e %.*s", stackTrace[i], begin, strings[i]);
+
+            std::string line;
 
 			FILE* filePtr;
 			filePtr = popen(syscom, "r");
 			while(fgets(fileBuffer, sizeof(fileBuffer), filePtr) != NULL)
-				message += fileBuffer;
+                line = fileBuffer;
 			pclose(filePtr);
+
+            if(line.back() == '\n')
+                line.pop_back();
+
+            if(line.compare(0, 2, "??") != 0)
+            {
+                std::string fileName;
+                fileName = line.substr(line.find_last_of("/\\") + 1); //File name with extension and line number
+
+                if((fileName[0] != 'l' && fileName[0] != 'L')
+                   && !fileName.compare(1, 5, "ogger") == 0)
+                {
+                    message += line + '\n';
+                }
+            }
 		}
 
 		free(strings);

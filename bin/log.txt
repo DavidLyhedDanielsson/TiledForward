@@ -1,0 +1,537 @@
+[WARNING] Size isn't divisible by element size
+Stack trace:
+/home/david/dev/cpp/repos/opengl/logger.cpp:162
+/home/david/dev/cpp/repos/opengl/logger.cpp:54 (discriminator 4)
+/home/david/dev/cpp/repos/opengl/logger.h:283
+/home/david/dev/cpp/repos/opengl/logger.h:278
+/home/david/dev/cpp/repos/opengl/logger.h:163
+/home/david/dev/cpp/repos/opengl/glBuffer.h:24
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:18
+/home/david/dev/cpp/repos/opengl/main.cpp:101
+??:0
+??:?
+[DEBUG] Element size isn't a power of 2
+[WARNING] Size isn't divisible by element size
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:24
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:18
+/home/david/dev/cpp/repos/opengl/main.cpp:101
+??:0
+??:?
+[DEBUG] Element size isn't a power of 2
+[WARNING] Size isn't divisible by element size
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:24
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:18
+/home/david/dev/cpp/repos/opengl/main.cpp:101
+??:0
+??:?
+[DEBUG] Element size isn't a power of 2
+[WARNING] Size isn't divisible by element size
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:24
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:18
+/home/david/dev/cpp/repos/opengl/main.cpp:101
+[DEBUG] Element size isn't a power of 2
+[WARNING] Size isn't divisible by element size
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:24
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:18
+/home/david/dev/cpp/repos/opengl/main.cpp:101
+[DEBUG] size isn't a multiple of byteSize, check template parameters
+[DEBUG] size isn't a multiple of byteSize, check template parameters
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] size isn't a multiple of byteSize, check template parameters
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+Stack trace:
+/home/david/dev/cpp/repos/opengl/window.cpp:599
+/home/david/dev/cpp/repos/opengl/glBuffer.cpp:44
+/home/david/dev/cpp/repos/opengl/glBuffer.cpp:23
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:23
+/home/david/dev/cpp/repos/opengl/main.cpp:109
+[DEBUG] size isn't a multiple of byteSize, check template parameters
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:62
+/home/david/dev/cpp/repos/opengl/main.cpp:109 (discriminator 1)
+[FATAL] 0(1) : error C0000: syntax error, unexpected '(', expecting "::" at token "("
+0(5) : warning C7506: OpenGL does not define the global type float4
+0(5) : warning C7502: OpenGL does not allow type suffix 'f' on constant literals in versions below 120
+0(5) : warning C7502: OpenGL does not allow type suffix 'f' on constant literals in versions below 120
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C7506: OpenGL does not define the global type float4
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C7506: OpenGL does not define the global type float4
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C7506: OpenGL does not define the global type float4
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C7506: OpenGL does not define the global type float4
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C7506: OpenGL does not define the global type float4
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C1008: undefined variable "gl_position"
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C1008: undefined variable "gl_position"
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C1008: undefined variable "gl_position"
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[FATAL] 0(7) : error C1008: undefined variable "gl_position"
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:92 (discriminator 4)
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+Stack trace:
+/home/david/dev/cpp/repos/opengl/window.cpp:599
+/home/david/dev/cpp/repos/opengl/glBuffer.cpp:44
+/home/david/dev/cpp/repos/opengl/glBuffer.h:38
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:23
+/home/david/dev/cpp/repos/opengl/main.cpp:110
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. Target buffer must be bound.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[FATAL] 0(6) : error C7548: 'layout(location)' requires "#extension GL_ARB_separate_shader_objects : enable" before use
+0(6) : error C0000: ... or #version 410
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:96 (discriminator 4)
+[FATAL] 0(3) : error C7548: 'layout(location)' requires "#extension GL_ARB_separate_shader_objects : enable" before use
+0(3) : error C0000: ... or #version 410
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glPixelShader.cpp:14
+/home/david/dev/cpp/repos/opengl/main.cpp:99 (discriminator 4)
+[DEBUG] Byte size isn't a power of 2
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[FATAL] 0(6) : error C0000: syntax error, unexpected reserved word "out", expecting '(' at token "out"
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:47
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:96 (discriminator 4)
+[DEBUG] Byte size isn't a power of 2
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[FATAL] Error when trying to load shader at "vertex.glsl": 0(6) : error C0000: syntax error, unexpected reserved word "out", expecting '(' at token "out"
+
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShader.cpp:45 (discriminator 5)
+/home/david/dev/cpp/repos/opengl/glVertexShader.cpp:12
+/home/david/dev/cpp/repos/opengl/main.cpp:96 (discriminator 4)
+[DEBUG] Byte size isn't a power of 2
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[DEBUG] Byte size isn't a power of 2
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:37
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:23
+/home/david/dev/cpp/repos/opengl/main.cpp:109
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other

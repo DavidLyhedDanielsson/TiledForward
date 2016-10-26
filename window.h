@@ -58,12 +58,6 @@ public:
 
 	HGLRC GetHGLRC();
 	HDC GetHDC();
-
-
-	std::vector<HGLRC> extra_contexts;
-
-	HGLRC CreateNewSharedContext();
-	HGLRC GetContextByNumber(int i);
 #endif
 
 	LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -84,8 +78,6 @@ public:
 	Window GetWindow();
 	GLXContext GetContext();
 	Colormap GetColormap();
-    GLXContext CreateNewSharedContext();
-    GLXContext GetContextByNumber(int i);
 #endif // _WIN32
 
     bool PollEvents();
@@ -117,7 +109,6 @@ private:
     Window window;
     GLXContext context;
     Colormap colormap;
-	std::vector<GLXContext> extra_contexts;
 
     Atom wmDeleteWindow;
 

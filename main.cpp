@@ -7,6 +7,10 @@
 #include "logger.h"
 #include "input.h"
 #include "perspectiveCamera.h"
+#include "vertexBuffer.h"
+#include "glVertexShader.h"
+#include "glPixelShader.h"
+#include "glShaderProgram.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -32,6 +36,10 @@ int main(int argc, char* argv[])
     if(window.Create(1280, 720 IF_WINDOWS(, hInstance, nShowCmd)) == OSWindow::NONE)
     {
         IF_WINDOWS(_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF));
+
+        glewExperimental = true;
+        if(glewInit() != GLEW_OK)
+            return 1;
 
         Timer timer;
         timer.UpdateDelta();
@@ -84,6 +92,32 @@ int main(int argc, char* argv[])
 
         Input::LockCursor(1280 / 2, 720 / 2);
 
+        GLVertexShader vertexShader;
+        vertexShader.Load("vertex.glsl");
+
+        GLPixelShader pixelShader;
+        pixelShader.Load("pixel.glsl");
+
+        GLfloat vertices[] = {
+                0.0f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
+                , 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f
+                , -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+        };
+
+        VertexBuffer vertexBuffer;
+        vertexBuffer.Init<glm::vec2, glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, vertices, 3, false);
+        vertexBuffer.Bind();
+
+        GLShaderProgram shaderProgram;
+        shaderProgram.Load(&vertexShader, &pixelShader
+                           , 2, GLEnums::DATA_TYPE::FLOAT, false
+                           , 3, GLEnums::DATA_TYPE::FLOAT, false
+                           , 3, GLEnums::DATA_TYPE::FLOAT, false); //TODO: Pad syntax
+
+        vertexBuffer.Unbind();
+
+        shaderProgram.Bind();
+
         while(window.PollEvents())
         {
             timer.UpdateDelta();
@@ -108,6 +142,11 @@ int main(int argc, char* argv[])
 
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
+
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+
+//            shaderProgram.Unbind();
+//            vertexBuffer.Unbind();
 
             window.SwapBuffers();
 

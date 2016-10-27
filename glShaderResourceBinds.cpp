@@ -10,7 +10,8 @@ GLDrawBinds::GLDrawBinds()
           , shaderProgram(0)
           , vao(0)
           , indexBuffer(nullptr)
-{}
+{
+}
 
 GLDrawBinds::~GLDrawBinds()
 {
@@ -28,10 +29,7 @@ GLDrawBinds::~GLDrawBinds()
         delete pair.second;
 
     for(const auto& pair : uniformBinds)
-    {
-        if(pair.second.second)
-            free(pair.second.first);
-    }
+        delete pair.second;
 
     if(vao != 0)
         glDeleteVertexArrays(1, &vao);
@@ -45,7 +43,20 @@ bool GLDrawBinds::Init()
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    CreateShaderProgram();
+    if(!CreateShaderProgram())
+    {
+        glBindVertexArray(0);
+        glDeleteVertexArrays(1, &vao);
+
+        return false;
+    }
+
+    glUseProgram(shaderProgram);
+    BindUniforms();
+
+    for(const auto& pair : uniformBinds)
+        pair.second->UploadData();
+    glUseProgram(0);
 
     glBindVertexArray(0);
 
@@ -71,36 +82,6 @@ void GLDrawBinds::AddShader(GLEnums::SHADER_TYPE type, const std::string& shader
     newShader->Load(shaderPath);
 
     shaderBinds.push_back(std::make_pair(type, newShader));
-}
-
-void GLDrawBinds::AddUniform(const std::string& name, void* data)
-{
-    uniformBinds.push_back(std::make_pair(name, std::make_pair(data, false)));
-}
-
-void GLDrawBinds::AddUniform(const std::string& name, void* data, size_t dataSize)
-{
-    void* dataPointer = malloc(dataSize);
-    memcpy(dataPointer, data, dataSize);
-
-    uniformBinds.push_back(std::make_pair(name, std::make_pair(dataPointer, true)));
-}
-
-bool GLDrawBinds::VertexOrComputeShaderAvailable() const
-{
-    bool vertexOrCompute = false;
-
-    for(const auto& pair : shaderBinds)
-    {
-        if(pair.first == GLEnums::SHADER_TYPE::VERTEX
-           || pair.first == GLEnums::SHADER_TYPE::COMPUTE)
-        {
-            return true;
-        }
-    }
-
-    Logger::LogLine(LOG_TYPE::WARNING, "No vertex shader or compute shader added to binds");
-    return false;
 }
 
 std::vector<GLDrawBinds::Attrib> GLDrawBinds::GetActiveAttribs() const
@@ -196,6 +177,13 @@ bool GLDrawBinds::CreateShaderProgram()
     return true;
 }
 
+bool GLDrawBinds::BindUniforms()
+{
+    //TODO: Error handling
+    for(const auto& pair : uniformBinds)
+        pair.second->SetLocation(glGetUniformLocation(shaderProgram, pair.first.c_str()));
+}
+
 bool GLDrawBinds::CheckRequirements() const
 {
     if(shaderBinds.size() == 0)
@@ -284,6 +272,9 @@ void GLDrawBinds::Bind()
 
         for(const auto& vertexBuffer : vertexBuffers)
             vertexBuffer->Bind();
+
+        for(const auto& pair : uniformBinds)
+            pair.second->UploadData();
     }
 }
 

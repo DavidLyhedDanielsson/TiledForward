@@ -109,18 +109,22 @@ int main(int argc, char* argv[])
                 };
 
         GLVertexBuffer vertexBuffer;
-        vertexBuffer.Init<glm::vec2, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, &vertices[0], 4, false);
+        vertexBuffer.Init<glm::vec2, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, &vertices[0], sizeof(vertices), false);
 
         GLIndexBuffer indexBuffer;
-        indexBuffer.Init<GLint>(GLEnums::BUFFER_USAGE::STATIC, &indicies[0], 6, false);
+        indexBuffer.Init<GLint>(GLEnums::BUFFER_USAGE::STATIC, &indicies[0], sizeof(indicies), false);
 
         GLDrawBinds binds;
         binds.AddShaders(GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
                          , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
         binds.AddBuffers(&vertexBuffer
                          , &indexBuffer);
+        binds.AddUniform("colorAttrib", glm::vec3(0.0f, 0.0f, 0.0f));
         if(!binds.Init())
             return 2;
+
+        Timer timeSinceStart;
+        timeSinceStart.Start();
 
         while(window.PollEvents())
         {
@@ -147,13 +151,15 @@ int main(int argc, char* argv[])
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
+            binds["colorAttrib"] = glm::vec3((float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f)
+                                             , (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 500.0f, 1.0f)
+                                             , (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1500.0f, 1.0f));
+
             binds.Bind();
 
             binds.DrawElements();
 
             binds.Unbind();
-//            shaderProgram.Unbind();
-//            vertexBuffer.Unbind();
 
             window.SwapBuffers();
 

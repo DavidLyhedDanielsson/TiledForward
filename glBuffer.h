@@ -19,21 +19,10 @@ public:
     GLBuffer& operator=(GLBuffer&& rhs) = delete;
 
     bool Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize, bool memcpyData);
-    template<typename T>
-    bool Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, const std::vector<T>& initialData, bool memcpyData)
-    {
-        return Init(bufferType, usage, &initialData[0], initialData.size(), memcpyData);
-    }
     template<typename... T>
     bool Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* initialData, size_t elementCount, bool memcpyData)
     {
         size_t byteSize = GetByteSize<T...>();
-
-#ifndef NDEBUG
-        if(byteSize != roundToNextPower(byteSize))
-            Logger::LogLine(LOG_TYPE::WARNING, "Byte size isn't a power of 2");
-#endif // NDEBUG
-
         return InitInternal(bufferType, usage, initialData, byteSize * elementCount, memcpyData);
     }
 
@@ -43,7 +32,7 @@ public:
     /**
      * Returns the data of this buffer formatted as a string
      *
-     * @example Assuming the inner format is float float, int int:
+     * @example Assuming the inner format is float, float, int, int:
      * buffer.GetData<float, float, int, int>();
      *
      * @return
@@ -75,9 +64,6 @@ protected:
     uint32_t roundToNextPower(uint32_t value) const;
     uint64_t roundToNextPower(uint64_t value)const;
 
-private:
-    bool InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize, bool memcpyData);
-
     /**@{*/
     /**
      * Returns the byte size of the given template arguments
@@ -98,6 +84,9 @@ private:
         return GetByteSize<First>() + GetByteSize<Second, Rest...>();
     };
     /**@}*/
+
+private:
+    bool InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize, bool memcpyData);
 
     /**@{*/
     /**

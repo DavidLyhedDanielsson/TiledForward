@@ -21,7 +21,11 @@ namespace GLEnums
     enum class SHADER_TYPE : GLuint
     {
         VERTEX = GL_VERTEX_SHADER
+        , TESS_CONTROL = GL_TESS_CONTROL_SHADER
+        , TESS_EVALUATION = GL_TESS_EVALUATION_SHADER
+        , GEOMETRY = GL_GEOMETRY_SHADER
         , PIXEL = GL_FRAGMENT_SHADER
+        , COMPUTE = GL_COMPUTE_SHADER
     };
 
     enum class DATA_TYPE : GLuint

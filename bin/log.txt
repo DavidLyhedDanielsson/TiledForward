@@ -535,3 +535,190 @@ type: Other
 Severity: Notification
 Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
 type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:37
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:23
+/home/david/dev/cpp/repos/opengl/main.cpp:109
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[WARNING] Multiple vertex buffers bound to binds, automatic attrib enabling won't work
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glShaderResourceBinds.cpp:161
+/home/david/dev/cpp/repos/opengl/glShaderResourceBinds.cpp:40
+/home/david/dev/cpp/repos/opengl/main.cpp:111
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> has not been linked, or is not a program object.
+type: Error
+[DEBUG] ---------- OpenGL message ----------
+Severity: High
+GL_INVALID_OPERATION error generated. <program> object is not successfully linked, or is not a program object.
+type: Error
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[WARNING] Byte size isn't a power of 2
+Stack trace:
+/home/david/dev/cpp/repos/opengl/glBuffer.h:32
+/home/david/dev/cpp/repos/opengl/vertexBuffer.h:20
+/home/david/dev/cpp/repos/opengl/main.cpp:105
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ELEMENT_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ELEMENT_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other
+[DEBUG] ---------- OpenGL message ----------
+Severity: Notification
+Buffer detailed info: Buffer object 2 (bound to GL_ELEMENT_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations.
+type: Other

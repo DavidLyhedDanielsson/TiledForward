@@ -3,8 +3,9 @@
 #include "glShader.h"
 #include "logger.h"
 
-GLShader::GLShader()
-        : shader(0)
+GLShader::GLShader(GLEnums::SHADER_TYPE shaderType)
+        : shaderType(shaderType)
+          , shader(0)
 {}
 
 GLShader::~GLShader()
@@ -13,8 +14,12 @@ GLShader::~GLShader()
         glDeleteShader(shader);
 }
 
-bool GLShader::Load(GLEnums::SHADER_TYPE shaderType, const std::string& path)
+bool GLShader::Load(const std::string& path)
 {
+#ifndef NDEBUG
+    this->path = path;
+#endif // NDEBUG
+
     std::ifstream in(path, std::ios::ate);
     if(!in.is_open())
     {
@@ -50,7 +55,19 @@ bool GLShader::Load(GLEnums::SHADER_TYPE shaderType, const std::string& path)
     return true;
 }
 
+GLEnums::SHADER_TYPE GLShader::GetShaderType() const
+{
+    return shaderType;
+}
+
 GLuint GLShader::GetShader() const
 {
     return shader;
 }
+
+#ifndef NDEBUG
+const std::string& GLShader::GetPath() const
+{
+    return path;
+}
+#endif // NDEBUG

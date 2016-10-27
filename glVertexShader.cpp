@@ -1,12 +1,8 @@
 #include "glVertexShader.h"
 
 GLVertexShader::GLVertexShader()
+        : GLShader(GLEnums::SHADER_TYPE::VERTEX)
 {}
 
 GLVertexShader::~GLVertexShader()
 {}
-
-bool GLVertexShader::Load(const std::string& path)
-{
-    return GLShader::Load(GLEnums::SHADER_TYPE::VERTEX, path);
-}

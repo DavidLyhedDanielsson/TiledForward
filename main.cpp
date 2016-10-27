@@ -7,10 +7,12 @@
 #include "logger.h"
 #include "input.h"
 #include "perspectiveCamera.h"
-#include "vertexBuffer.h"
+#include "glVertexBuffer.h"
 #include "glVertexShader.h"
 #include "glPixelShader.h"
 #include "glShaderProgram.h"
+#include "glShaderResourceBinds.h"
+#include "glIndexBuffer.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -92,31 +94,33 @@ int main(int argc, char* argv[])
 
         Input::LockCursor(1280 / 2, 720 / 2);
 
-        GLVertexShader vertexShader;
-        vertexShader.Load("vertex.glsl");
+        GLfloat vertices[] =
+                {
+                        -0.5f, -0.5f, 1.0f, 0.0f, 0.0f
+                        , 0.5f, -0.5f, 0.0f, 1.0f, 0.0f
+                        , -0.5f, 0.5f, 0.0f, 0.0f, 1.0f
+                        , 0.5f, 0.5f, 1.0f, 0.0f, 1.0f
+                };
 
-        GLPixelShader pixelShader;
-        pixelShader.Load("pixel.glsl");
+        GLint indicies[] =
+                {
+                        0, 2, 1
+                        , 3, 1, 2
+                };
 
-        GLfloat vertices[] = {
-                0.0f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
-                , 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f
-                , -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
-        };
+        GLVertexBuffer vertexBuffer;
+        vertexBuffer.Init<glm::vec2, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, &vertices[0], 4, false);
 
-        VertexBuffer vertexBuffer;
-        vertexBuffer.Init<glm::vec2, glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, vertices, 3, false);
-        vertexBuffer.Bind();
+        GLIndexBuffer indexBuffer;
+        indexBuffer.Init<GLint>(GLEnums::BUFFER_USAGE::STATIC, &indicies[0], 6, false);
 
-        GLShaderProgram shaderProgram;
-        shaderProgram.Load(&vertexShader, &pixelShader
-                           , 2, GLEnums::DATA_TYPE::FLOAT, false
-                           , 3, GLEnums::DATA_TYPE::FLOAT, false
-                           , 3, GLEnums::DATA_TYPE::FLOAT, false); //TODO: Pad syntax
-
-        vertexBuffer.Unbind();
-
-        shaderProgram.Bind();
+        GLDrawBinds binds;
+        binds.AddShaders(GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
+                         , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
+        binds.AddBuffers(&vertexBuffer
+                         , &indexBuffer);
+        if(!binds.Init())
+            return 2;
 
         while(window.PollEvents())
         {
@@ -143,8 +147,11 @@ int main(int argc, char* argv[])
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            binds.Bind();
 
+            binds.DrawElements();
+
+            binds.Unbind();
 //            shaderProgram.Unbind();
 //            vertexBuffer.Unbind();
 

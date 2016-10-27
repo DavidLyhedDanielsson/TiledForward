@@ -12,8 +12,6 @@ public:
     GLVertexShader();
     ~GLVertexShader();
 
-    bool Load(const std::string& path);
-
 protected:
 private:
 };

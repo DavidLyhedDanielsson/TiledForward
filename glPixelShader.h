@@ -10,9 +10,6 @@ public:
     GLPixelShader();
     ~GLPixelShader();
 
-    bool Load(const std::string& path);
-    bool Load(const std::string& path, const std::string& outBuffer);
-
 protected:
 private:
 };

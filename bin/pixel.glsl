@@ -1,12 +1,13 @@
 #version 330
 
-uniform vec3 colorAttrib;
-
-in vec3 vertexColor;
+uniform float r;
+uniform float g;
+uniform float b;
+uniform float a;
 
 out vec4 outColor;
 
 void main()
 {
-    outColor = vec4(colorAttrib, 1.0f);
+    outColor = vec4(r, g, b, a);
 }

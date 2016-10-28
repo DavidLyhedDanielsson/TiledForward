@@ -119,7 +119,10 @@ int main(int argc, char* argv[])
                          , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
         binds.AddBuffers(&vertexBuffer
                          , &indexBuffer);
-        binds.AddUniform("colorAttrib", glm::vec3(0.0f, 0.0f, 0.0f));
+        binds.AddUniform("r", 0.0f);
+        binds.AddUniform("g", 0.5f);
+        binds.AddUniform("b", 1.0f);
+        //binds.AddUniform("a", 999.0f);
         if(!binds.Init())
             return 2;
 
@@ -151,9 +154,9 @@ int main(int argc, char* argv[])
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
-            binds["colorAttrib"] = glm::vec3((float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f)
-                                             , (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 500.0f, 1.0f)
-                                             , (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1500.0f, 1.0f));
+            binds["r"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
+            binds["g"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 500.0f, 1.0f);
+            binds["b"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1500.0f, 1.0f);
 
             binds.Bind();
 

@@ -35,7 +35,7 @@ public:
     {
 #ifndef NDEBUG
         if(uniformBinds.count(name) != 0)
-            Logger::LogLine(LOG_TYPE::DEBUG_NOWRITE, "Adding uniform \"" + name + "\" multiple time to resource binds");
+            LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource binds");
 #endif // NDEBUG
 
         uniformBinds[name] = new GLUniform<T>(data);
@@ -75,13 +75,14 @@ public:
 
 protected:
 private:
+    // Also used for uniforms
     struct Attrib
     {
-        std::unique_ptr<GLchar> name;
+        std::string name;
         GLint size;
         GLenum type;
 
-        Attrib(std::unique_ptr<GLchar>&& name, GLint size, GLenum type)
+        Attrib(std::string&& name, GLint size, GLenum type)
                 : name(std::move(name)), size(size), type(type)
         {}
     };
@@ -113,11 +114,18 @@ private:
     {}
 
     std::vector<Attrib> GetActiveAttribs() const;
+    std::vector<Attrib> GetActiveUniforms() const;
     bool CreateShaderProgram();
-    bool BindUniforms();
+    void BindUniforms();
 
     int GetNumberOfFloats(GLenum type) const;
+
+    bool CheckUniforms(const std::vector<Attrib>& activeUniforms);
     bool CheckRequirements() const;
+
+    std::string ToString() const;
+
+    void LogWithName(LOG_TYPE logType, const std::string& message) const;
 };
 
 //TODO: These don't need to be templates?

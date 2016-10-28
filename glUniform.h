@@ -51,7 +51,6 @@ public:
     void SetData(T data) { this->data = data; }
 
 protected:
-    GLint location;
     T data;
 };
 
@@ -70,10 +69,10 @@ public:
     }
 
     GLUniformArray(const GLUniformArray& other)
-            : location(other.location)
-              , dataOwned(other.dataOwned)
+            : dataOwned(other.dataOwned)
               , data(nullptr) //Make sure this is initialized to nullptr so that delete[] data won't do anything
     {
+        SetLocation(other.location);
         SetData(other.data, other.count, false);
     }
 
@@ -109,7 +108,6 @@ public:
     }
 
 protected:
-    GLint location;
     GLsizei count;
     T* data;
 

@@ -4,6 +4,7 @@
 #include "logger.h"
 
 #include <cstring>
+#include <set>
 
 GLDrawBinds::GLDrawBinds()
         : bound(false)
@@ -96,15 +97,40 @@ std::vector<GLDrawBinds::Attrib> GLDrawBinds::GetActiveAttribs() const
 
     for(GLuint i = 0; i < attribCount; ++i)
     {
-        std::unique_ptr<GLchar> name(new GLchar[maxAttribNameLength]);
+        std::string name(maxAttribNameLength, '\0');
         GLint size;
         GLenum type;
 
-        glGetActiveAttrib(shaderProgram, i, maxAttribNameLength, nullptr, &size, &type, name.get());
+        glGetActiveAttrib(shaderProgram, i, maxAttribNameLength, nullptr, &size, &type, &name[0]);
+        name.resize(name.find_first_of('\0'));
         attributes.emplace_back(std::move(name), size, type);
     }
 
     return attributes;
+}
+
+std::vector<GLDrawBinds::Attrib> GLDrawBinds::GetActiveUniforms() const
+{
+    std::vector<Attrib> uniforms;
+
+    GLint uniformCount;
+    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORMS, &uniformCount);
+
+    GLint maxUniformNameLength;
+    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformNameLength);
+
+    for(GLuint i = 0; i < uniformCount; ++i)
+    {
+        std::string name(maxUniformNameLength, '\0');
+        GLint size;
+        GLenum type;
+
+        glGetActiveUniform(shaderProgram, i, maxUniformNameLength, nullptr, &size, &type, &name[0]);
+        name.resize(name.find_first_of('\0'));
+        uniforms.emplace_back(std::move(name), size, type);
+    }
+
+    return uniforms;
 }
 
 int GLDrawBinds::GetNumberOfFloats(GLenum type) const
@@ -126,7 +152,7 @@ int GLDrawBinds::GetNumberOfFloats(GLenum type) const
         case GL_FLOAT_MAT4:
             return 16;
         default:
-            Logger::LogLine(LOG_TYPE::FATAL, "Type to number of float conversion failed for type ", type);
+            LogWithName(LOG_TYPE::FATAL, "Type to number of float conversion failed for type " + std::to_string(type));
             return -1;
     }
 }
@@ -143,12 +169,14 @@ bool GLDrawBinds::CreateShaderProgram()
 
     std::vector<Attrib> attributes = GetActiveAttribs();
 
+    CheckUniforms(GetActiveUniforms());
+
     //TODO: Optional input layout
     if(true)
     {
         if(vertexBuffers.size() != 1)
         {
-            Logger::LogLine(LOG_TYPE::WARNING, "Multiple vertex buffers bound to binds, automatic attrib enabling won't work");
+            LogWithName(LOG_TYPE::WARNING, "Multiple vertex buffers bound to binds, automatic attrib enabling won't work");
             return false;
         }
 
@@ -156,7 +184,7 @@ bool GLDrawBinds::CreateShaderProgram()
 
         for(int i = 0; i < attributes.size(); ++i)
         {
-            GLuint location = (GLuint)glGetAttribLocation(shaderProgram, attributes[i].name.get());
+            GLuint location = (GLuint)glGetAttribLocation(shaderProgram, attributes[i].name.c_str());
 
             glEnableVertexAttribArray(location);
             glVertexAttribPointer(location
@@ -177,9 +205,8 @@ bool GLDrawBinds::CreateShaderProgram()
     return true;
 }
 
-bool GLDrawBinds::BindUniforms()
+void GLDrawBinds::BindUniforms()
 {
-    //TODO: Error handling
     for(const auto& pair : uniformBinds)
         pair.second->SetLocation(glGetUniformLocation(shaderProgram, pair.first.c_str()));
 }
@@ -188,7 +215,7 @@ bool GLDrawBinds::CheckRequirements() const
 {
     if(shaderBinds.size() == 0)
     {
-        Logger::LogLine(LOG_TYPE::FATAL, "No shaders added to binds");
+        LogWithName(LOG_TYPE::FATAL, "No shaders added to binds");
         return false;
     }
 
@@ -227,11 +254,11 @@ bool GLDrawBinds::CheckRequirements() const
     if(!vertexBound)
     {
         if(tessControlBound || tessEvaluationBound || geometryBound || pixelBound)
-            Logger::LogLine(LOG_TYPE::WARNING, "No vertex shader added but a shader which might depend on it has been added");
+            LogWithName(LOG_TYPE::WARNING, "No vertex shader added but a shader which might depend on it has been added");
 
         if(!computeBound)
         {
-            Logger::LogLine(LOG_TYPE::WARNING, "Neither a compute shader nor vertex shader has been added");
+            LogWithName(LOG_TYPE::WARNING, "Neither a compute shader nor vertex shader has been added");
             return false;
         }
     }
@@ -239,23 +266,34 @@ bool GLDrawBinds::CheckRequirements() const
     {
         if(vertexBuffers.size() == 0)
         {
-            Logger::LogLine(LOG_TYPE::FATAL, "No vertex buffer added to binds with vertex shader");
+            LogWithName(LOG_TYPE::FATAL, "No vertex buffer added to binds with vertex shader");
             return false;
         }
 
         if(!pixelBound)
-        {
-#ifndef NDEBUG
-            GLShader* vertexShader = GetShader(GLEnums::SHADER_TYPE::VERTEX, 0);
-
-            Logger::LogLine(LOG_TYPE::WARNING, "No pixel shader to match vertex shader \"" + vertexShader->GetPath() + "\", is this intended?");
-#else
-            Logger::LogLine(LOG_TYPE::WARNING, "No pixel shader to match vertex shader, is this intended?");
-#endif // NDEBUG
-        }
+            LogWithName(LOG_TYPE::WARNING, "No pixel shader to match vertex shader, is this intended?");
     }
 
     return true;
+}
+
+bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUniforms)
+{
+    std::set<std::string> usedUniforms;
+
+    for(const Attrib& uniform : activeUniforms)
+    {
+        if(uniformBinds.count(uniform.name) == 0)
+            LogWithName(LOG_TYPE::DEBUG, "Unused uniform \"" + uniform.name + "\"");
+        else
+            usedUniforms.insert(uniform.name);
+    }
+
+    for(const auto& pair : uniformBinds)
+    {
+        if(usedUniforms.count(pair.first) == 0)
+            LogWithName(LOG_TYPE::DEBUG, "Bound uniform \"" + pair.first + "\" never used (is it optimized away?)");
+    }
 }
 
 void GLDrawBinds::Bind()
@@ -274,7 +312,8 @@ void GLDrawBinds::Bind()
             vertexBuffer->Bind();
 
         for(const auto& pair : uniformBinds)
-            pair.second->UploadData();
+            if(pair.second->GetLocation() != -1)
+                pair.second->UploadData();
     }
 }
 
@@ -331,10 +370,85 @@ void GLDrawBinds::DrawElements()
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
     {
-        Logger::LogLine(LOG_TYPE::FATAL, "DrawElements called without an index buffer set");
+        LogWithName(LOG_TYPE::FATAL, "DrawElements called without an index buffer set");
         return;
     }
 #endif // NDEBUG
 
     glDrawElements(GL_TRIANGLES, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0);
+}
+
+std::string GLDrawBinds::ToString() const
+{
+    std::string string = "Draw binds with:\n";
+
+    std::string vertexShader;
+    std::string tessControlShader;
+    std::string tessEvalShader;
+    std::string geometryShader;
+    std::string pixelShader;
+    std::string computeShader;
+
+    for(const auto& pair : shaderBinds)
+    {
+        switch(pair.first)
+        {
+            case GLEnums::SHADER_TYPE::VERTEX:
+                if(vertexShader.empty())
+                    vertexShader = "Vertex shaders: ";
+
+                vertexShader += pair.second->GetPath() + ", ";
+                break;
+            case GLEnums::SHADER_TYPE::TESS_CONTROL:
+                if(tessControlShader.empty())
+                    tessControlShader = "Tessellation control shaders: ";
+
+                tessControlShader += pair.second->GetPath() + ", ";
+                break;
+            case GLEnums::SHADER_TYPE::TESS_EVALUATION:
+                if(tessEvalShader.empty())
+                    tessEvalShader = "Tessellation evaluation shaders: ";
+
+                tessEvalShader += pair.second->GetPath() + ", ";
+                break;
+            case GLEnums::SHADER_TYPE::GEOMETRY:
+                if(geometryShader.empty())
+                    geometryShader = "Geometry shaders: ";
+
+                geometryShader += pair.second->GetPath() + ", ";
+                break;
+            case GLEnums::SHADER_TYPE::PIXEL:
+                if(pixelShader.empty())
+                    pixelShader = "Pixel shaders: ";
+
+                pixelShader += pair.second->GetPath() + ", ";
+                break;
+            case GLEnums::SHADER_TYPE::COMPUTE:
+                if(computeShader.empty())
+                    computeShader = "Compute shaders: ";
+
+                computeShader += pair.second->GetPath() + ", ";
+                break;
+        }
+    }
+
+    if(!vertexShader.empty())
+        string += vertexShader.substr(0, vertexShader.length() - 2) + "\n"; // Remove ", "
+    if(!tessControlShader.empty())
+        string += tessControlShader.substr(0, tessControlShader.length() - 2) + "\n"; // Remove ", "
+    if(!tessEvalShader.empty())
+        string += tessEvalShader.substr(0, tessEvalShader.length() - 2) + "\n"; // Remove ", "
+    if(!geometryShader.empty())
+        string += geometryShader.substr(0, geometryShader.length() - 2) + "\n"; // Remove ", "
+    if(!pixelShader.empty())
+        string += pixelShader.substr(0, pixelShader.length() - 2) + "\n"; // Remove ", "
+    if(!computeShader.empty())
+        string += computeShader.substr(0, computeShader.length() - 2) + "\n"; // Remove ", "
+
+    return string;
+}
+
+void GLDrawBinds::LogWithName(LOG_TYPE logType, const std::string& message) const
+{
+    Logger::LogLine(logType, ToString() + message);
 }

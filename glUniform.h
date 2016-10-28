@@ -5,6 +5,7 @@
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include "glEnums.h"
 
 template<typename T>
 struct GLUniform;
@@ -16,6 +17,7 @@ class GLUniformBase
 {
 public:
     virtual void UploadData() = 0;
+    virtual bool VerifyType(GLEnums::UNIFORM_TYPE type) = 0;
 
     GLint GetLocation() const { return location; }
     void SetLocation(GLint location) { this->location = location; }
@@ -58,7 +60,15 @@ public:
             : data(*data)
     { }
 
-    void UploadData();
+    // TODO: Did this not work sometimes when optimizations are on?
+    void UploadData()
+    {
+        throw std::runtime_error("Unknown data type, update glUniform.cpp");
+    }
+    bool VerifyType(GLEnums::UNIFORM_TYPE type)
+    {
+        throw std::runtime_error("Unknown GLEnums::UNIFORM_TYPE type, update glUniform.cpp");
+    }
 
     T GetData() const { return data; }
     void SetData(T data) { this->data = data; }
@@ -85,7 +95,15 @@ public:
 
     // TODO: Rule of four½
 
-    void UploadData();
+    // TODO: Did this not work sometimes when optimizations are on?
+    void UploadData()
+    {
+        throw std::runtime_error("Unknown data type, update glUniform.cpp");
+    }
+    bool VerifyType(GLEnums::UNIFORM_TYPE type)
+    {
+        throw std::runtime_error("Unknown GLEnums::UNIFORM_TYPE type, update glUniform.cpp");
+    }
 
     GLsizei GetCount() const { return count; }
     T GetData() const { return data; }

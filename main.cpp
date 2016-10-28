@@ -120,9 +120,6 @@ int main(int argc, char* argv[])
                         0.0f, 0.0f, 0.0f
                 };
         binds.AddUniform("colors", colorArray, 3);
-        //binds.AddUniform("g", 0.5f);
-        //binds.AddUniform("b", 1.0f);
-        //binds.AddUniform("a", 999.0f);
         if(!binds.Init())
             return 2;
 

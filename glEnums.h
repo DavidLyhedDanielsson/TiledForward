@@ -42,6 +42,33 @@ namespace GLEnums
         , BYTES_4 = GL_4_BYTES
         , DOUBLE = GL_DOUBLE
     };
+
+    enum class UNIFORM_TYPE : GLuint
+    {
+        FLOAT = GL_FLOAT
+        , FLOAT_VEC2 = GL_FLOAT_VEC2
+        , FLOAT_VEC3 = GL_FLOAT_VEC3
+        , FLOAT_VEC4 = GL_FLOAT_VEC4
+        , INT = GL_INT
+        , INT_VEC2 = GL_INT_VEC2
+        , INT_VEC3 = GL_INT_VEC3
+        , INT_VEC4 = GL_INT_VEC4
+        , BOOL = GL_BOOL
+        , BOOL_VEC2 = GL_BOOL_VEC2
+        , BOOL_VEC3 = GL_BOOL_VEC3
+        , BOOL_VEC4 = GL_BOOL_VEC4
+        , FLOAT_MAT2 = GL_FLOAT_MAT2
+        , FLOAT_MAT3 = GL_FLOAT_MAT3
+        , FLOAT_MAT4 = GL_FLOAT_MAT4
+        , SAMPLER_2D = GL_SAMPLER_2D
+        , SAMPLER_CUBE = GL_SAMPLER_CUBE
+        , FLOAT_MAT2X3 = GL_FLOAT_MAT2x3
+        , FLOAT_MAT3X2 = GL_FLOAT_MAT3x2
+        , FLOAT_MAT2X4 = GL_FLOAT_MAT2x4
+        , FLOAT_MAT4X2 = GL_FLOAT_MAT4x2
+        , FLOAT_MAT3X4 = GL_FLOAT_MAT3x4
+        , FLOAT_MAT4X3 = GL_FLOAT_MAT4x3
+    };
 }
 
 #endif //GLENUMS_H

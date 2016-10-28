@@ -281,12 +281,19 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
 {
     std::set<std::string> usedUniforms;
 
+    // TODO: Type checking!
+
     for(const Attrib& uniform : activeUniforms)
     {
-        if(uniformBinds.count(uniform.name) == 0)
-            LogWithName(LOG_TYPE::DEBUG, "Unused uniform \"" + uniform.name + "\"");
+        std::string actualName = uniform.name.substr(0, uniform.name.find_first_of("["));
+
+        if(uniform.name.find_first_of(".") != uniform.name.npos)
+            throw std::runtime_error("Implement this");
+
+        if(uniformBinds.count(actualName) == 0)
+            LogWithName(LOG_TYPE::DEBUG, "Unused uniform \"" + actualName + "\"");
         else
-            usedUniforms.insert(uniform.name);
+            usedUniforms.insert(actualName);
     }
 
     for(const auto& pair : uniformBinds)
@@ -380,6 +387,7 @@ void GLDrawBinds::DrawElements()
 
 std::string GLDrawBinds::ToString() const
 {
+#ifndef NDEBUG
     std::string string = "Draw binds with:\n";
 
     std::string vertexShader;
@@ -446,6 +454,9 @@ std::string GLDrawBinds::ToString() const
         string += computeShader.substr(0, computeShader.length() - 2) + "\n"; // Remove ", "
 
     return string;
+#else // NDEBUG
+    return "No shader names available in release";
+#endif // NDEBUG
 }
 
 void GLDrawBinds::LogWithName(LOG_TYPE logType, const std::string& message) const

@@ -8,7 +8,6 @@
 
 #include "glEnums.h"
 #include "glShader.h"
-#include "glShaderProgram.h"
 #include "glVertexBuffer.h"
 #include "glIndexBuffer.h"
 #include "glUniform.h"
@@ -39,6 +38,17 @@ public:
 #endif // NDEBUG
 
         uniformBinds[name] = new GLUniform<T>(data);
+    }
+
+    template<typename T>
+    void AddUniform(const std::string& name, T data, int count)
+    {
+#ifndef NDEBUG
+        if(uniformBinds.count(name) != 0)
+            LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource binds");
+#endif // NDEBUG
+
+        uniformBinds[name] = new GLUniformArray<T>(data, count);
     }
 
     template<typename T, typename... Rest>

@@ -8,11 +8,7 @@
 #include "input.h"
 #include "perspectiveCamera.h"
 #include "glVertexBuffer.h"
-#include "glVertexShader.h"
-#include "glPixelShader.h"
-#include "glShaderProgram.h"
 #include "glShaderResourceBinds.h"
-#include "glIndexBuffer.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -119,9 +115,13 @@ int main(int argc, char* argv[])
                          , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
         binds.AddBuffers(&vertexBuffer
                          , &indexBuffer);
-        binds.AddUniform("r", 0.0f);
-        binds.AddUniform("g", 0.5f);
-        binds.AddUniform("b", 1.0f);
+        float colorArray[3] =
+                {
+                        0.0f, 0.0f, 0.0f
+                };
+        binds.AddUniform("colors", colorArray, 3);
+        //binds.AddUniform("g", 0.5f);
+        //binds.AddUniform("b", 1.0f);
         //binds.AddUniform("a", 999.0f);
         if(!binds.Init())
             return 2;
@@ -154,9 +154,11 @@ int main(int argc, char* argv[])
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
-            binds["r"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-            binds["g"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 500.0f, 1.0f);
-            binds["b"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1500.0f, 1.0f);
+            colorArray[0] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
+            colorArray[1] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 500.0f, 1.0f);
+            colorArray[2] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1500.0f, 1.0f);
+
+            binds["colors"] = colorArray;
 
             binds.Bind();
 

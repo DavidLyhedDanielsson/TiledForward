@@ -137,64 +137,64 @@ template<>
 bool GLUniform<glm::uvec4>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC4; }
 
 template<>
-bool GLUniformArray<GLfloat*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT; }
+bool GLUniform<GLfloat*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT; }
 
 template<>
-bool GLUniformArray<glm::vec2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_VEC2; }
+bool GLUniform<glm::vec2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_VEC2; }
 
 template<>
-bool GLUniformArray<glm::vec3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_VEC3; }
+bool GLUniform<glm::vec3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_VEC3; }
 
 template<>
-bool GLUniformArray<glm::vec4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_VEC4; }
+bool GLUniform<glm::vec4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_VEC4; }
 
 template<>
-bool GLUniformArray<GLint*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT; }
+bool GLUniform<GLint*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT; }
 
 template<>
-bool GLUniformArray<glm::ivec2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC2; }
+bool GLUniform<glm::ivec2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC2; }
 
 template<>
-bool GLUniformArray<glm::ivec3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC3; }
+bool GLUniform<glm::ivec3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC3; }
 
 template<>
-bool GLUniformArray<glm::ivec4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC4; }
+bool GLUniform<glm::ivec4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC4; }
 
 template<>
-bool GLUniformArray<GLuint*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT; }
+bool GLUniform<GLuint*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT; }
 
 template<>
-bool GLUniformArray<glm::uvec2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC2; }
+bool GLUniform<glm::uvec2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC2; }
 
 template<>
-bool GLUniformArray<glm::uvec3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC3; }
+bool GLUniform<glm::uvec3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC3; }
 
 template<>
-bool GLUniformArray<glm::uvec4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC4; }
+bool GLUniform<glm::uvec4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC4; }
 
 template<>
-bool GLUniformArray<glm::mat2x2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2; }
+bool GLUniform<glm::mat2x2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2; }
 
 template<>
-bool GLUniformArray<glm::mat3x3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3; }
+bool GLUniform<glm::mat3x3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3; }
 
 template<>
-bool GLUniformArray<glm::mat4x4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4; }
+bool GLUniform<glm::mat4x4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4; }
 
 template<>
-bool GLUniformArray<glm::mat2x3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2X3; }
+bool GLUniform<glm::mat2x3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2X3; }
 
 template<>
-bool GLUniformArray<glm::mat3x2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3X2; }
+bool GLUniform<glm::mat3x2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3X2; }
 
 template<>
-bool GLUniformArray<glm::mat2x4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2X4; }
+bool GLUniform<glm::mat2x4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2X4; }
 
 template<>
-bool GLUniformArray<glm::mat4x2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4X2; }
+bool GLUniform<glm::mat4x2*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4X2; }
 
 template<>
-bool GLUniformArray<glm::mat3x4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3X4; }
+bool GLUniform<glm::mat3x4*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3X4; }
 
 template<>
-bool GLUniformArray<glm::mat4x3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4X3; }
+bool GLUniform<glm::mat4x3*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4X3; }

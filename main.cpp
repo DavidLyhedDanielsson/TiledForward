@@ -120,6 +120,8 @@ int main(int argc, char* argv[])
                         0.0f, 0.0f, 0.0f
                 };
         binds.AddUniform("colors", colorArray, 3);
+        binds.AddUniform("singleColor", 0.0f);
+        binds.AddUniform("intColor", 0);
         if(!binds.Init())
             return 2;
 
@@ -152,10 +154,12 @@ int main(int argc, char* argv[])
             glClear(GL_COLOR_BUFFER_BIT);
 
             colorArray[0] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-            colorArray[1] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 500.0f, 1.0f);
-            colorArray[2] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1500.0f, 1.0f);
+            colorArray[1] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
+            colorArray[2] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
 
             binds["colors"] = colorArray;
+            binds["singleColor"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
+            binds["intColor"] = (int)((float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f) * 255);
 
             binds.Bind();
 

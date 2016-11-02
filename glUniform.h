@@ -27,38 +27,41 @@ public:
     template<typename T>
     void operator=(T other)
     {
-        // TODO: Avoid two dynamic_cast somehow?
+#ifndef NDEBUG
         GLUniform<T>* thisAsDerived = dynamic_cast<GLUniform<T>*>(this);
 
         if(thisAsDerived != nullptr)
             thisAsDerived->SetData(other);
-        else
-        {
-            GLUniformArray<T>* thisAsDerivedArray = dynamic_cast<GLUniformArray<T>*>(this);
-
-            if(thisAsDerivedArray != nullptr)
-                thisAsDerivedArray->SetData(other);
-            else
-                throw std::runtime_error("Trying to set uniform with wrong data type"); //TODO: Do something better than throwing?
-        }
+#else // NDEBUG
+        SetData(&other);
+#endif // NDEBUG
     }
 
 protected:
     GLint location;
+
+#ifdef NDEBUG
+    // In release mode type-safety is ignored in favour of performance
+    virtual void SetData(void* data) = 0;
+#endif // NDEBUG
 };
 
 template<typename T>
 struct GLUniform
-    : public GLUniformBase
+        : public GLUniformBase
 {
 public:
     GLUniform(T data)
-            : data(data)
-    { }
+    {
+        this->data = data;
+    }
 
-    GLUniform(T* data)
-            : data(*data)
-    { }
+#ifndef NDEBUG
+    virtual void SetData(T data)
+    {
+        this->data = data;
+    }
+#endif // NDEBUG
 
     // TODO: Did this not work sometimes when optimizations are on?
     void UploadData()
@@ -70,27 +73,33 @@ public:
         throw std::runtime_error("Unknown GLEnums::UNIFORM_TYPE type, update glUniform.cpp");
     }
 
-    T GetData() const { return data; }
-    void SetData(T data) { this->data = data; }
+    const T GetData() const { return data; }
 
 protected:
     T data;
+
+#ifdef NDEBUG
+    void SetData(void* data)
+    {
+        std::memcpy(&this->data, data, sizeof(T));
+    }
+#endif // NDEBUG
 };
 
 template<typename T>
 struct GLUniformArray
-        : public GLUniformBase
+        : public GLUniform<T>
 {
 public:
     GLUniformArray(T data, GLsizei count)
-            : data(new typename std::remove_pointer<T>::type[count])
+            : GLUniform<T>(new typename std::remove_pointer<T>::type[count])
               , count(count)
     {
         std::memcpy(this->data, data, sizeof(typename std::remove_pointer<T>::type) * count);
     }
     virtual ~GLUniformArray()
     {
-        delete[] data;
+        delete[] this->data;
     }
 
     // TODO: Rule of four½
@@ -100,21 +109,25 @@ public:
     {
         throw std::runtime_error("Unknown data type, update glUniform.cpp");
     }
-    bool VerifyType(GLEnums::UNIFORM_TYPE type)
-    {
-        throw std::runtime_error("Unknown GLEnums::UNIFORM_TYPE type, update glUniform.cpp");
-    }
 
     GLsizei GetCount() const { return count; }
-    T GetData() const { return data; }
+
+#ifndef NDEBUG
     void SetData(T data)
     {
-        std::memcpy(this->data, data, sizeof(T) * count);
+        std::memcpy(this->data, data, sizeof(typename std::remove_pointer<T>::type) * count);
     }
+#endif // NDEBUG
 
 protected:
     GLsizei count;
-    T data;
+
+#ifdef NDEBUG
+    void SetData(void* data)
+    {
+        std::memcpy(this->data, *static_cast<T*>(data), sizeof(typename std::remove_pointer<T>::type) * count);
+    }
+#endif // NDEBUG
 };
 
 #endif // GLUNIFORM_H__

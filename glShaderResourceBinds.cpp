@@ -283,8 +283,6 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
 
     std::set<std::string> usedUniforms;
 
-    // TODO: Type checking!
-
     for(const Attrib& uniform : activeUniforms)
     {
         std::string actualName = uniform.name.substr(0, uniform.name.find_first_of("["));
@@ -293,13 +291,13 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
             throw std::runtime_error("Implement this");
 
         if(uniformBinds.count(actualName) == 0)
-            LogWithName(LOG_TYPE::DEBUG, "Unused uniform \"" + actualName + "\"");
+            LogWithName(LOG_TYPE::DEBUG, "Uniform \"" + actualName + "\" is never used");
         else
         {
             if(!uniformBinds.at(actualName)->VerifyType((GLEnums::UNIFORM_TYPE)uniform.type))
             {
                 LogWithName(LOG_TYPE::WARNING, "Uniform \"" + actualName + "\" doesn't match shader type");
-                return false;
+                returnValue = false;
             }
 
             usedUniforms.insert(actualName);
@@ -309,7 +307,7 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
     for(const auto& pair : uniformBinds)
     {
         if(usedUniforms.count(pair.first) == 0)
-            LogWithName(LOG_TYPE::DEBUG, "Bound uniform \"" + pair.first + "\" never used (is it optimized away?)");
+            LogWithName(LOG_TYPE::DEBUG, "Bound uniform \"" + pair.first + "\" is never used (is it optimized away?)");
     }
 
     return returnValue;

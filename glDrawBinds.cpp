@@ -1,4 +1,4 @@
-#include "glShaderResourceBinds.h"
+#include "glDrawBinds.h"
 #include "glVertexShader.h"
 #include "glPixelShader.h"
 #include "logger.h"
@@ -167,16 +167,18 @@ bool GLDrawBinds::CreateShaderProgram()
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
+    if(!CheckUniforms(GetActiveUniforms()))
+        return false;
+
     std::vector<Attrib> attributes = GetActiveAttribs();
 
-    CheckUniforms(GetActiveUniforms());
-
-    //TODO: Optional input layout
-    if(true)
+    if(inputLayouts.size() == 0)
     {
+        // Create default input layouts
+
         if(vertexBuffers.size() != 1)
         {
-            LogWithName(LOG_TYPE::WARNING, "Multiple vertex buffers bound to binds, automatic attrib enabling won't work");
+            LogWithName(LOG_TYPE::FATAL, "Multiple vertex buffers bound to binds, automatic attrib enabling won't work");
             return false;
         }
 
@@ -197,7 +199,47 @@ bool GLDrawBinds::CreateShaderProgram()
     }
     else
     {
+        // User has defined input layouts
 
+        for(int i = 0; i < inputLayouts.size(); ++i)
+        {
+            const GLInputLayout& inputLayout = inputLayouts[i];
+
+            // TODO: Make sure every attribute has a layout
+            for(int j = 0; j < inputLayout.namedInputLayouts.size(); ++j)
+            {
+                const std::pair<std::string, InputLayout>& current = inputLayout.namedInputLayouts[j];
+
+                GLuint location = (GLuint)(std::isdigit(current.first[0]) ? std::stoi(current.first) : glGetAttribLocation(shaderProgram, current.first.c_str()));
+
+                if(location == -1)
+                {
+                    LogWithName(LOG_TYPE::DEBUG, "Attribute " + current.first + " not found in shader (is it optimized away?)");
+                    continue;
+                }
+
+                GLint size = current.second.size == -1 ? attributes[j].size * GetNumberOfFloats(attributes[j].type) : current.second.size;
+                GLenum type = current.second.type == GLEnums::DATA_TYPE::UNKNOWN ? GL_FLOAT : (GLenum)current.second.type;
+                GLboolean normalized = current.second.normalized;
+                GLsizei stride = current.second.stride == -1 ? vertexBuffers[inputLayout.vertexBuffer]->GetStride() : current.second.stride;
+                void* offset = (void*)(current.second.offset == -1 ? vertexBuffers[inputLayout.vertexBuffer]->GetOffsets()[location] : current.second.offset);
+
+                GLBufferLock bufferLock(vertexBuffers[inputLayout.vertexBuffer]);
+
+                glEnableVertexAttribArray(location);
+                glVertexAttribPointer(location
+                                      , size
+                                      , type
+                                      , normalized
+                                      , stride
+                                      , offset);
+
+                // TODO: Apparently this is needed even when only one instance is drawn
+                // FIXME: Yeah
+                if(location >= 2)
+                    glVertexAttribDivisor(location, 1);
+            }
+        }
     }
 
     glUseProgram(0);
@@ -393,6 +435,54 @@ void GLDrawBinds::DrawElements()
 #endif // NDEBUG
 
     glDrawElements(GL_TRIANGLES, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0);
+}
+
+void GLDrawBinds::DrawElementsInstanced(int instances)
+{
+#ifndef NDEBUG
+    if(indexBuffer == nullptr)
+    {
+        LogWithName(LOG_TYPE::FATAL, "DrawElementsInstanced called without an index buffer set");
+        return;
+    }
+#endif // NDEBUG
+
+    glDrawElementsInstanced(GL_TRIANGLES, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0, instances);
+}
+
+void GLDrawBinds::AddBuffer(GLVertexBuffer* vertexBuffer)
+{
+    vertexBuffers.push_back(vertexBuffer);
+}
+
+void GLDrawBinds::AddBuffer(GLVertexBuffer* vertexBuffer, GLInputLayout inputLayout)
+{
+    if(vertexBuffers.size() != inputLayouts.size())
+    {
+        Logger::LogLine(LOG_TYPE::WARNING
+                    , "Not all vertex buffers given an input layout, default input layouts will be created");
+
+        while(vertexBuffers.size() > inputLayouts.size())
+        {
+            GLInputLayout layout;
+            layout.vertexBuffer = inputLayouts.size(); // TODO: Test this
+            inputLayouts.push_back(layout);
+        }
+    }
+
+    inputLayout.vertexBuffer = vertexBuffers.size();
+    vertexBuffers.push_back(vertexBuffer);
+    inputLayouts.push_back(inputLayout);
+}
+
+void GLDrawBinds::AddBuffer(GLIndexBuffer* indexBuffer)
+{
+#ifndef NDEBUG
+    if(this->indexBuffer != nullptr)
+        Logger::LogLine(LOG_TYPE::WARNING, "Overwriting index buffer");
+#endif // NDEBUG
+
+    this->indexBuffer = indexBuffer;
 }
 
 std::string GLDrawBinds::ToString() const

@@ -38,6 +38,33 @@ template<>
 void GLUniform<glm::uvec4>::UploadData() { glUniform4ui(location, data.x, data.y, data.z, data.w); }
 
 template<>
+void GLUniform<glm::mat2x2>::UploadData() { glUniformMatrix2fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat3x3>::UploadData() { glUniformMatrix3fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat4x4>::UploadData() { glUniformMatrix4fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat2x3>::UploadData() { glUniformMatrix2x3fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat3x2>::UploadData() { glUniformMatrix3x2fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat2x4>::UploadData() { glUniformMatrix2x4fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat4x2>::UploadData() { glUniformMatrix4x2fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat3x4>::UploadData() { glUniformMatrix3x4fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
+void GLUniform<glm::mat4x3>::UploadData() { glUniformMatrix4x3fv(location, 1, GL_FALSE, reinterpret_cast<GLfloat*>(&data)); }
+
+template<>
 void GLUniformArray<GLfloat*>::UploadData() { glUniform1fv(location, count, data); }
 
 template<>
@@ -135,6 +162,33 @@ bool GLUniform<glm::uvec3>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type
 
 template<>
 bool GLUniform<glm::uvec4>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::INT_VEC4; }
+
+template<>
+bool GLUniform<glm::mat2x2>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2; }
+
+template<>
+bool GLUniform<glm::mat3x3>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3; }
+
+template<>
+bool GLUniform<glm::mat4x4>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4; }
+
+template<>
+bool GLUniform<glm::mat2x3>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2X3; }
+
+template<>
+bool GLUniform<glm::mat3x2>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3X2; }
+
+template<>
+bool GLUniform<glm::mat2x4>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT2X4; }
+
+template<>
+bool GLUniform<glm::mat4x2>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4X2; }
+
+template<>
+bool GLUniform<glm::mat3x4>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT3X4; }
+
+template<>
+bool GLUniform<glm::mat4x3>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT_MAT4X3; }
 
 template<>
 bool GLUniform<GLfloat*>::VerifyType(GLEnums::UNIFORM_TYPE type) { return type == GLEnums::UNIFORM_TYPE::FLOAT; }

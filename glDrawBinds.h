@@ -11,6 +11,7 @@
 #include "glVertexBuffer.h"
 #include "glIndexBuffer.h"
 #include "glUniform.h"
+#include "glInputLayout.h"
 
 class GLDrawBinds
 {
@@ -71,12 +72,20 @@ public:
         AddBuffers(rest...);
     }
 
+    template<typename VertexBuffer, typename... Rest>
+    void AddBuffers(VertexBuffer buffer, const GLInputLayout& inputLayout, Rest... rest)
+    {
+        AddBuffer(buffer, inputLayout);
+        AddBuffers(rest...);
+    }
+
     void Bind();
     void Unbind();
 
     GLShader* GetShader(GLEnums::SHADER_TYPE type, int index) const;
     int GetShaderTypeCount(GLEnums::SHADER_TYPE type) const;
     void DrawElements();
+    void DrawElementsInstanced(int instances);
 
     GLUniformBase& operator[](const std::string& name)
     {
@@ -97,10 +106,6 @@ private:
         {}
     };
 
-    template<typename T>
-    void AddBuffer(T buffer)
-    { }
-
     bool bound;
 
     GLuint shaderProgram;
@@ -108,6 +113,7 @@ private:
 
     GLIndexBuffer* indexBuffer;
     std::vector<GLVertexBuffer*> vertexBuffers;
+    std::vector<GLInputLayout> inputLayouts;
     std::vector<std::pair<GLEnums::SHADER_TYPE, GLShader*>> shaderBinds;
     std::map<std::string, GLUniformBase*> uniformBinds;
 
@@ -123,6 +129,10 @@ private:
     void AddBuffers()
     {}
 
+    void AddBuffer(GLVertexBuffer* vertexBuffer);
+    void AddBuffer(GLVertexBuffer* vertexBuffer, GLInputLayout inputLayout);
+    void AddBuffer(GLIndexBuffer* indexBuffer);
+
     std::vector<Attrib> GetActiveAttribs() const;
     std::vector<Attrib> GetActiveUniforms() const;
     bool CreateShaderProgram();
@@ -137,23 +147,5 @@ private:
 
     void LogWithName(LOG_TYPE logType, const std::string& message) const;
 };
-
-//TODO: These don't need to be templates?
-template<>
-inline void GLDrawBinds::AddBuffer(GLVertexBuffer* vertexBuffer)
-{
-    vertexBuffers.push_back(vertexBuffer);
-}
-
-template<>
-inline void GLDrawBinds::AddBuffer(GLIndexBuffer* indexBuffer)
-{
-#ifndef NDEBUG
-    if(this->indexBuffer != nullptr)
-        Logger::LogLine(LOG_TYPE::WARNING, "Overwriting index buffer");
-#endif // NDEBUG
-
-    this->indexBuffer = indexBuffer;
-}
 
 #endif // GLSHADERRESOURCEBINDS_H__

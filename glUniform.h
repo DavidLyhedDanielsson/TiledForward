@@ -25,13 +25,15 @@ public:
     // This solution feels smart but I don't know
     // Faster in my benchmark than a switch statement though
     template<typename T>
-    void operator=(T other)
+    void operator=(const T other)
     {
 #ifndef NDEBUG
         GLUniform<T>* thisAsDerived = dynamic_cast<GLUniform<T>*>(this);
 
         if(thisAsDerived != nullptr)
             thisAsDerived->SetData(other);
+        else
+            throw std::runtime_error("Couldn't cast type to T");
 #else // NDEBUG
         SetData(&other);
 #endif // NDEBUG
@@ -42,7 +44,7 @@ protected:
 
 #ifdef NDEBUG
     // In release mode type-safety is ignored in favour of performance
-    virtual void SetData(void* data) = 0;
+    virtual void SetData(const void* data) = 0;
 #endif // NDEBUG
 };
 
@@ -79,7 +81,7 @@ protected:
     T data;
 
 #ifdef NDEBUG
-    void SetData(void* data)
+    void SetData(const void* data)
     {
         std::memcpy(&this->data, data, sizeof(T));
     }
@@ -123,9 +125,9 @@ protected:
     GLsizei count;
 
 #ifdef NDEBUG
-    void SetData(void* data)
+    void SetData(const void* data)
     {
-        std::memcpy(this->data, *static_cast<T*>(data), sizeof(typename std::remove_pointer<T>::type) * count);
+        std::memcpy(this->data, *static_cast<const T*>(data), sizeof(typename std::remove_pointer<T>::type) * count);
     }
 #endif // NDEBUG
 };

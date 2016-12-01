@@ -1,6 +1,7 @@
 #include <chrono>
 #include <thread>
 #include <set>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "window.h"
 #include "timer.h"
@@ -8,7 +9,7 @@
 #include "input.h"
 #include "perspectiveCamera.h"
 #include "glVertexBuffer.h"
-#include "glShaderResourceBinds.h"
+#include "glDrawBinds.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -92,10 +93,10 @@ int main(int argc, char* argv[])
 
         GLfloat vertices[] =
                 {
-                        -0.5f, -0.5f, 1.0f, 0.0f, 0.0f
-                        , 0.5f, -0.5f, 0.0f, 1.0f, 0.0f
-                        , -0.5f, 0.5f, 0.0f, 0.0f, 1.0f
-                        , 0.5f, 0.5f, 1.0f, 0.0f, 1.0f
+                        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f
+                        , 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f
+                        , -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f
+                        , 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f
                 };
 
         GLint indicies[] =
@@ -105,23 +106,49 @@ int main(int argc, char* argv[])
                 };
 
         GLVertexBuffer vertexBuffer;
-        vertexBuffer.Init<glm::vec2, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, &vertices[0], sizeof(vertices), false);
+        // TODO: Verify that data is vec3, vec3 somehow? In binds::Init()?
+        vertexBuffer.Init<glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, &vertices[0], 4, false);
+
+        glm::mat4x4 transforms[] =
+                {
+                        glm::mat4x4()
+                        , glm::mat4x4()
+                        , glm::mat4x4()
+                        , glm::mat4x4()
+                        , glm::mat4x4()
+                };
+
+        for(int i = 0, end = sizeof(transforms) / sizeof(glm::mat4x4); i < end; ++i)
+            transforms[i] = glm::translate(transforms[i], glm::vec3((float)i * 2.0f, 0.0f, 0.0f));
+
+        GLVertexBuffer transformBuffer;
+        transformBuffer.Init<glm::mat4x4>(GLEnums::BUFFER_USAGE::STREAM, transforms, 5, false);
 
         GLIndexBuffer indexBuffer;
-        indexBuffer.Init<GLint>(GLEnums::BUFFER_USAGE::STATIC, &indicies[0], sizeof(indicies), false);
+        //TODO: Make verifiable... void* isn't fun
+        indexBuffer.Init<GLint>(GLEnums::BUFFER_USAGE::STATIC, &indicies[0], sizeof(indicies) / sizeof(GLint), false);
 
         GLDrawBinds binds;
         binds.AddShaders(GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
                          , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
-        binds.AddBuffers(&vertexBuffer
+
+        GLInputLayout vertexBufferLayout;
+        vertexBufferLayout.AddDefaultInputLayout("position");
+        vertexBufferLayout.AddDefaultInputLayout("color");
+
+        GLInputLayout transformBufferLayout;
+        transformBufferLayout.AddInputLayout(2, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, 0);
+        transformBufferLayout.AddInputLayout(3, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, sizeof(float) * 4);
+        transformBufferLayout.AddInputLayout(4, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, sizeof(float) * 8);
+        transformBufferLayout.AddInputLayout(5, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, sizeof(float) * 12);
+
+        //TODO: bind transformBuffer first to make sure default input layout generation works
+        binds.AddBuffers(&vertexBuffer, vertexBufferLayout
+                         , &transformBuffer, transformBufferLayout
                          , &indexBuffer);
-        float colorArray[3] =
-                {
-                        0.0f, 0.0f, 0.0f
-                };
-        binds.AddUniform("colors", colorArray, 3);
-        binds.AddUniform("singleColor", 0.0f);
-        binds.AddUniform("intColor", 0);
+        binds.AddUniform("color", 0.0f);
+        binds.AddUniform("viewProjectionMatrix", glm::mat4x4());
+
         if(!binds.Init())
             return 2;
 
@@ -148,22 +175,17 @@ int main(int argc, char* argv[])
                 camera.MoveUp(-0.01f * timer.GetDeltaMillisecondsFraction());
 
             glm::vec2 mouseDelta = Input::GetMouseDelta();
-            camera.Rotate(mouseDelta * 0.001f);
+            camera.Rotate(mouseDelta * 0.0025f);
 
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
-            colorArray[0] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-            colorArray[1] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-            colorArray[2] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-
-            binds["colors"] = colorArray;
-            binds["singleColor"] = (float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-            binds["intColor"] = (int)((float)fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f) * 255);
+            binds["color"] = std::fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
+            binds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 
             binds.Bind();
 
-            binds.DrawElements();
+            binds.DrawElementsInstanced(5);
 
             binds.Unbind();
 

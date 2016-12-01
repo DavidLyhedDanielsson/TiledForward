@@ -9,6 +9,7 @@ namespace GLEnums
     {
         VERTEX = GL_ARRAY_BUFFER
         , INDEX = GL_ELEMENT_ARRAY_BUFFER
+        , UNKNOWN
     };
 
     enum class BUFFER_USAGE : GLuint
@@ -16,6 +17,7 @@ namespace GLEnums
         STATIC = GL_STATIC_DRAW
         , DYNAMIC = GL_DYNAMIC_DRAW
         , STREAM = GL_STREAM_DRAW
+        , UNKNOWN
     };
 
     enum class SHADER_TYPE : GLuint
@@ -26,6 +28,7 @@ namespace GLEnums
         , GEOMETRY = GL_GEOMETRY_SHADER
         , PIXEL = GL_FRAGMENT_SHADER
         , COMPUTE = GL_COMPUTE_SHADER
+        , UNKNOWN
     };
 
     enum class DATA_TYPE : GLuint
@@ -41,6 +44,7 @@ namespace GLEnums
         , BYTES_3 = GL_3_BYTES
         , BYTES_4 = GL_4_BYTES
         , DOUBLE = GL_DOUBLE
+        , UNKNOWN
     };
 
     enum class UNIFORM_TYPE : GLuint
@@ -68,6 +72,7 @@ namespace GLEnums
         , FLOAT_MAT4X2 = GL_FLOAT_MAT4x2
         , FLOAT_MAT3X4 = GL_FLOAT_MAT3x4
         , FLOAT_MAT4X3 = GL_FLOAT_MAT4x3
+        , UNKNOWN
     };
 }
 

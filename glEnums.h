@@ -1,5 +1,5 @@
-#ifndef GLENUMS_H
-#define GLENUMS_H
+#ifndef GLENUMS_H__
+#define GLENUMS_H__
 
 #include <GL/glew.h>
 
@@ -76,4 +76,4 @@ namespace GLEnums
     };
 }
 
-#endif //GLENUMS_H
+#endif //GLENUMS_H__

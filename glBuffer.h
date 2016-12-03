@@ -18,6 +18,7 @@ public:
     GLBuffer& operator=(const GLBuffer& rhs) = delete;
     GLBuffer& operator=(GLBuffer&& rhs) = delete;
 
+    // None of these should ever modify the data
     bool Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize, bool memcpyData);
     template<typename... T>
     bool Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* initialData, size_t elementCount, bool memcpyData)

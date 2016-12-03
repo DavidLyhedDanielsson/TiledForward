@@ -91,25 +91,16 @@ int main(int argc, char* argv[])
 
         Input::LockCursor(1280 / 2, 720 / 2);
 
-        GLfloat vertices[] =
+        GLVertexBuffer vertexBuffer;
+        vertexBuffer.Init<float, glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC,
                 {
-                        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f
+                        -0.5f , -0.5f, 0.0f, 1.0f, 0.0f, 0.0f
                         , 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f
                         , -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f
                         , 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f
-                };
+                }, false);
 
-        GLint indicies[] =
-                {
-                        0, 2, 1
-                        , 3, 1, 2
-                };
-
-        GLVertexBuffer vertexBuffer;
-        // TODO: Verify that data is vec3, vec3 somehow? In binds::Init()?
-        vertexBuffer.Init<glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC, &vertices[0], 4, false);
-
-        glm::mat4x4 transforms[] =
+        std::vector<glm::mat4x4> transforms =
                 {
                         glm::mat4x4()
                         , glm::mat4x4()
@@ -118,29 +109,24 @@ int main(int argc, char* argv[])
                         , glm::mat4x4()
                 };
 
-        for(int i = 0, end = sizeof(transforms) / sizeof(glm::mat4x4); i < end; ++i)
+        for(int i = 0, end = transforms.size(); i < end; ++i)
             transforms[i] = glm::translate(transforms[i], glm::vec3((float)i * 2.0f, 0.0f, 0.0f));
 
         GLVertexBuffer transformBuffer;
-        transformBuffer.Init<glm::mat4x4>(GLEnums::BUFFER_USAGE::STREAM, transforms, 5, false);
+        transformBuffer.Init<glm::mat4x4, glm::mat4x4>(GLEnums::BUFFER_USAGE::STREAM, transforms, false);
 
         GLIndexBuffer indexBuffer;
-        //TODO: Make verifiable... void* isn't fun
-        indexBuffer.Init<GLint>(GLEnums::BUFFER_USAGE::STATIC, &indicies[0], sizeof(indicies) / sizeof(GLint), false);
+        indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, { 0, 2, 1, 3, 1, 2 }, false);
 
         GLDrawBinds binds;
         binds.AddShaders(GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
                          , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
 
         GLInputLayout vertexBufferLayout;
-        vertexBufferLayout.AddDefaultInputLayout("position");
-        vertexBufferLayout.AddDefaultInputLayout("color");
+        vertexBufferLayout.SetInputLayout<glm::vec3, glm::vec3>();
 
         GLInputLayout transformBufferLayout;
-        transformBufferLayout.AddInputLayout(2, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, 0);
-        transformBufferLayout.AddInputLayout(3, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, sizeof(float) * 4);
-        transformBufferLayout.AddInputLayout(4, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, sizeof(float) * 8);
-        transformBufferLayout.AddInputLayout(5, 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(float) * 16, sizeof(float) * 12);
+        transformBufferLayout.SetInputLayout<glm::mat4x4>(2);
 
         //TODO: bind transformBuffer first to make sure default input layout generation works
         binds.AddBuffers(&vertexBuffer, vertexBufferLayout

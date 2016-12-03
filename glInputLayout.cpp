@@ -1,3 +1,4 @@
+#include <glm/mat4x4.hpp>
 #include "glInputLayout.h"
 
 GLInputLayout::GLInputLayout()
@@ -34,4 +35,43 @@ void GLInputLayout::AddDefaultInputLayout(GLint location)
 void GLInputLayout::AddDefaultInputLayout(const std::string& name)
 {
     AddInputLayout(name, -1, GLEnums::DATA_TYPE::UNKNOWN, GL_FALSE, -1, -1);
+}
+
+template<>
+void GLInputLayout::AppendInputLayout<int>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 1, GLEnums::DATA_TYPE::INT, GL_FALSE, -1, -1);
+}
+
+template<>
+void GLInputLayout::AppendInputLayout<float>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 1, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+void GLInputLayout::AppendInputLayout<glm::vec2>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 2, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+void GLInputLayout::AppendInputLayout<glm::vec3>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 3, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+void GLInputLayout::AppendInputLayout<glm::vec4>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+void GLInputLayout::AppendInputLayout<glm::mat4x4>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
 }

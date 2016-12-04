@@ -10,6 +10,7 @@
 #include "perspectiveCamera.h"
 #include "glVertexBuffer.h"
 #include "glDrawBinds.h"
+#include "texture.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -92,12 +93,12 @@ int main(int argc, char* argv[])
         Input::LockCursor(1280 / 2, 720 / 2);
 
         GLVertexBuffer vertexBuffer;
-        vertexBuffer.Init<float, glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STATIC,
+        vertexBuffer.Init<float, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC,
                 {
-                        -0.5f , -0.5f, 0.0f, 1.0f, 0.0f, 0.0f
-                        , 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f
-                        , -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f
-                        , 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f
+                        -0.5f , -0.5f, 0.0f, 0.0f, 0.0f
+                        , 0.5f, -0.5f, 0.0f, 1.0f, 0.0f
+                        , -0.5f, 0.5f, 0.0f, 0.0f, 1.0f
+                        , 0.5f, 0.5f, 0.0f, 1.0f, 1.0f
                 }, false);
 
         std::vector<glm::mat4x4> transforms =
@@ -123,7 +124,7 @@ int main(int argc, char* argv[])
                          , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
 
         GLInputLayout vertexBufferLayout;
-        vertexBufferLayout.SetInputLayout<glm::vec3, glm::vec3>();
+        vertexBufferLayout.SetInputLayout<glm::vec3, glm::vec2>();
 
         GLInputLayout transformBufferLayout;
         transformBufferLayout.SetInputLayout<glm::mat4x4>(2);
@@ -140,6 +141,31 @@ int main(int argc, char* argv[])
 
         Timer timeSinceStart;
         timeSinceStart.Start();
+
+        Texture texture;
+
+        struct RGBA
+        {
+            unsigned char r;
+            unsigned char g;
+            unsigned char b;
+            unsigned char a;
+        };
+        std::vector<RGBA> imageData;
+        imageData.resize(32 * 32);
+
+        for(int y = 0; y < 32; ++y)
+        {
+            for(int x = 0; x < 32; ++x)
+            {
+                int colorValue = ((x < 16) + (y < 16)) % 2;
+
+                for(int i = 0; i < 4; ++i)
+                    imageData[y * 32 + x] = { (unsigned char)(colorValue * 255), (unsigned char)(colorValue * 255), (unsigned char)(colorValue * 255), (unsigned char)255 };
+            }
+        }
+
+        texture.CreateFromMemory(reinterpret_cast<char*>(imageData.data()), 32, 32);
 
         while(window.PollEvents())
         {
@@ -171,7 +197,11 @@ int main(int argc, char* argv[])
 
             binds.Bind();
 
+            texture.Bind();
+
             binds.DrawElementsInstanced(5);
+
+            texture.Unbind();
 
             binds.Unbind();
 

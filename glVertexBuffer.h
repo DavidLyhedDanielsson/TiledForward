@@ -46,6 +46,8 @@ public:
     template<typename VectorType, typename... T>
     bool Init(GLEnums::BUFFER_USAGE usage, const std::vector<VectorType>& initialData, bool memcpyData)
     {
+        // TODO: Make sure initialData.size matches stride
+
         this->stride = (GLsizei)GetByteSize<T...>();
         AddOffsets<T...>(this->offsets);
 

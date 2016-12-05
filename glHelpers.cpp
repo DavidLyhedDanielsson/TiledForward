@@ -32,4 +32,4 @@ namespace GLHelpers
                 return -1;
         }
     }
-}
+};

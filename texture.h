@@ -1,26 +1,51 @@
-#ifndef TEXTURE_H__
-#define TEXTURE_H__
+#ifndef texture_h__
+#define texture_h__
+
+#include "content.h"
+
+#include <memory>
+#include <string>
 
 #include <GL/glew.h>
-#include <vector>
 
 class Texture
+	: public DiskContent
 {
 public:
-    Texture();
-    ~Texture();
+	Texture();
+	virtual ~Texture() = default;
 
-    void CreateFromMemory(char* imageData, int width, int height);
+	unsigned int GetWidth() const;
+	unsigned int GetHeight() const;
 
-    GLuint GetTexture() const;
+	float GetPredivWidth() const;
+	float GetPredivHeight() const;
 
-    void Bind();
-    void Unbind();
+	virtual int GetStaticVRAMUsage() const override;
+	virtual int GetDynamicVRAMUsage() const override;
+	virtual int GetRAMUsage() const override;
+
+	friend bool operator==(const Texture& lhs, const Texture& rhs);
+	friend bool operator!=(const Texture& lhs, const Texture& rhs);
+
+	virtual bool CreateDefaultContent(const char* filePath, ContentManager* contentManager) override;
+
+	bool Apply(Content* content) override;
 
 protected:
-private:
+	GLuint texture;
 
-    GLuint texture;
+	unsigned int width;
+	unsigned int height;
+	
+	float predivWidth;
+	float predivHeight;
+
+	virtual CONTENT_ERROR_CODES Load(const char* filePath, ContentManager* contentManager = nullptr, ContentParameters* contentParameters = nullptr) override;
+	virtual CONTENT_ERROR_CODES LoadTemporary(const char* filePath, ContentManager* contentManager = nullptr) override;
+	virtual void Unload(ContentManager* contentManager = nullptr) override;
+
+	DiskContent* CreateInstance() const override;
 };
 
-#endif // TEXTURE_H__
+#endif // texture_h__

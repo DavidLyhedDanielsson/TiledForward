@@ -6,7 +6,6 @@
 #include <string>
 #include <typeinfo>
 
-
 enum class CONTENT_ERROR_CODES
 {
 	UNKNOWN = 0

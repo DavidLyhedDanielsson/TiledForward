@@ -14,8 +14,20 @@ endif()
 add_definitions(-DGL_ERROR_CALLBACK -DUSE_LOGGER)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_LIST_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_LIST_DIR}/bin)
 
 file(GLOB SOURCE_FILES *.h *.hpp *.cpp)
 add_executable(opengl ${SOURCE_FILES})
 
-target_link_libraries(opengl GLEW GL X11 pthread stdc++fs)
+target_link_libraries(opengl GLEW GL X11 pthread stdc++fs dl IL)
+
+if(DEBUG_BUILD)
+    set(PNG_LIBRARY_NAME png_d)
+else()
+    set(PNG_LIBRARY_NAME png)
+endif()
+
+project(${PNG_LIBRARY_NAME})
+
+add_library(${PNG_LIBRARY_NAME} SHARED pngTexture.cpp)

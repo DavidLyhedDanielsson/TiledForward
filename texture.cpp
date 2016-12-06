@@ -67,8 +67,15 @@ bool Texture::Apply(Content* content)
 
 CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentManager /*= nullptr*/, ContentParameters* contentParameters /*= nullptr*/)
 {
-	std::string filePathString(filePath);
-	std::string fileExtension = filePathString.substr(filePathString.find_last_of('.') + 1);
+	const std::string filePathString(filePath);
+    const std::string fileExtension = filePathString.substr(filePathString.find_last_of('.') + 1);
+
+    // TODO: Windows config
+#ifndef NDEBUG
+    const std::string libraryName = "lib" + fileExtension + "_d.so";
+#else
+    const std::string libraryName = "lib" + fileExtension + ".so";
+#endif // NDEBUG
 
 #ifdef _WIN32
 	typedef CONTENT_ERROR_CODES (WINAPI* LoadFunction)(ID3D11Device*, const char*, ID3D11Texture2D**, ID3D11ShaderResourceView**);
@@ -111,22 +118,54 @@ CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentM
 	this->texture->GetDesc(&texDesc);
 
 	FreeLibrary(dllHandle);
+
+    // TODO: Update width and height!
 #else
 #ifndef NDEBUG
-	void* library = dlopen((fileExtension + ".so").c_str(), RTLD_NOW);
+	void* library = dlopen(libraryName.c_str(), RTLD_NOW);
 #else
-	void* library = dlopen((fileExtension + ".so").c_str(), RTLD_LAZY);
+	void* library = dlopen(libraryName.c_str(), RTLD_LAZY);
 #endif // NDEBUG
 
-	typedef int (*function)()
+    typedef bool (*Dimensions)(const char*, uint32_t&, uint32_t&);
+    typedef CONTENT_ERROR_CODES (*Load)(const char*, unsigned char*);
+
+    Dimensions dimensions = (Dimensions)dlsym(library, "GetDimensions");
+
+    if(dimensions != nullptr)
+    {
+        if(!dimensions(filePath, width, height))
+            return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+    }
+
+    unsigned char* data = new unsigned char[width * height * 4];
+
+    Load load = (Load)dlsym(library, "Load");
+    if(load != nullptr)
+        load(filePath, data); // TODO: Return value
+
+    dlclose(library);
 #endif
 
-	width = texDesc.Width;
-	height = texDesc.Height;
+    //TextureCreationParameters* parameters = TryCastTo<TextureCreationParameters>(contentParameters);
+    //if(parameters == nullptr)
+    //    return CONTENT_ERROR_CODES::CONTENT_PARAMETER_CAST;
+
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 
 	predivWidth = 1.0f / width;
 	predivHeight = 1.0f / height;
-
 
 	return CONTENT_ERROR_CODES::NONE;
 }
@@ -178,6 +217,7 @@ int Texture::GetRAMUsage() const
 
 bool Texture::CreateDefaultContent(const char* filePath, ContentManager* contentManager)
 {
+    // TODO: Test
 	struct Color
 	{
 		uint8_t r;
@@ -196,14 +236,13 @@ bool Texture::CreateDefaultContent(const char* filePath, ContentManager* content
 		}
 	}
 
-	TextureCreationParameters creationParameters("Texture::CreateDefaultContent", 4, 4, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE, &hotCheckers, 32);
+	TextureCreationParameters creationParameters("Texture::CreateDefaultContent", 4, 4, GLEnums::INTERNAL_FORMAT::RGBA, GLEnums::FORMAT::RGBA, GLEnums::TYPE::UNSIGNED_BYTE, &hotCheckers);
 	MemoryTexture* memoryTexture = contentManager->Load<MemoryTexture>("", &creationParameters);
 
 	if(memoryTexture == nullptr)
 		return false;
 
-	texture.reset(memoryTexture->texture.get());
-	shaderResourceView.reset(memoryTexture->shaderResourceView.get());
+    texture = memoryTexture->texture;
 
 	width = memoryTexture->width;
 	height = memoryTexture->height;
@@ -211,6 +250,7 @@ bool Texture::CreateDefaultContent(const char* filePath, ContentManager* content
 	predivWidth = memoryTexture->predivWidth;
 	predivHeight = memoryTexture->predivHeight;
 
+    // TODO: Is this needed?
 	contentManager->IncreaseRefCount(memoryTexture);
 	contentManager->Unload(memoryTexture);
 

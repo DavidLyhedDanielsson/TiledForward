@@ -32,7 +32,7 @@ public:
 
 	bool Apply(Content* content) override;
 
-protected:
+//protected:
 	GLuint texture;
 
 	unsigned int width;

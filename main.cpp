@@ -11,6 +11,7 @@
 #include "glVertexBuffer.h"
 #include "glDrawBinds.h"
 #include "texture.h"
+#include "contentManager.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -142,30 +143,10 @@ int main(int argc, char* argv[])
         Timer timeSinceStart;
         timeSinceStart.Start();
 
-        Texture texture;
+        ContentManager contentManager;
 
-        struct RGBA
-        {
-            unsigned char r;
-            unsigned char g;
-            unsigned char b;
-            unsigned char a;
-        };
-        std::vector<RGBA> imageData;
-        imageData.resize(32 * 32);
-
-        for(int y = 0; y < 32; ++y)
-        {
-            for(int x = 0; x < 32; ++x)
-            {
-                int colorValue = ((x < 16) + (y < 16)) % 2;
-
-                for(int i = 0; i < 4; ++i)
-                    imageData[y * 32 + x] = { (unsigned char)(colorValue * 255), (unsigned char)(colorValue * 255), (unsigned char)(colorValue * 255), (unsigned char)255 };
-            }
-        }
-
-        texture.CreateFromMemory(reinterpret_cast<char*>(imageData.data()), 32, 32);
+        Texture* texture = contentManager.Load<Texture>("testTexture.png", nullptr);
+        glBindTexture(GL_TEXTURE_2D, texture->texture);
 
         while(window.PollEvents())
         {
@@ -197,11 +178,7 @@ int main(int argc, char* argv[])
 
             binds.Bind();
 
-            texture.Bind();
-
             binds.DrawElementsInstanced(5);
-
-            texture.Unbind();
 
             binds.Unbind();
 

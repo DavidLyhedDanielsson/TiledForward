@@ -12,10 +12,11 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <unistd.h>
+#include <poll.h>
 #endif
 
 ContentManager::ContentManager(const std::string& contentRootDirectory /*= ""*/, bool watchDirectory /*= true*/)
-	: contentRootDirectory(contentRootDirectory)
+	: contentRootDirectory(contentRootDirectory.empty() ? std::experimental::filesystem::current_path().string() : contentRootDirectory)
 	, watchDirectory(watchDirectory)
 	, uniqueID(0)
 	, contentToHotReload(false)
@@ -246,6 +247,7 @@ void ContentManager::WatchForFileChanges(const std::string& path)
 	}
 #else
     int fileDescriptor = inotify_init();
+    int watchDescriptor = -1;
 
     if(fileDescriptor == -1)
     {
@@ -253,7 +255,7 @@ void ContentManager::WatchForFileChanges(const std::string& path)
         Logger::LogLine(LOG_TYPE::WARNING, "inotify_init failed");
     }
     else
-        int watchDescriptor = inotify_add_watch(fileDescriptor, contentRootDirectory.c_str(), IN_MODIFY);
+        watchDescriptor = inotify_add_watch(fileDescriptor, contentRootDirectory.c_str(), IN_MODIFY); // TODO: Error handling
 #endif
 
 	if(success)
@@ -274,15 +276,20 @@ void ContentManager::WaitForFileChanges(
 #endif
 )
 {
+    const static size_t POLL_TIMEOUT = 250;
+
 #ifndef _WIN32
     const static auto BUFFER_LENGTH = (sizeof(inotify_event) + 16) * 1024;
     std::unique_ptr<char> buffer(new char[BUFFER_LENGTH]);
+
+    struct pollfd pfd = { fileDescriptor, POLLIN, 0 };
 #endif
 
 	while(watchDirectory)
 	{
-        bool update = true;
 #ifdef _WIN32
+        bool update = true;
+
 		DWORD waitStatus = WaitForMultipleObjects(static_cast<DWORD>(changeHandles.size()), &changeHandles[0], FALSE, 250);
 
 		switch(waitStatus)
@@ -303,12 +310,20 @@ void ContentManager::WaitForFileChanges(
 				break;
 		}
 #else
-        ssize_t length = read(fileDescriptor, buffer.get(), BUFFER_LENGTH);
+        bool update = false;
 
-        if(length < 0)
+        int pollValue = poll(&pfd, 1, POLL_TIMEOUT);
+
+        if(pollValue < 0)
+            Logger::LogLine(LOG_TYPE::INFO, "pollValue < 0"); // TODO: Remove
+        else if(pollValue > 0) // pollValue == 0 => timeout
         {
-            update = false;
-            Logger::LogLine(LOG_TYPE::INFO, "length < 0"); // TODO: Remove
+            ssize_t length = read(fileDescriptor, buffer.get(), BUFFER_LENGTH);
+
+            if(length < 0)
+                Logger::LogLine(LOG_TYPE::INFO, "length < 0"); // TODO: Remove
+            else
+                update = true;
         }
 #endif
 
@@ -323,6 +338,7 @@ void ContentManager::WaitForFileChanges(
 			{
 				std::string filePathString = filePath.string();
 
+                // Replace backslashes with frontslashes and make path lower-case
 				std::replace(filePathString.begin(), filePathString.end(), '\\', '/');
 				std::transform(filePathString.begin(), filePathString.end(), filePathString.begin(), ::tolower);
 
@@ -333,6 +349,8 @@ void ContentManager::WaitForFileChanges(
 					DiskContent* diskContent = dynamic_cast<DiskContent*>(content);
 					if(diskContent != nullptr)
 					{
+                        // Make a copy of the content, load it from disk in this thread and then update the "real"
+                        // version when HotReload is called
 						DiskContent* reloadContent = diskContent->CreateInstance();
 						reloadContent->LoadTemporary(filePathString.c_str(), this);
 

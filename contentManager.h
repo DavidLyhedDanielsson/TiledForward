@@ -303,7 +303,7 @@ private:
 #ifdef _WIN32
 	std::vector<HANDLE> changeHandles;
 #else
-
+    int watchDescriptor;
 #endif
 	std::unique_ptr<std::thread> directoryWatchThread;
 
@@ -330,6 +330,7 @@ private:
 	void WaitForFileChanges(
 #ifndef _WIN32
 			int fileDescriptor
+
 #endif
 	);
 

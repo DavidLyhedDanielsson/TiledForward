@@ -40,7 +40,11 @@ float Texture::GetPredivHeight() const
 }
 
 void Texture::Unload(ContentManager* contentManager /*= nullptr*/)
-{ }
+{
+    glDeleteTextures(1, &texture);
+
+    texture = 0;
+}
 
 DiskContent* Texture::CreateInstance() const
 {
@@ -53,21 +57,34 @@ bool Texture::Apply(Content* content)
 	if(other == nullptr)
 		return false;
 
-	// TODO: Don't forget this
-	//this->texture = std::move(other->texture);
-	//this->shaderResourceView = std::move(other->shaderResourceView);
+    texture = other->texture;
 
-	this->width = other->width;
-	this->height = other->height;
-	this->predivWidth = other->predivWidth;
-	this->predivHeight = other->predivHeight;
+    width = other->width;
+    height = other->height;
+
+    predivWidth = other->predivWidth;
+    predivHeight = other->predivHeight;
 
 	return true;
 }
 
 CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentManager /*= nullptr*/, ContentParameters* contentParameters /*= nullptr*/)
 {
-	const std::string filePathString(filePath);
+    // TODO: Error handling
+    ReadData(filePath);
+    ApplyHotReload();
+
+	return CONTENT_ERROR_CODES::NONE;
+}
+
+CONTENT_ERROR_CODES Texture::BeginHotReload(const char* filePath, ContentManager* contentManager /*= nullptr*/)
+{
+    return ReadData(filePath);
+}
+
+CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
+{
+    const std::string filePathString(filePath);
     const std::string fileExtension = filePathString.substr(filePathString.find_last_of('.') + 1);
 
     // TODO: Windows config
@@ -78,7 +95,7 @@ CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentM
 #endif // NDEBUG
 
 #ifdef _WIN32
-	typedef CONTENT_ERROR_CODES (WINAPI* LoadFunction)(ID3D11Device*, const char*, ID3D11Texture2D**, ID3D11ShaderResourceView**);
+    typedef CONTENT_ERROR_CODES (WINAPI* LoadFunction)(ID3D11Device*, const char*, ID3D11Texture2D**, ID3D11ShaderResourceView**);
 
 #define CONTENT_TEXTURE_DEBUG_DLL
 
@@ -122,9 +139,9 @@ CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentM
     // TODO: Update width and height!
 #else
 #ifndef NDEBUG
-	void* library = dlopen(libraryName.c_str(), RTLD_NOW);
+    void* library = dlopen(libraryName.c_str(), RTLD_NOW);
 #else
-	void* library = dlopen(libraryName.c_str(), RTLD_LAZY);
+    void* library = dlopen(libraryName.c_str(), RTLD_LAZY);
 #endif // NDEBUG
 
     typedef bool (*Dimensions)(const char*, uint32_t&, uint32_t&);
@@ -138,19 +155,20 @@ CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentM
             return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
     }
 
-    unsigned char* data = new unsigned char[width * height * 4];
+    data.reset(new unsigned char[width * height * 4]);
 
     Load load = (Load)dlsym(library, "Load");
     if(load != nullptr)
-        load(filePath, data); // TODO: Return value
+        load(filePath, data.get()); // TODO: Return value
 
     dlclose(library);
 #endif
 
-    //TextureCreationParameters* parameters = TryCastTo<TextureCreationParameters>(contentParameters);
-    //if(parameters == nullptr)
-    //    return CONTENT_ERROR_CODES::CONTENT_PARAMETER_CAST;
+    return CONTENT_ERROR_CODES::NONE;
+}
 
+void Texture::ApplyHotReload()
+{
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -160,19 +178,14 @@ CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentM
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-	predivWidth = 1.0f / width;
-	predivHeight = 1.0f / height;
+    predivWidth = 1.0f / width;
+    predivHeight = 1.0f / height;
 
-	return CONTENT_ERROR_CODES::NONE;
-}
-
-CONTENT_ERROR_CODES Texture::LoadTemporary(const char* filePath, ContentManager* contentManager /*= nullptr*/)
-{
-	return Load(filePath, contentManager);
+    data.reset(nullptr); // TODO: I don't like this
 }
 
 int Texture::GetStaticVRAMUsage() const

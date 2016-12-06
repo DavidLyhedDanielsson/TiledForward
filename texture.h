@@ -35,15 +35,20 @@ public:
 //protected:
 	GLuint texture;
 
+	std::unique_ptr<unsigned char> data;
+
 	unsigned int width;
 	unsigned int height;
 	
-	float predivWidth;
+	float predivWidth; // TODO: This memory fetch is probably slower than just doing the division when needed
 	float predivHeight;
 
 	virtual CONTENT_ERROR_CODES Load(const char* filePath, ContentManager* contentManager = nullptr, ContentParameters* contentParameters = nullptr) override;
-	virtual CONTENT_ERROR_CODES LoadTemporary(const char* filePath, ContentManager* contentManager = nullptr) override;
+	virtual CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager = nullptr) override;
+	virtual void ApplyHotReload() override;
 	virtual void Unload(ContentManager* contentManager = nullptr) override;
+
+	CONTENT_ERROR_CODES ReadData(const char* filePath);
 
 	DiskContent* CreateInstance() const override;
 };

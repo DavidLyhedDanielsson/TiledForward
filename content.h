@@ -159,7 +159,8 @@ public:
 	virtual bool Apply(Content* content) = 0;
 
 protected:
-	virtual CONTENT_ERROR_CODES LoadTemporary(const char* filePath, ContentManager* contentManager = nullptr) = 0;
+	virtual CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager = nullptr) = 0;
+	virtual void ApplyHotReload() = 0;
 
 	/**
 	* Used for hot reloading, should just return a new empty instance

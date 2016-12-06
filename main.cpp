@@ -143,10 +143,9 @@ int main(int argc, char* argv[])
         Timer timeSinceStart;
         timeSinceStart.Start();
 
-        ContentManager contentManager;
+        ContentManager contentManager("content");
 
         Texture* texture = contentManager.Load<Texture>("testTexture.png", nullptr);
-        glBindTexture(GL_TEXTURE_2D, texture->texture);
 
         while(window.PollEvents())
         {
@@ -168,7 +167,11 @@ int main(int argc, char* argv[])
                 camera.MoveUp(-0.01f * timer.GetDeltaMillisecondsFraction());
 
             glm::vec2 mouseDelta = Input::GetMouseDelta();
+            //if(mouseDelta.x != mouseDelta.y != 0.0f)
+            //    std::cout << mouseDelta.x << ", " << mouseDelta.y << std::endl;
             camera.Rotate(mouseDelta * 0.0025f);
+
+            contentManager.HotReload();
 
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -177,16 +180,16 @@ int main(int argc, char* argv[])
             binds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 
             binds.Bind();
+            glBindTexture(GL_TEXTURE_2D, texture->texture);
 
             binds.DrawElementsInstanced(5);
 
+            glBindTexture(GL_TEXTURE_2D, 0);
             binds.Unbind();
 
             window.SwapBuffers();
 
             Input::Update();
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 

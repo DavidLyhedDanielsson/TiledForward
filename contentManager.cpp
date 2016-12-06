@@ -186,9 +186,13 @@ void ContentManager::HotReload()
 
 	for(auto& pair : reloadMap)
 	{
-		static_cast<DiskContent*>(contentMap[pair.first])->Apply(pair.second);
+		// pair.second is always DiskContent*, so this is fine
+		DiskContent* currentPointer = static_cast<DiskContent*>(contentMap[pair.first]);
 
-		pair.second->Unload();
+		currentPointer->Unload(this);
+		pair.second->ApplyHotReload();
+		currentPointer->Apply(pair.second);
+
 		delete pair.second;
 	}
 
@@ -215,7 +219,6 @@ void ContentManager::AddToMap(const std::string& path, Content* content)
 	std::string stringPath = path;
 
 	std::replace(stringPath.begin(), stringPath.end(), '\\', '/');
-	std::transform(stringPath.begin(), stringPath.end(), stringPath.begin(), ::tolower);
 
 	contentMap.insert(std::pair<std::string, Content*>(stringPath, content));
 
@@ -247,7 +250,7 @@ void ContentManager::WatchForFileChanges(const std::string& path)
 	}
 #else
     int fileDescriptor = inotify_init();
-    int watchDescriptor = -1;
+    watchDescriptor = -1;
 
     if(fileDescriptor == -1)
     {
@@ -255,7 +258,7 @@ void ContentManager::WatchForFileChanges(const std::string& path)
         Logger::LogLine(LOG_TYPE::WARNING, "inotify_init failed");
     }
     else
-        watchDescriptor = inotify_add_watch(fileDescriptor, contentRootDirectory.c_str(), IN_MODIFY); // TODO: Error handling
+        watchDescriptor = inotify_add_watch(fileDescriptor, contentRootDirectory.c_str(), IN_CLOSE_WRITE); // TODO: Error handling, remove watch
 #endif
 
 	if(success)
@@ -280,9 +283,9 @@ void ContentManager::WaitForFileChanges(
 
 #ifndef _WIN32
     const static auto BUFFER_LENGTH = (sizeof(inotify_event) + 16) * 1024;
-    std::unique_ptr<char> buffer(new char[BUFFER_LENGTH]);
+    unsigned char buffer[BUFFER_LENGTH];
 
-    struct pollfd pfd = { fileDescriptor, POLLIN, 0 };
+	struct pollfd pfd = { fileDescriptor, POLLIN, 0 };
 #endif
 
 	while(watchDirectory)
@@ -310,7 +313,7 @@ void ContentManager::WaitForFileChanges(
 				break;
 		}
 #else
-        bool update = false;
+		bool update = false;
 
         int pollValue = poll(&pfd, 1, POLL_TIMEOUT);
 
@@ -318,12 +321,12 @@ void ContentManager::WaitForFileChanges(
             Logger::LogLine(LOG_TYPE::INFO, "pollValue < 0"); // TODO: Remove
         else if(pollValue > 0) // pollValue == 0 => timeout
         {
-            ssize_t length = read(fileDescriptor, buffer.get(), BUFFER_LENGTH);
+            ssize_t length = read(fileDescriptor, buffer, BUFFER_LENGTH);
 
             if(length < 0)
                 Logger::LogLine(LOG_TYPE::INFO, "length < 0"); // TODO: Remove
             else
-                update = true;
+				update = true;
         }
 #endif
 
@@ -338,9 +341,7 @@ void ContentManager::WaitForFileChanges(
 			{
 				std::string filePathString = filePath.string();
 
-                // Replace backslashes with frontslashes and make path lower-case
 				std::replace(filePathString.begin(), filePathString.end(), '\\', '/');
-				std::transform(filePathString.begin(), filePathString.end(), filePathString.begin(), ::tolower);
 
 				if(contentMap.count(filePathString) > 0)
 				{
@@ -352,7 +353,7 @@ void ContentManager::WaitForFileChanges(
                         // Make a copy of the content, load it from disk in this thread and then update the "real"
                         // version when HotReload is called
 						DiskContent* reloadContent = diskContent->CreateInstance();
-						reloadContent->LoadTemporary(filePathString.c_str(), this);
+						reloadContent->BeginHotReload(filePathString.c_str(), this);
 
 						reloadMap.insert(std::make_pair(content->GetPath(), reloadContent));
 					}
@@ -361,8 +362,18 @@ void ContentManager::WaitForFileChanges(
 
 			if(!reloadMap.empty())
 				contentToHotReload = true;
+
+			// TODO: Do I really need to do this every time...?
+			inotify_rm_watch(fileDescriptor, watchDescriptor);
+			close(fileDescriptor);
+			fileDescriptor = inotify_init();
+			watchDescriptor = inotify_add_watch(fileDescriptor, contentRootDirectory.c_str(), IN_CLOSE_WRITE); // TODO: Error handling, remove watch
+
 		}
 	}
+
+	inotify_rm_watch(fileDescriptor, watchDescriptor);
+	close(fileDescriptor);
 }
 
 Content* ContentManager::ContentAlreadyLoaded(const std::string path, ContentParameters* contentParameters)

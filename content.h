@@ -156,11 +156,33 @@ public:
 	* some usable default content
 	*/
 	virtual bool CreateDefaultContent(const char* filePath, ContentManager* contentManager) = 0;
-	virtual bool Apply(Content* content) = 0;
 
 protected:
+    /**
+     * Begin hot reloading by loading any files from disk
+     *
+     * This is done on a separate instance than of the original object and in a separate thread than the main thread
+     *
+     * \param filePath this content's path
+     * \param contentManager
+     * \return
+     */
 	virtual CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager = nullptr) = 0;
+    /**
+     * Called after BeginHotReload from the main thread
+     *
+     * Any API calls that aren't threadable can be done here since it's called from the main thread.
+     * Called from ContentManager::HotReload()
+     */
 	virtual void ApplyHotReload() = 0;
+    /**
+     * Implementation required for hot reloading, should copy everything from \p content. Doesn't have to leave \p content
+     * in a valid state as it is dealloacted shortly after
+     *
+     * \param content content to duplicate
+     * \return whether or not some error occured (usually if \p content isn't of the same type as this
+     */
+    virtual bool Apply(Content* content) = 0;
 
 	/**
 	* Used for hot reloading, should just return a new empty instance

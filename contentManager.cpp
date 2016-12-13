@@ -332,6 +332,8 @@ void ContentManager::WaitForFileChanges(
 
 		if(update)
 		{
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
 			//<new, modified, removed>
 			auto tuple = fileManager.Rebuild();
 

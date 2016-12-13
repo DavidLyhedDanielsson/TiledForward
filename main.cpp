@@ -60,17 +60,17 @@ int main(int argc, char* argv[])
 
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)
-                                   {
-                                       if(keyState.action == KEY_ACTION::DOWN)
-                                       {
-                                           if(!keysDown.count(keyState.key))
-                                               keysDown.insert(keyState.key);
-                                       }
-                                       else if(keyState.action == KEY_ACTION::UP)
-                                       {
-                                           keysDown.erase(keyState.key);
-                                       }
-                                   });
+                {
+                    if(keyState.action == KEY_ACTION::DOWN)
+                    {
+                        if(!keysDown.count(keyState.key))
+                            keysDown.insert(keyState.key);
+                    }
+                    else if(keyState.action == KEY_ACTION::UP)
+                    {
+                        keysDown.erase(keyState.key);
+                    }
+                });
         Input::RegisterMouseButtonCallback(
                 [&](const MouseButtonState& buttonState)
                 {
@@ -79,15 +79,15 @@ int main(int argc, char* argv[])
 
         window.RegisterFocusGainCallback(
                 [&]()
-                                         {
-                                             Input::LockCursor(1280 / 2, 720 / 2);
-                                         });
+                {
+                    Input::LockCursor(1280 / 2, 720 / 2);
+                });
 
         window.RegisterFocusLossCallback(
                 [&]()
-                                         {
-                                             Input::LockCursor(-1, -1);
-                                         });
+                {
+                    Input::LockCursor(-1, -1);
+                });
 
         Input::Update();
 
@@ -120,8 +120,10 @@ int main(int argc, char* argv[])
         GLIndexBuffer indexBuffer;
         indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, { 0, 2, 1, 3, 1, 2 }, false);
 
+        ContentManager contentManager("content");
         GLDrawBinds binds;
-        binds.AddShaders(GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
+        binds.AddShaders(contentManager
+                         , GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
                          , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
 
         GLInputLayout vertexBufferLayout;
@@ -142,8 +144,6 @@ int main(int argc, char* argv[])
 
         Timer timeSinceStart;
         timeSinceStart.Start();
-
-        ContentManager contentManager("content");
 
         Texture* texture = contentManager.Load<Texture>("testTexture.png", nullptr);
 

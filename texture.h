@@ -30,8 +30,6 @@ public:
 
 	virtual bool CreateDefaultContent(const char* filePath, ContentManager* contentManager) override;
 
-	bool Apply(Content* content) override;
-
 //protected:
 	GLuint texture;
 
@@ -44,9 +42,11 @@ public:
 	float predivHeight;
 
 	virtual CONTENT_ERROR_CODES Load(const char* filePath, ContentManager* contentManager = nullptr, ContentParameters* contentParameters = nullptr) override;
-	virtual CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager = nullptr) override;
-	virtual void ApplyHotReload() override;
 	virtual void Unload(ContentManager* contentManager = nullptr) override;
+
+    virtual CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager = nullptr) override;
+    virtual void ApplyHotReload() override;
+    virtual bool Apply(Content* other);
 
 	CONTENT_ERROR_CODES ReadData(const char* filePath);
 

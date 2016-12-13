@@ -647,6 +647,17 @@ void GLMessageCallback(GLenum source
             break;
     }
 
-    LOG_DEBUG(stringMessage);
+    switch(severity)
+    {
+        case GL_DEBUG_SEVERITY_LOW:
+        case GL_DEBUG_SEVERITY_MEDIUM:
+        case GL_DEBUG_SEVERITY_HIGH:
+            LOG_WARNING(stringMessage);
+            break;
+        default:
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            LOG_DEBUG(stringMessage);
+            break;
+    }
 }
 #endif

@@ -55,7 +55,7 @@ public:
 	* \returns a pointer to the loaded content
 	*/
 	template<typename T>
-	T* Load(const std::string& path, ContentParameters* contentParameters = nullptr)
+	T* Load(const std::string& path, ContentParameters* contentParameters = nullptr) // TODO: Make two funcions? Maybe three where one has ContentParameters&?
 	{
 		Content* existingContent = ContentAlreadyLoaded(path, contentParameters);
 		if(existingContent != nullptr)

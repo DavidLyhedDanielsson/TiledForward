@@ -2,6 +2,7 @@
 #include "glVertexShader.h"
 #include "glPixelShader.h"
 #include "logger.h"
+#include "shaderContentParameters.h"
 
 #include <cstring>
 #include <set>
@@ -64,23 +65,11 @@ bool GLDrawBinds::Init()
     return true;
 }
 
-void GLDrawBinds::AddShader(GLEnums::SHADER_TYPE type, const std::string& shaderPath)
+void GLDrawBinds::AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath)
 {
-    GLShader* newShader;
+    ShaderContentParameters parameters(type);
 
-    switch(type)
-    {
-        case GLEnums::SHADER_TYPE::VERTEX:
-            newShader = new GLVertexShader();
-            break;
-        case GLEnums::SHADER_TYPE::PIXEL:
-            newShader = new GLPixelShader();
-            break;
-        default:
-            throw std::runtime_error("Shader type not implemented");
-    }
-
-    newShader->Load(shaderPath);
+    GLShader* newShader = contentManager.Load<GLShader>(shaderPath, &parameters);
 
     shaderBinds.push_back(std::make_pair(type, newShader));
 }
@@ -161,8 +150,11 @@ bool GLDrawBinds::CreateShaderProgram()
 {
     shaderProgram = glCreateProgram();
 
-    for(const auto& pair : shaderBinds)
+    for(auto& pair : shaderBinds)
+    {
+        pair.second->shaderPrograms.push_back(this);
         glAttachShader(shaderProgram, pair.second->GetShader());
+    }
 
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
@@ -505,37 +497,37 @@ std::string GLDrawBinds::ToString() const
                 if(vertexShader.empty())
                     vertexShader = "Vertex shaders: ";
 
-                vertexShader += pair.second->GetPath() + ", ";
+                (vertexShader += pair.second->GetPath()) += ", ";
                 break;
             case GLEnums::SHADER_TYPE::TESS_CONTROL:
                 if(tessControlShader.empty())
                     tessControlShader = "Tessellation control shaders: ";
 
-                tessControlShader += pair.second->GetPath() + ", ";
+                (tessControlShader += pair.second->GetPath()) += ", ";
                 break;
             case GLEnums::SHADER_TYPE::TESS_EVALUATION:
                 if(tessEvalShader.empty())
                     tessEvalShader = "Tessellation evaluation shaders: ";
 
-                tessEvalShader += pair.second->GetPath() + ", ";
+                (tessEvalShader += pair.second->GetPath()) += ", ";
                 break;
             case GLEnums::SHADER_TYPE::GEOMETRY:
                 if(geometryShader.empty())
                     geometryShader = "Geometry shaders: ";
 
-                geometryShader += pair.second->GetPath() + ", ";
+                (geometryShader += pair.second->GetPath()) += ", ";
                 break;
             case GLEnums::SHADER_TYPE::PIXEL:
                 if(pixelShader.empty())
                     pixelShader = "Pixel shaders: ";
 
-                pixelShader += pair.second->GetPath() + ", ";
+                (pixelShader += pair.second->GetPath()) += ", ";
                 break;
             case GLEnums::SHADER_TYPE::COMPUTE:
                 if(computeShader.empty())
                     computeShader = "Compute shaders: ";
 
-                computeShader += pair.second->GetPath() + ", ";
+                (computeShader += pair.second->GetPath()) += ", ";
                 break;
         }
     }
@@ -562,4 +554,14 @@ std::string GLDrawBinds::ToString() const
 void GLDrawBinds::LogWithName(LOG_TYPE logType, const std::string& message) const
 {
     Logger::LogLine(logType, ToString() + message);
+}
+
+void GLDrawBinds::RelinkShaders()
+{
+    glLinkProgram(shaderProgram);
+}
+
+GLuint GLDrawBinds::GetShaderProgram() const
+{
+    return shaderProgram;
 }

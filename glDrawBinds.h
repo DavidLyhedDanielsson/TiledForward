@@ -12,22 +12,24 @@
 #include "glIndexBuffer.h"
 #include "glUniform.h"
 #include "glInputLayout.h"
+#include "contentManager.h"
 
 class GLDrawBinds
 {
+    friend class GLShader;
 public:
     GLDrawBinds();
     ~GLDrawBinds();
 
     bool Init();
 
-    void AddShader(GLEnums::SHADER_TYPE type, const std::string& shaderPath);
+    void AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath);
     template<typename... T>
-    void AddShaders(GLEnums::SHADER_TYPE type, const std::string& shaderPath, T... rest)
+    void AddShaders(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath, T... rest)
     {
-        AddShader(type, shaderPath);
+        AddShader(contentManager, type, shaderPath);
 
-        AddShaders(rest...);
+        AddShaders(contentManager, rest...);
     }
 
     template<typename T>
@@ -92,6 +94,8 @@ public:
         return *uniformBinds[name];
     }
 
+    void CompileProgram();
+
 protected:
 private:
     // Also used for uniforms
@@ -121,13 +125,14 @@ private:
     void AddShaders()
     {}
 
-    // Recursive template termination
     void AddUniforms()
     {}
 
-    // Recursive template termination
     void AddBuffers()
     {}
+
+    void AddShaders(ContentManager& contentManager)
+    { }
 
     void AddBuffer(GLVertexBuffer* vertexBuffer);
     void AddBuffer(GLVertexBuffer* vertexBuffer, GLInputLayout inputLayout);
@@ -146,6 +151,9 @@ private:
     std::string ToString() const;
 
     void LogWithName(LOG_TYPE logType, const std::string& message) const;
+
+    void RelinkShaders();
+    GLuint GetShaderProgram() const;
 };
 
 #endif // GLSHADERRESOURCEBINDS_H__

@@ -189,9 +189,13 @@ void ContentManager::HotReload()
 		// pair.second is always DiskContent*, so this is fine
 		DiskContent* currentPointer = static_cast<DiskContent*>(contentMap[pair.first]);
 
-		currentPointer->Unload(this);
-		pair.second->ApplyHotReload();
-		currentPointer->Apply(pair.second);
+        if(pair.second->ApplyHotReload())
+        {
+            currentPointer->Unload(this);
+            currentPointer->Apply(pair.second);
+        }
+        else
+            pair.second->Unload(this);
 
 		delete pair.second;
 	}
@@ -355,9 +359,8 @@ void ContentManager::WaitForFileChanges(
                         // Make a copy of the content, load it from disk in this thread and then update the "real"
                         // version when HotReload is called
 						DiskContent* reloadContent = diskContent->CreateInstance();
-						reloadContent->BeginHotReload(filePathString.c_str(), this);
-
-						reloadMap.insert(std::make_pair(content->GetPath(), reloadContent));
+						if(reloadContent->BeginHotReload(filePathString.c_str(), this) == CONTENT_ERROR_CODES::NONE) // TODO: More error handling?
+						    reloadMap.insert(std::make_pair(content->GetPath(), reloadContent));
 					}
 				}
 			}

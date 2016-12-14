@@ -103,12 +103,13 @@ CONTENT_ERROR_CODES GLShader::BeginHotReload(const char* filePath, ContentManage
     return CONTENT_ERROR_CODES::NONE;
 }
 
-void GLShader::ApplyHotReload()
+bool GLShader::ApplyHotReload()
 {
-    if(!CompileFromSource(shaderSource))
-        Logger::LogLine(LOG_TYPE::WARNING, "Couldn't compile shader");
+    bool returnValue = CompileFromSource(shaderSource);
 
-    shaderSource.empty();
+    shaderSource.resize(0);
+
+    return returnValue;
 }
 
 DiskContent* GLShader::CreateInstance() const
@@ -133,7 +134,7 @@ bool GLShader::CompileFromSource(const std::string& source)
         std::unique_ptr<GLchar> errorLog(new char[logSize]);
         glGetShaderInfoLog(shader, logSize, nullptr, errorLog.get()); // TODO
 
-        Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader ", const_cast<const char*>(errorLog.get()));
+        Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader at \"", this->GetPath(), "\": ", const_cast<const char*>(errorLog.get()));
 
         return false;
     }

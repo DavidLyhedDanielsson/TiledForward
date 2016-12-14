@@ -27,9 +27,6 @@ GLDrawBinds::~GLDrawBinds()
         glDeleteProgram(shaderProgram);
     }
 
-    for(const auto& pair : shaderBinds)
-        delete pair.second;
-
     for(const auto& pair : uniformBinds)
         delete pair.second;
 
@@ -559,6 +556,10 @@ void GLDrawBinds::LogWithName(LOG_TYPE logType, const std::string& message) cons
 void GLDrawBinds::RelinkShaders()
 {
     glLinkProgram(shaderProgram);
+
+    glUseProgram(shaderProgram);
+    BindUniforms();
+    glUseProgram(0);
 }
 
 GLuint GLDrawBinds::GetShaderProgram() const

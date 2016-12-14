@@ -167,7 +167,7 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
     return CONTENT_ERROR_CODES::NONE;
 }
 
-void Texture::ApplyHotReload()
+bool Texture::ApplyHotReload()
 {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -186,6 +186,8 @@ void Texture::ApplyHotReload()
     predivHeight = 1.0f / height;
 
     data.reset(nullptr); // TODO: I don't like this
+
+	return true;
 }
 
 int Texture::GetStaticVRAMUsage() const

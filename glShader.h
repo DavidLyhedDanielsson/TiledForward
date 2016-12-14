@@ -34,7 +34,7 @@ protected:
     void Unload(ContentManager* contentManager) override;
 
     CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager) override;
-    void ApplyHotReload() override;
+    bool ApplyHotReload() override;
     bool Apply(Content* content) override;
 
     DiskContent* CreateInstance() const override;

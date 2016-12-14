@@ -165,7 +165,7 @@ protected:
      *
      * \param filePath this content's path
      * \param contentManager
-     * \return
+     * \return any code except NONE will prevent hot reloading
      */
 	virtual CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager = nullptr) = 0;
     /**
@@ -173,14 +173,19 @@ protected:
      *
      * Any API calls that aren't threadable can be done here since it's called from the main thread.
      * Called from ContentManager::HotReload()
+     *
+     * \return if true, hot reloading will continue, otherwise it will stop and Unload will be called
      */
-	virtual void ApplyHotReload() = 0;
+	virtual bool ApplyHotReload() = 0;
     /**
      * Implementation required for hot reloading, should copy everything from \p content. Doesn't have to leave \p content
-     * in a valid state as it is dealloacted shortly after
+     * in a valid state as it is dealloacted shortly after.
+     *
+     * This function should ONLY fail if \p content is of the wrong type, since this will be unloaded first and there
+     * is no way to get the unloaded data back
      *
      * \param content content to duplicate
-     * \return whether or not some error occured (usually if \p content isn't of the same type as this
+     * \return whether or not some error occured (usually if \p content isn't of the same type as this)
      */
     virtual bool Apply(Content* content) = 0;
 

@@ -30,7 +30,7 @@ public:
 
 	virtual bool CreateDefaultContent(const char* filePath, ContentManager* contentManager) override;
 
-//protected:
+//protected: // TODO!
 	GLuint texture;
 
 	std::unique_ptr<unsigned char> data;
@@ -45,7 +45,7 @@ public:
 	virtual void Unload(ContentManager* contentManager = nullptr) override;
 
     virtual CONTENT_ERROR_CODES BeginHotReload(const char* filePath, ContentManager* contentManager = nullptr) override;
-    virtual void ApplyHotReload() override;
+    virtual bool ApplyHotReload() override;
     virtual bool Apply(Content* other);
 
 	CONTENT_ERROR_CODES ReadData(const char* filePath);

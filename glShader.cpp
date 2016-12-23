@@ -132,7 +132,7 @@ bool GLShader::CompileFromSource(const std::string& source)
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logSize);
 
         std::unique_ptr<GLchar> errorLog(new char[logSize]);
-        glGetShaderInfoLog(shader, logSize, nullptr, errorLog.get()); // TODO
+        glGetShaderInfoLog(shader, logSize, nullptr, errorLog.get());
 
         Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader at \"", this->GetPath(), "\": ", const_cast<const char*>(errorLog.get()));
 

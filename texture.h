@@ -30,7 +30,9 @@ public:
 
 	virtual bool CreateDefaultContent(const char* filePath, ContentManager* contentManager) override;
 
-//protected: // TODO!
+	GLuint GetTexture() const;
+
+protected:
 	GLuint texture;
 
 	std::unique_ptr<unsigned char> data;

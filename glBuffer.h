@@ -63,7 +63,7 @@ public:
 
 protected:
     uint32_t roundToNextPower(uint32_t value) const;
-    uint64_t roundToNextPower(uint64_t value)const;
+    uint64_t roundToNextPower(uint64_t value) const;
 
     /**@{*/
     /**

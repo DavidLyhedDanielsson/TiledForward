@@ -16,8 +16,7 @@
 
 CONTENT_ERROR_CODES LoadContent(const char* filePath, unsigned char* data)
 {
-    // TODO: Error handling
-    ilInit(); // TODO: Move this?
+    ilInit();
     ilEnable(IL_ORIGIN_SET);
     ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
 
@@ -25,7 +24,15 @@ CONTENT_ERROR_CODES LoadContent(const char* filePath, unsigned char* data)
     ilGenImages(1, &image);
     ilBindImage(image);
 
+    ILenum error = ilGetError();
+    if(error != IL_NO_ERROR)
+        return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
+
     ilLoadImage(filePath);
+
+    error = ilGetError();
+    if(error != IL_NO_ERROR)
+        return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
 
     ILubyte* ilData = ilGetData();
 
@@ -47,7 +54,11 @@ CONTENT_ERROR_CODES LoadContent(const char* filePath, unsigned char* data)
 
     ilDeleteImage(image);
 
-    return CONTENT_ERROR_CODES::NONE;
+    error = ilGetError();
+    if(error != IL_NO_ERROR)
+        return CONTENT_ERROR_CODES::UNKNOWN;
+    else
+        return CONTENT_ERROR_CODES::NONE;
 }
 
 bool Dimensions(const char* filePath, uint32_t& width, uint32_t& height)

@@ -281,3 +281,8 @@ inline bool operator!=(const Texture& lhs, const Texture& rhs)
 {
 	return !(lhs == rhs);
 }
+
+GLuint Texture::GetTexture() const
+{
+    return texture;
+}

@@ -18,7 +18,7 @@ CONTENT_ERROR_CODES LoadContent(const char* filePath, unsigned char* data)
 {
     ilInit();
     ilEnable(IL_ORIGIN_SET);
-    ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+    ilOriginFunc(IL_ORIGIN_UPPER_LEFT);
 
     ILuint image;
     ilGenImages(1, &image);

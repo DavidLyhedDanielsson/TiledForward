@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "memoryTexture.h"
 #include "textureCreationParameters.h"
 
@@ -23,16 +24,22 @@ CONTENT_ERROR_CODES MemoryTexture::Load(const char* filePath, ContentManager* co
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+	unsigned char whiteTextureData[] =
+			{
+					255, 255, 255, 255, 255, 255, 255, 255,
+					255, 255, 255, 255, 255, 255, 255, 255
+			};
+
     // TODO: Create mipmaps?
-    glTexImage2D(GL_TEXTURE_2D
-                 , 0
-                 , (GLint)parameters->internalFormat
-                 , parameters->width
-                 , parameters->height
-                 , 0
-                 , (GLenum)parameters->format
-                 , (GLenum)parameters->type
-                 , parameters->data);
+	glTexImage2D(GL_TEXTURE_2D
+				 , 0
+				 , (GLint)parameters->internalFormat
+				 , parameters->width
+				 , parameters->height
+				 , 0
+				 , (GLenum)parameters->format
+				 , (GLenum)parameters->type
+				 , whiteTextureData);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 

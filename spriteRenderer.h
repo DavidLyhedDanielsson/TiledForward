@@ -17,106 +17,6 @@
 
 class Texture;
 
-namespace
-{
-	class BatchData
-	{
-	public:
-		BatchData()
-			: positionMin(0, 0)
-			, positionMax(0, 0)
-			, texCoordsMin(0, 0)
-			, texCoordsMax(0, 0)
-			, color(0, 0, 0, 0)
-		{ };
-		BatchData(glm::vec2 positionMin
-				  , glm::vec2 positionMax
-				  , glm::vec2 texCoordsMin
-				  , glm::vec2 texCoordsMax
-				  , glm::vec4 color)
-			: positionMin(positionMin)
-			, positionMax(positionMax)
-			, texCoordsMin(texCoordsMin)
-			, texCoordsMax(texCoordsMax)
-			, color(color)
-		{ };
-		~BatchData()
-		{ };
-
-		glm::vec2 positionMin;
-		glm::vec2 positionMax;
-
-		glm::vec2 texCoordsMin;
-		glm::vec2 texCoordsMax;
-
-		glm::vec4 color;
-	};
-
-	struct SpriteBatch
-	{
-	public:
-		SpriteBatch()
-			: texture(0)
-			, offset(0)
-			, size(0)
-		{ }
-		SpriteBatch(GLuint texture)
-			: texture(texture)
-			, offset(0)
-			, size(0)
-		{ }
-
-		~SpriteBatch() = default;
-
-        GLuint texture;
-
-		unsigned int offset;
-		unsigned int size;
-	};
-
-	class Vertex2D
-	{
-	public:
-		Vertex2D()
-			: position(0.0f, 0.0f)
-			, texCoords(0.0f, 0.0)
-			, color(0.0f, 0.0f, 0.0f, 0.0f)
-		{ }
-		Vertex2D(glm::vec2 position, glm::vec2 texCoords, glm::vec4 color)
-			: position(position)
-			, texCoords(texCoords)
-			, color(color)
-		{ }
-		Vertex2D(float posX, float posY, float texCoordsX, float texCoordsY, glm::vec4 color)
-			: position(posX, posY)
-			, texCoords(texCoordsX, texCoordsY)
-			, color(color)
-		{ }
-		~Vertex2D() = default;
-
-		glm::vec2 position; //8 bytes
-		glm::vec2 texCoords; //8 bytes
-		glm::vec4 color; //16 bytes
-	};
-
-	struct SpriteInfo
-	{
-		SpriteInfo()
-		{ };
-		SpriteInfo(Rect position, Rect clipRect, glm::vec4 color)
-			: position(position)
-			, clipRect(clipRect)
-			, color(color)
-		{ };
-		~SpriteInfo()
-		{ };
-
-		Rect position;
-		Rect clipRect;
-		glm::vec4 color;
-	};
-}
-
 /**
 * A sprite renderer. It renders sprites.
 *
@@ -217,6 +117,100 @@ public:
 	*/
 	bool AnythingToDraw() const;
 private:
+	struct BatchData
+	{
+		BatchData()
+				: positionMin(0, 0)
+				  , positionMax(0, 0)
+				  , texCoordsMin(0, 0)
+				  , texCoordsMax(0, 0)
+				  , color(0, 0, 0, 0)
+		{ };
+		BatchData(glm::vec2 positionMin
+				  , glm::vec2 positionMax
+				  , glm::vec2 texCoordsMin
+				  , glm::vec2 texCoordsMax
+				  , glm::vec4 color)
+				: positionMin(positionMin)
+				  , positionMax(positionMax)
+				  , texCoordsMin(texCoordsMin)
+				  , texCoordsMax(texCoordsMax)
+				  , color(color)
+		{ };
+		~BatchData()
+		{ };
+
+		glm::vec2 positionMin;
+		glm::vec2 positionMax;
+
+		glm::vec2 texCoordsMin;
+		glm::vec2 texCoordsMax;
+
+		glm::vec4 color;
+	};
+
+	struct SpriteBatch
+	{
+		SpriteBatch()
+				: texture(0)
+				  , offset(0)
+				  , size(0)
+		{ }
+		SpriteBatch(GLuint texture)
+				: texture(texture)
+				  , offset(0)
+				  , size(0)
+		{ }
+
+		~SpriteBatch() = default;
+
+		GLuint texture;
+
+		unsigned int offset;
+		unsigned int size;
+	};
+
+	struct Vertex2D
+	{
+		Vertex2D()
+				: position(0.0f, 0.0f)
+				  , texCoords(0.0f, 0.0)
+				  , color(0.0f, 0.0f, 0.0f, 0.0f)
+		{ }
+		Vertex2D(glm::vec2 position, glm::vec2 texCoords, glm::vec4 color)
+				: position(position)
+				  , texCoords(texCoords)
+				  , color(color)
+		{ }
+		Vertex2D(float posX, float posY, float texCoordsX, float texCoordsY, glm::vec4 color)
+				: position(posX, posY)
+				  , texCoords(texCoordsX, texCoordsY)
+				  , color(color)
+		{ }
+		~Vertex2D() = default;
+
+		glm::vec2 position; //8 bytes
+		glm::vec2 texCoords; //8 bytes
+		glm::vec4 color; //16 bytes
+	};
+
+	struct SpriteInfo
+	{
+		SpriteInfo()
+		{ };
+		SpriteInfo(Rect position, Rect clipRect, glm::vec4 color)
+				: position(position)
+				  , clipRect(clipRect)
+				  , color(color)
+		{ };
+		~SpriteInfo()
+		{ };
+
+		Rect position;
+		Rect clipRect;
+		glm::vec4 color;
+	};
+
 	void AddNewBatch(const Texture& newTexture);
 	void AddDataToBatch(const BatchData& data);
 
@@ -231,11 +225,12 @@ private:
 
 	//VertexShader* vertexShader;
 	//PixelShader* pixelShader;
+	glm::mat4x4 viewProjectionMatrix;
 
 	GLVertexBuffer vertexBuffer;
 	GLIndexBuffer indexBuffer;
 
-    GLDrawBinds binds;
+    GLDrawBinds drawBinds;
 
 	/**
 	* Max inserts per batch. 1 batch = 1 draw call
@@ -253,7 +248,7 @@ private:
 	std::vector<SpriteBatch> spriteBatch;
 
 	std::vector<Vertex2D> vertices;
-	std::vector<unsigned int> indicies;
+	std::vector<GLuint> indicies;
 
 	//For easy drawing of rectangles via Draw()
 	Texture* whiteTexture;

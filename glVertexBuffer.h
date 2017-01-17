@@ -11,7 +11,7 @@ public:
     ~GLVertexBuffer();
 
     template<typename... T>
-    bool Init(GLEnums::BUFFER_USAGE usage, void* initialData, size_t elementCount, bool memcpyData)
+    bool Init(GLEnums::BUFFER_USAGE usage, void* initialData, size_t elementCount)
     {
 #ifndef GL_VERTEX_NO_WARNING
         Logger::LogLine(LOG_TYPE::WARNING
@@ -21,7 +21,7 @@ public:
         this->stride = (GLsizei)GetByteSize<T...>();
         AddOffsets<T...>(this->offsets);
 
-        return GLBuffer::Init<T...>(GLEnums::BUFFER_TYPE::VERTEX, usage, initialData, elementCount, memcpyData);
+        return GLBufferBase::Init<T...>(GLEnums::BUFFER_TYPE::VERTEX, usage, initialData, elementCount);
     }
 
     /**
@@ -44,14 +44,14 @@ public:
      * @return Whether or not initialization succeeded
      */
     template<typename VectorType, typename... T>
-    bool Init(GLEnums::BUFFER_USAGE usage, const std::vector<VectorType>& initialData, bool memcpyData)
+    bool Init(GLEnums::BUFFER_USAGE usage, const std::vector<VectorType>& initialData)
     {
         // TODO: Make sure initialData.size matches stride
 
         this->stride = (GLsizei)GetByteSize<T...>();
         AddOffsets<T...>(this->offsets);
 
-        return GLBuffer::Init<T...>(GLEnums::BUFFER_TYPE::VERTEX, usage, const_cast<VectorType*>(&initialData[0]), initialData.size(), memcpyData);
+        return GLBufferBase::Init<T...>(GLEnums::BUFFER_TYPE::VERTEX, usage, const_cast<VectorType*>(&initialData[0]), initialData.size());
     }
 
     GLsizei GetStride() const;

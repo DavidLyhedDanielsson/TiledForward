@@ -11,16 +11,16 @@ public:
     ~GLIndexBuffer();
 
     template<typename... T>
-    bool Init(GLEnums::BUFFER_USAGE usage, void* initialData, GLsizei elementCount, bool memcpyData)
+    bool Init(GLEnums::BUFFER_USAGE usage, void* initialData, GLsizei elementCount)
     {
 #ifndef GL_INDEX_NO_WARNING
         Logger::LogLine(LOG_TYPE::WARNING
                         , "GLIndexBuffer::Init which takes a void* is used. Prefer using the std::vector version instead. To squelch this warning define GL_INDEX_NO_WARNING");
 #endif // GL_INDEX_NO_WARNING
 
-        indiciesCount = elementCount;
+        indexCount = elementCount;
 
-        return GLBuffer::Init<T...>(GLEnums::BUFFER_TYPE::INDEX, usage, initialData, elementCount, memcpyData);
+        return GLBufferBase::Init<T...>(GLEnums::BUFFER_TYPE::INDEX, usage, initialData, elementCount);
     }
 
     /**
@@ -34,19 +34,21 @@ public:
      * @param memcpyData Should the data be copied, or can a pointer to the first element inside \p indicies be used?
      * @return Whether or not initialization succeeded
      */
-    bool Init(GLEnums::BUFFER_USAGE usage, const std::vector<GLint>& indicies, bool memcpyData)
+    bool Init(GLEnums::BUFFER_USAGE usage, const std::vector<GLint>& indicies)
     {
-        indiciesCount = (GLsizei)indicies.size();
+        indexCount = (GLsizei)indicies.size();
 
-        // GLBuffer::Init never modifies the data
-        return GLBuffer::Init<GLint>(GLEnums::BUFFER_TYPE::INDEX, usage, const_cast<GLint*>(&indicies[0]), indicies.size(), memcpyData);
+        // GLBufferBase::Init never modifies the data
+        return GLBufferBase::Init<GLint>(GLEnums::BUFFER_TYPE::INDEX, usage, const_cast<GLint*>(&indicies[0]), indicies.size());
     }
+
+    void Update(const std::vector<GLuint>& indicies);
 
     GLsizei GetIndiciesCount() const;
 
 protected:
 private:
-    GLsizei indiciesCount;
+    GLsizei indexCount;
 };
 
 #endif // GLINDEXBUFFER_H__

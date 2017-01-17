@@ -87,9 +87,13 @@ void GLShader::Unload(ContentManager* contentManager)
     if(shader != 0)
     {
         for(auto shaderProgram : shaderPrograms)
-            glDetachShader(shaderProgram->GetShaderProgram(), shader);
+            if(shaderProgram->GetShaderProgram() != 0)
+                glDetachShader(shaderProgram->GetShaderProgram(), shader);
 
         glDeleteShader(shader);
+
+        shaderPrograms.clear();
+        shader = 0;
     }
 }
 

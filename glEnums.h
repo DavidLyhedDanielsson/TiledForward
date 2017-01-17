@@ -240,7 +240,7 @@ namespace GLEnums
     };
 }
 
-GLEnums::MAP_ACCESS operator|(GLEnums::MAP_ACCESS lhs, GLEnums::MAP_ACCESS rhs)
+inline GLEnums::MAP_ACCESS operator|(GLEnums::MAP_ACCESS lhs, GLEnums::MAP_ACCESS rhs)
 {
     return (GLEnums::MAP_ACCESS)((GLenum)lhs | (GLenum)rhs);
 }

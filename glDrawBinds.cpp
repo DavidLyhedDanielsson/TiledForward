@@ -25,13 +25,17 @@ GLDrawBinds::~GLDrawBinds()
             glDetachShader(shaderProgram, pair.second->GetShader());
 
         glDeleteProgram(shaderProgram);
+        shaderProgram = 0;
     }
 
     for(const auto& pair : uniformBinds)
         delete pair.second;
 
     if(vao != 0)
+    {
         glDeleteVertexArrays(1, &vao);
+        vao = 0;
+    }
 }
 
 bool GLDrawBinds::Init()
@@ -139,12 +143,13 @@ int GLDrawBinds::GetNumberOfFloats(GLenum type) const
             return 16;
         default:
             LogWithName(LOG_TYPE::FATAL, "Type to number of float conversion failed for type " + std::to_string(type));
-            return -1;
+            return 0;
     }
 }
 
 bool GLDrawBinds::CreateShaderProgram()
 {
+    //TODO: Cleanup on return false
     shaderProgram = glCreateProgram();
 
     for(auto& pair : shaderBinds)
@@ -154,6 +159,22 @@ bool GLDrawBinds::CreateShaderProgram()
     }
 
     glLinkProgram(shaderProgram);
+
+    GLint linkSuccess = 0;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkSuccess);
+
+    if(linkSuccess != GL_TRUE)
+    {
+        GLint logLength = 0;
+        glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &logLength);
+
+        std::unique_ptr<GLchar> log(new GLchar[logLength]);
+        glGetProgramInfoLog(shaderProgram, logLength, nullptr, log.get());
+        LogWithName(LOG_TYPE::FATAL, std::string("Couldn't link shader program: ") + const_cast<const char*>(log.get()));
+
+        return false;
+    }
+
     glUseProgram(shaderProgram);
 
     if(!CheckUniforms(GetActiveUniforms()))
@@ -167,9 +188,16 @@ bool GLDrawBinds::CreateShaderProgram()
 
         if(vertexBuffers.size() != 1)
         {
-            LogWithName(LOG_TYPE::FATAL, "Multiple vertex buffers bound to binds, automatic attrib enabling won't work");
+            LogWithName(LOG_TYPE::FATAL, "Multiple vertex buffers bound to drawBinds, automatic attrib enabling won't work");
             return false;
         }
+
+        int numberOfFloats = 0;
+        for(const auto& attrib : attributes)
+            numberOfFloats += GetNumberOfFloats(attrib.type);
+
+        if(numberOfFloats * sizeof(float) != vertexBuffers[0]->GetStride())
+            LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes, is this intended?");
 
         GLBufferLock bufferLock(vertexBuffers[0]);
 
@@ -238,15 +266,32 @@ bool GLDrawBinds::CreateShaderProgram()
 
 void GLDrawBinds::BindUniforms()
 {
-    for(const auto& pair : uniformBinds)
-        pair.second->SetLocation(glGetUniformLocation(shaderProgram, pair.first.c_str()));
+    //for(const auto& pair : uniformBinds)
+    for(auto iter = uniformBinds.begin(), end = uniformBinds.end(); iter != end;)
+    {
+        GLint location = glGetUniformLocation(shaderProgram, iter->first.c_str());
+        if(location == -1)
+        {
+            Logger::LogLine(LOG_TYPE::WARNING, "Trying to bind nonexistent uniform \"" +
+                                               iter->first +
+                                               "\", nothing will be bound");
+
+            iter = uniformBinds.erase(iter);
+        }
+        else
+        {
+            iter->second->SetLocation(location);
+
+            ++iter;
+        }
+    }
 }
 
 bool GLDrawBinds::CheckRequirements() const
 {
     if(shaderBinds.size() == 0)
     {
-        LogWithName(LOG_TYPE::FATAL, "No shaders added to binds");
+        LogWithName(LOG_TYPE::FATAL, "No shaders added to drawBinds");
         return false;
     }
 
@@ -259,6 +304,9 @@ bool GLDrawBinds::CheckRequirements() const
 
     for(const auto& pair : shaderBinds)
     {
+        if(!glIsShader(pair.second->GetShader()))
+            Logger::LogLine(LOG_TYPE::WARNING, "Isn't shader");
+
         switch(pair.first)
         {
             case GLEnums::SHADER_TYPE::VERTEX:
@@ -297,7 +345,7 @@ bool GLDrawBinds::CheckRequirements() const
     {
         if(vertexBuffers.size() == 0)
         {
-            LogWithName(LOG_TYPE::FATAL, "No vertex buffer added to binds with vertex shader");
+            LogWithName(LOG_TYPE::FATAL, "No vertex buffer added to drawBinds with vertex shader");
             return false;
         }
 
@@ -426,6 +474,56 @@ void GLDrawBinds::DrawElements()
     glDrawElements(GL_TRIANGLES, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0);
 }
 
+void GLDrawBinds::DrawElements(GLsizei count)
+{
+#ifndef NDEBUG
+    if(indexBuffer == nullptr)
+    {
+        LogWithName(LOG_TYPE::FATAL, "No index buffer set");
+        return;
+    }
+
+    if(count > indexBuffer->GetIndiciesCount())
+    {
+        LogWithName(LOG_TYPE::WARNING, "count is bigger than number of indicies in buffer (" +
+                                     std::to_string(count) +
+                                     " > " +
+                                     std::to_string(indexBuffer->GetIndiciesCount()) +
+                                     "). count will be clamped");
+
+        count = indexBuffer->GetIndiciesCount();
+    }
+#endif // NDEBUG
+
+    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)0);
+}
+
+void GLDrawBinds::DrawElements(GLsizei count, GLsizei offset)
+{
+#ifndef NDEBUG
+    if(indexBuffer == nullptr)
+    {
+        LogWithName(LOG_TYPE::FATAL, "DrawElements called without an index buffer set");
+        return;
+    }
+
+    if(offset + count > indexBuffer->GetIndiciesCount())
+    {
+        LogWithName(LOG_TYPE::WARNING, "offset + count is bigger than number of indicies in buffer ("
+                                       + std::to_string(offset)
+                                       + " + "
+                                       + std::to_string(count)
+                                       + " > "
+                                       + std::to_string(indexBuffer->GetIndiciesCount())
+                                       + "). count will be clamped");
+
+        count = indexBuffer->GetIndiciesCount() - offset;
+    }
+#endif // NDEBUG
+
+    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(GLuint)));
+}
+
 void GLDrawBinds::DrawElementsInstanced(int instances)
 {
 #ifndef NDEBUG
@@ -477,7 +575,7 @@ void GLDrawBinds::AddBuffer(GLIndexBuffer* indexBuffer)
 std::string GLDrawBinds::ToString() const
 {
 #ifndef NDEBUG
-    std::string string = "Draw binds with:\n";
+    std::string string = "Draw drawBinds with:\n";
 
     std::string vertexShader;
     std::string tessControlShader;

@@ -37,7 +37,7 @@ public:
     {
 #ifndef NDEBUG
         if(uniformBinds.count(name) != 0)
-            LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource binds");
+            LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource drawBinds");
 #endif // NDEBUG
 
         uniformBinds[name] = new GLUniform<T>(data);
@@ -48,7 +48,7 @@ public:
     {
 #ifndef NDEBUG
         if(uniformBinds.count(name) != 0)
-            LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource binds");
+            LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource drawBinds");
 #endif // NDEBUG
 
         uniformBinds[name] = new GLUniformArray<T>(data, count);
@@ -87,10 +87,17 @@ public:
     GLShader* GetShader(GLEnums::SHADER_TYPE type, int index) const;
     int GetShaderTypeCount(GLEnums::SHADER_TYPE type) const;
     void DrawElements();
+    void DrawElements(GLsizei count);
+    void DrawElements(GLsizei count, GLsizei offset);
     void DrawElementsInstanced(int instances);
 
     GLUniformBase& operator[](const std::string& name)
     {
+#ifndef NDEBUG
+        if(uniformBinds.count(name) == 0)
+            throw std::runtime_error("Trying to get uniform which doesn't exist! Did you forget to call AddUniform?");
+#endif // NDEBUG
+
         return *uniformBinds[name];
     }
 

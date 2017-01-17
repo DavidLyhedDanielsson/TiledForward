@@ -12,6 +12,7 @@
 #include "glDrawBinds.h"
 #include "texture.h"
 #include "contentManager.h"
+#include "spriteRenderer.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -93,6 +94,8 @@ int main(int argc, char* argv[])
 
         Input::LockCursor(1280 / 2, 720 / 2);
 
+        ContentManager contentManager("content");
+
 //        GLVertexBuffer vertexBuffer;
 //        vertexBuffer.Init<float, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC,
 //                {
@@ -100,7 +103,7 @@ int main(int argc, char* argv[])
 //                        , 0.5f, -0.5f, 0.0f, 1.0f, 0.0f
 //                        , -0.5f, 0.5f, 0.0f, 0.0f, 1.0f
 //                        , 0.5f, 0.5f, 0.0f, 1.0f, 1.0f
-//                }, false);
+//                });
 //
 //        std::vector<glm::mat4x4> transforms =
 //                {
@@ -115,17 +118,16 @@ int main(int argc, char* argv[])
 //            transforms[i] = glm::translate(transforms[i], glm::vec3((float)i * 2.0f, 0.0f, 0.0f));
 //
 //        GLVertexBuffer transformBuffer;
-//        transformBuffer.Init<glm::mat4x4, glm::mat4x4>(GLEnums::BUFFER_USAGE::STREAM, transforms, false);
+//        transformBuffer.Init<glm::mat4x4, glm::mat4x4>(GLEnums::BUFFER_USAGE::STREAM, transforms);
 //
 //        GLIndexBuffer indexBuffer;
-//        indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, { 0, 2, 1, 3, 1, 2 }, false);
-
-        ContentManager contentManager("content");
-        GLDrawBinds binds;
-        binds.AddShaders(contentManager
-                         , GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
-                         , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
-
+//        indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, { 0, 2, 1, 3, 1, 2 });
+//
+//        GLDrawBinds binds;
+//        binds.AddShaders(contentManager
+//                         , GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
+//                         , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
+//
 //        GLInputLayout vertexBufferLayout;
 //        vertexBufferLayout.SetInputLayout<glm::vec3, glm::vec2>();
 //
@@ -141,59 +143,73 @@ int main(int argc, char* argv[])
 //
 //        if(!binds.Init())
 //            return 2;
-//
-//        Timer timeSinceStart;
-//        timeSinceStart.Start();
-//
-//        Texture* texture = contentManager.Load<Texture>("testTexture.png", nullptr);
-//
-//        while(window.PollEvents())
-//        {
-//            timer.UpdateDelta();
-//
-//            if(keysDown.count(KEY_CODE::A))
-//                camera.MoveRight(-0.01f * timer.GetDeltaMillisecondsFraction());
-//            else if(keysDown.count(KEY_CODE::D))
-//                camera.MoveRight(0.01f * timer.GetDeltaMillisecondsFraction());
-//
-//            if(keysDown.count(KEY_CODE::W))
-//                camera.MoveFoward(0.01f * timer.GetDeltaMillisecondsFraction());
-//            else if(keysDown.count(KEY_CODE::S))
-//                camera.MoveFoward(-0.01f * timer.GetDeltaMillisecondsFraction());
-//
-//            if(keysDown.count(KEY_CODE::V))
-//                camera.MoveUp(0.01f * timer.GetDeltaMillisecondsFraction());
-//            else if(keysDown.count(KEY_CODE::C))
-//                camera.MoveUp(-0.01f * timer.GetDeltaMillisecondsFraction());
-//
-//            glm::vec2 mouseDelta = Input::GetMouseDelta();
-//            //if(mouseDelta.x != mouseDelta.y != 0.0f)
-//            //    std::cout << mouseDelta.x << ", " << mouseDelta.y << std::endl;
-//            camera.Rotate(mouseDelta * 0.0025f);
-//
-//            contentManager.HotReload();
-//
-//            glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
-//            glClear(GL_COLOR_BUFFER_BIT);
-//
-//            binds["color"] = std::fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-//            binds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-//
-//            binds.Bind();
-//            glBindTexture(GL_TEXTURE_2D, texture->texture);
-//
-//            binds.DrawElementsInstanced(5);
-//
-//            glBindTexture(GL_TEXTURE_2D, 0);
-//            binds.Unbind();
-//
-//            window.SwapBuffers();
-//
-//            Input::Update();
-//        }
 
-        int ASDF = 5;
+        Timer timeSinceStart;
+        timeSinceStart.Start();
+
+        Texture* testTexture = contentManager.Load<Texture>("testTexture.png");
+
+        SpriteRenderer spriteRenderer;
+        if(!spriteRenderer.Init(contentManager, 1280, 720))
+        {
+            Logger::LogLine(LOG_TYPE::FATAL, "Couldn't initialize sprite renderer");
+            return 1;
+        }
+
+        while(window.PollEvents())
+        {
+            timer.UpdateDelta();
+
+            if(keysDown.count(KEY_CODE::A))
+                camera.MoveRight(-0.01f * timer.GetDeltaMillisecondsFraction());
+            else if(keysDown.count(KEY_CODE::D))
+                camera.MoveRight(0.01f * timer.GetDeltaMillisecondsFraction());
+
+            if(keysDown.count(KEY_CODE::W))
+                camera.MoveFoward(0.01f * timer.GetDeltaMillisecondsFraction());
+            else if(keysDown.count(KEY_CODE::S))
+                camera.MoveFoward(-0.01f * timer.GetDeltaMillisecondsFraction());
+
+            if(keysDown.count(KEY_CODE::V))
+                camera.MoveUp(0.01f * timer.GetDeltaMillisecondsFraction());
+            else if(keysDown.count(KEY_CODE::C))
+                camera.MoveUp(-0.01f * timer.GetDeltaMillisecondsFraction());
+
+            glm::vec2 mouseDelta = Input::GetMouseDelta();
+            //if(mouseDelta.x != mouseDelta.y != 0.0f)
+            //    std::cout << mouseDelta.x << ", " << mouseDelta.y << std::endl;
+            camera.Rotate(mouseDelta * 0.0025f);
+
+            contentManager.HotReload();
+
+            glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            //binds["color"] = std::fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
+            //binds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+
+            //binds.Bind();
+            //glBindTexture(GL_TEXTURE_2D, texture->GetTexture());
+
+            //binds.DrawElementsInstanced(5);
+
+            //glBindTexture(GL_TEXTURE_2D, 0);
+            //binds.Unbind();
+
+            spriteRenderer.Begin();
+            //spriteRenderer.Draw(Rect(64.0f, 64.0f, 64.0f, 64.0f));
+
+            spriteRenderer.Draw(*testTexture, glm::vec2(0.0f, 0.0f), Rect(0.0f, 0.0f, testTexture->GetWidth(), testTexture->GetHeight()));
+            spriteRenderer.Draw(Rect(0.0f, 0.0f, 64.0f, 64.0f), glm::vec4(1.0f, 0.0f, 0.5f, 0.5f));
+            spriteRenderer.End();
+
+            window.SwapBuffers();
+
+            Input::Update();
+        }
     }
+    else
+        Logger::LogLine(LOG_TYPE::FATAL, "Couldn't create window");
 
     IF_WINDOWS(Logger::Deinit());
 

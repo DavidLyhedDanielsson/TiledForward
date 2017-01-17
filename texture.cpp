@@ -160,6 +160,8 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
     Load load = (Load)dlsym(library, "Load");
     if(load != nullptr)
         load(filePath, data.get()); // TODO: Return value
+	else
+		return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
 
     dlclose(library);
 #endif

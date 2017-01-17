@@ -8,11 +8,13 @@
 #include "memoryTexture.h"
 #include "textureCreationParameters.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 SpriteRenderer::SpriteRenderer()
 	: hasBegun(false)
 	, bufferInserts(-1)
 	, whiteTexture(nullptr)
-	, currentTexture(nullptr)
+	, currentTexture(0)
 {
 }
 
@@ -32,7 +34,7 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 		255, 255, 255, 255, 255, 255, 255, 255
 	};
 
-	TextureCreationParameters whiteTextureParameters("whiteTexture", 2, 2, GLEnums::INTERNAL_FORMAT::RGBA, GLEnums::FORMAT::RGBA, GLEnums::TYPE::BYTE, &whiteTextureData[0]);
+	TextureCreationParameters whiteTextureParameters("whiteTexture", 2, 2, GLEnums::INTERNAL_FORMAT::RGB8, GLEnums::FORMAT::RGBA, GLEnums::TYPE::UNSIGNED_BYTE, &whiteTextureData);
 	whiteTexture = contentManager.Load<MemoryTexture>("", &whiteTextureParameters);
 	if(whiteTexture == nullptr)
 	{
@@ -61,8 +63,8 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 //		return false;
 //	}
 
-    vertexBuffer.Init<Vertex2D>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_VERTEX_BUFFER_INSERTS);
-    indexBuffer.Init(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_INDEX_BUFFER_INSERTS);
+    vertexBuffer.Init<glm::vec2, glm::vec2, glm::vec4>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_VERTEX_BUFFER_INSERTS);
+    indexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_INDEX_BUFFER_INSERTS);
 
 	//////////////////////////////////////////////////////////////////////////
 	//Shaders
@@ -94,11 +96,20 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 //		return false;
 //	}
 
-    binds.AddShaders(contentManager
-                     , GLEnums::SHADER_TYPE::VERTEX, "spriteVertex.hlsl"
-                     , GLEnums::SHADER_TYPE::PIXEL, "spritePixel.hlsl");
+    drawBinds.AddShaders(contentManager
+                     , GLEnums::SHADER_TYPE::VERTEX, "spriteVertex.glsl"
+                     , GLEnums::SHADER_TYPE::PIXEL, "spritePixel.glsl");
 
-	return "";
+    drawBinds.AddBuffers(&vertexBuffer, &indexBuffer);
+
+    viewProjectionMatrix = glm::ortho(0.0f, 1280.0f, 720.0f, 0.0f);
+
+    drawBinds.AddUniform("viewProjMatrix", viewProjectionMatrix);
+
+    if(!drawBinds.Init())
+		return false;
+
+	return true;
 }
 
 void SpriteRenderer::Begin()
@@ -124,7 +135,7 @@ void SpriteRenderer::End()
 		Draw();
 
 	//Unbind
-	binds.Unbind();
+	drawBinds.Unbind();
 
 	hasBegun = false;
 }
@@ -198,27 +209,39 @@ void SpriteRenderer::Draw()
 //	deviceContext->OMSetBlendState(BlendStates::singleDefault->Get(), blendFactors, 0xFFFFFFFF);
 //	deviceContext->OMSetDepthStencilState(DepthStencilStates::off->Get(), 0xFFFFFFFF);
 
-    binds.Bind();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    indexBuffer.Update(indicies);
+    vertexBuffer.Update(&vertices[0], sizeof(Vertex2D) * vertices.size());
+
+    drawBinds.Bind();
 
 	AddNewBatch(*whiteTexture);
 	spriteBatch.pop_back();
 
-	vertexBuffer.Update(deviceContext, &vertices[0], static_cast<int>(sizeof(Vertex2D) * vertices.size()));
-	indexBuffer.Update(deviceContext, &indicies[0], static_cast<int>(sizeof(unsigned int) * indicies.size()));
+    //GLBufferLock vertexLock(vertexBuffer);
+    //GLBufferLock indexLock(indexBuffer);
 
 	for(const SpriteBatch& batch : spriteBatch)
 	{
-		deviceContext->PSSetShaderResources(0, 1, &batch.textureResourceView);
-		deviceContext->DrawIndexed(batch.size, batch.offset, 0);
+		//deviceContext->PSSetShaderResources(0, 1, &batch.textureResourceView)-;
+		//deviceContext->DrawIndexed(batch.size, batch.offset, 0);
+		glBindTexture(GL_TEXTURE_2D, batch.texture);
+
+        drawBinds.DrawElements(batch.size, batch.offset);
 	}
 
 	vertices.clear();
 	indicies.clear();
 
 	spriteBatch.clear();
-	currentTexture = nullptr;
+	currentTexture = 0;
 
 	bufferInserts = 0;
+
+    drawBinds.Unbind();
 }
 
 void SpriteRenderer::EnableScissorTest(const Rect& region)
@@ -267,7 +290,7 @@ void SpriteRenderer::AddNewBatch(const Texture& newTexture)
 		spriteBatch.back().size = static_cast<unsigned int>(indicies.size() - spriteBatch.back().offset);
 	}
 
-	spriteBatch.emplace_back(newTexture.GetShaderResourceView());
+	spriteBatch.emplace_back(newTexture.GetTexture());
 }
 
 void SpriteRenderer::AddDataToBatch(const BatchData& data)
@@ -309,82 +332,82 @@ void SpriteRenderer::AddDataToBatch(const BatchData& data)
 
 void SpriteRenderer::DrawString(const CharacterSet* characterSet, const std::string& text, glm::vec2 position, int maxWidth, glm::vec4 color /*= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)*/)
 {
-#ifdef DETAILED_GRAPHS
-	Timer timer;
-	timer.Start();
-#endif // DETAILED_GRAPHS
-
-	//This method would use an unsigned int for maxWidth but workarounds/hacks should allow a negative width on characters.
-	//Besides, 0x7FFFFFFF should be plenty for maxWidth
-	int currentWidth = 0;
-
-	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i)
-	{
-		const Character* character = characterSet->GetCharacter(text[i]);
-
-		if(currentWidth + character->xAdvance > maxWidth)
-			return;
-
-		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
-
-		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
-		position.x += character->xAdvance;
-
-		currentWidth += character->xAdvance;
-	}
-
-#ifdef DETAILED_GRAPHS
-	timer.Stop();
-	drawStringTime += timer.GetTimeMillisecondsFraction();
-#endif // DETAILED_GRAPHS
+//#ifdef DETAILED_GRAPHS
+//	Timer timer;
+//	timer.Start();
+//#endif // DETAILED_GRAPHS
+//
+//	//This method would use an unsigned int for maxWidth but workarounds/hacks should allow a negative width on characters.
+//	//Besides, 0x7FFFFFFF should be plenty for maxWidth
+//	int currentWidth = 0;
+//
+//	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i)
+//	{
+//		const Character* character = characterSet->GetCharacter(text[i]);
+//
+//		if(currentWidth + character->xAdvance > maxWidth)
+//			return;
+//
+//		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
+//
+//		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
+//		position.x += character->xAdvance;
+//
+//		currentWidth += character->xAdvance;
+//	}
+//
+//#ifdef DETAILED_GRAPHS
+//	timer.Stop();
+//	drawStringTime += timer.GetTimeMillisecondsFraction();
+//#endif // DETAILED_GRAPHS
 }
 
 glm::vec2 SpriteRenderer::DrawString(const CharacterSet* characterSet, const std::string& text, glm::vec2 position, glm::vec4 color)
 {
-#ifdef DETAILED_GRAPHS
-	Timer timer;
-	timer.Start();
-#endif // DETAILED_GRAPHS
-
-	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i)
-	{
-		const Character* character = characterSet->GetCharacter(text[i]);
-
-		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
-
-		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
-		position.x += character->xAdvance;
-	}
-
-#ifdef DETAILED_GRAPHS
-	timer.Stop();
-	drawStringTime += timer.GetTimeMillisecondsFraction();
-#endif // DETAILED_GRAPHS
+//#ifdef DETAILED_GRAPHS
+//	Timer timer;
+//	timer.Start();
+//#endif // DETAILED_GRAPHS
+//
+//	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i)
+//	{
+//		const Character* character = characterSet->GetCharacter(text[i]);
+//
+//		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
+//
+//		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
+//		position.x += character->xAdvance;
+//	}
+//
+//#ifdef DETAILED_GRAPHS
+//	timer.Stop();
+//	drawStringTime += timer.GetTimeMillisecondsFraction();
+//#endif // DETAILED_GRAPHS
 
 	return position;
 }
 
 glm::vec2 SpriteRenderer::DrawString(const CharacterSet* characterSet, const std::string& text, glm::vec2 position, unsigned int startIndex, unsigned int count, glm::vec4 color)
 {
-#ifdef DETAILED_GRAPHS
-	Timer timer;
-	timer.Start();
-#endif // DETAILED_GRAPHS
-
-	for(int i = startIndex, end = startIndex + count; i < end; ++i)
-	{
-		const Character* character = characterSet->GetCharacter(text[i]);
-
-		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
-
-		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
-		position.x += character->xAdvance;
-	}
-
-#ifdef DETAILED_GRAPHS
-	timer.Stop();
-	drawStringTime += timer.GetTimeMillisecondsFraction();
-#endif // DETAILED_GRAPHS
+//#ifdef DETAILED_GRAPHS
+//	Timer timer;
+//	timer.Start();
+//#endif // DETAILED_GRAPHS
+//
+//	for(int i = startIndex, end = startIndex + count; i < end; ++i)
+//	{
+//		const Character* character = characterSet->GetCharacter(text[i]);
+//
+//		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
+//
+//		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
+//		position.x += character->xAdvance;
+//	}
+//
+//#ifdef DETAILED_GRAPHS
+//	timer.Stop();
+//	drawStringTime += timer.GetTimeMillisecondsFraction();
+//#endif // DETAILED_GRAPHS
 
 	return position;
 }

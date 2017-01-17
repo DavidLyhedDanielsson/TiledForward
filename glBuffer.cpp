@@ -1,93 +1,32 @@
-#include "glBuffer.h"
-
 #include <cstring>
+#include "glBuffer.h"
+#include "glBufferBase.h"
 
 GLBuffer::GLBuffer()
-        : buffer(0)
-        , bindType(0)
-        , usage(0)
-        , size(0)
-        , data(nullptr)
-        , memcpyData(false)
-{ }
+{}
 
 GLBuffer::~GLBuffer()
-{
-    if(memcpyData)
-        free(data);
-}
+{}
 
-bool GLBuffer::Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize, bool memcpyData)
+void GLBuffer::Update(const void* data, size_t size)
 {
-    InitInternal(bufferType, usage, data, dataSize, memcpyData);
-}
-
-bool GLBuffer::InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize, bool memcpyData)
-{
-    this->bindType = (GLuint)bufferType;
-    this->usage = (GLuint)usage;
-    this->size = dataSize;
-    this->memcpyData = memcpyData;
-
-    if(memcpyData)
+#ifndef NDEBUG
+    if(IsBound())
     {
-        this->data = malloc(dataSize);
-        std::memcpy(this->data, data, dataSize);
+        Logger::LogLine(LOG_TYPE::WARNING, "Trying to update bound buffer, no action will be taken");
+        return;
     }
-    else
-        this->data = data;
 
-    glGenBuffers(1, &buffer);
+    if(size > this->size)
+    {
+        Logger::LogLine(LOG_TYPE::WARNING, "Size too big when updating buffer: , size, " > ", this->size. Only enough data to fit in the buffer will be copied");
+        size = this->size;
+    }
+#endif // NDEBUG
+
     GLBufferLock lock(this);
-    glBufferData(bindType, dataSize, this->data, this->usage);
 
-    return false;
-}
-
-void GLBuffer::Bind()
-{
-    glBindBuffer(bindType, buffer);
-}
-
-void GLBuffer::Unbind()
-{
-    glBindBuffer(bindType, 0);
-}
-
-uint32_t GLBuffer::roundToNextPower(uint32_t value) const
-{
-    value--;
-    value |= value >> 1;
-    value |= value >> 2;
-    value |= value >> 4;
-    value |= value >> 8;
-    value |= value >> 16;
-    value++;
-
-    return value;
-}
-
-uint64_t GLBuffer::roundToNextPower(uint64_t value) const
-{
-    value--;
-    value |= value >> 1;
-    value |= value >> 2;
-    value |= value >> 4;
-    value |= value >> 8;
-    value |= value >> 16;
-    value |= value >> 32;
-    value++;
-
-    return value;
-}
-
-GLBufferLock::GLBufferLock(GLBuffer* buffer)
-    : buffer(buffer)
-{
-    buffer->Bind();
-}
-
-GLBufferLock::~GLBufferLock()
-{
-    buffer->Unbind();
+    void* mappedBuffer = glMapBuffer(bindType, GL_WRITE_ONLY);
+    memcpy(mappedBuffer, data, size);
+    glUnmapBuffer(bindType);
 }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project(opengl)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 set(DEBUG_BUILD TRUE)
 
@@ -13,14 +13,16 @@ else()
 endif()
 add_definitions(-DGL_ERROR_CALLBACK -DUSE_LOGGER)
 
+include_directories(/usr/include/freetype2/)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_LIST_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_LIST_DIR}/bin)
 
-file(GLOB SOURCE_FILES *.h *.hpp *.cpp)
+file(GLOB SOURCE_FILES *.h *.hpp *.cpp console/*)
 add_executable(opengl ${SOURCE_FILES})
 
-target_link_libraries(opengl GLEW GL X11 pthread stdc++fs dl IL)
+target_link_libraries(opengl GLEW GL X11 pthread stdc++fs dl IL freetype)
 
 if(DEBUG_BUILD)
     set(PNG_LIBRARY_NAME png_d)

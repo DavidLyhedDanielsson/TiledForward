@@ -13,6 +13,8 @@
 #include "texture.h"
 #include "contentManager.h"
 #include "spriteRenderer.h"
+#include "console/guiManager.h"
+#include "console/console.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -59,6 +61,8 @@ int main(int argc, char* argv[])
 
         std::set<KEY_CODE> keysDown;
 
+        GUIManager guiManager;
+
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)
                 {
@@ -71,30 +75,47 @@ int main(int argc, char* argv[])
                     {
                         keysDown.erase(keyState.key);
                     }
+
+                    guiManager.KeyEvent(keyState);
                 });
         Input::RegisterMouseButtonCallback(
                 [&](const MouseButtonState& buttonState)
                 {
+                    guiManager.MouseEvent(buttonState);
+                });
 
+        Input::RegisterCharCallback(
+                [&](int character)
+                {
+                    guiManager.CharEvent(character);
                 });
 
         window.RegisterFocusGainCallback(
                 [&]()
                 {
-                    Input::LockCursor(1280 / 2, 720 / 2);
+                    //Input::LockCursor(1280 / 2, 720 / 2);
                 });
 
         window.RegisterFocusLossCallback(
                 [&]()
                 {
-                    Input::LockCursor(-1, -1);
+                    //Input::LockCursor(-1, -1);
                 });
 
         Input::Update();
 
-        Input::LockCursor(1280 / 2, 720 / 2);
+        //Input::LockCursor(1280 / 2, 720 / 2);
 
         ContentManager contentManager("content");
+
+        CharacterSet* characterSet = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
+
+        Console console;
+        console.Init(&contentManager, Rect(0.0f, 0.0f, 1280.0f, 360.0f), console.GenerateDoomStyle(&contentManager, characterSet), console.GenerateDoomStyleBackgroundStyle(&contentManager), false, false, false, false);
+
+        console.Activate();
+
+        guiManager.AddContainer(&console);
 
 //        GLVertexBuffer vertexBuffer;
 //        vertexBuffer.Init<float, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC,
@@ -180,6 +201,8 @@ int main(int argc, char* argv[])
             //    std::cout << mouseDelta.x << ", " << mouseDelta.y << std::endl;
             camera.Rotate(mouseDelta * 0.0025f);
 
+            guiManager.Update(timer.GetDelta());
+
             contentManager.HotReload();
 
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
@@ -199,8 +222,8 @@ int main(int argc, char* argv[])
             spriteRenderer.Begin();
             //spriteRenderer.Draw(Rect(64.0f, 64.0f, 64.0f, 64.0f));
 
-            spriteRenderer.Draw(*testTexture, glm::vec2(0.0f, 0.0f), Rect(0.0f, 0.0f, testTexture->GetWidth(), testTexture->GetHeight()));
-            spriteRenderer.Draw(Rect(0.0f, 0.0f, 64.0f, 64.0f), glm::vec4(1.0f, 0.0f, 0.5f, 0.5f));
+            guiManager.Draw(&spriteRenderer);
+
             spriteRenderer.End();
 
             window.SwapBuffers();

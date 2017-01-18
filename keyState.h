@@ -34,7 +34,19 @@ enum class KEY_MODIFIERS : int
 enum class KEY_CODE : int
 {
     SPACE = 0
-    , UP
+	, BACKSPACE
+	, DELETE
+	, ENTER
+	, END
+	, HOME
+	, TAB
+    , SHIFT_L
+    , SHIFT_R
+    , CONTROL_L
+    , CONTROL_R
+    , ALT_L
+    , ALT_R
+	, UP
     , DOWN
     , LEFT
     , RIGHT
@@ -84,8 +96,6 @@ enum class KEY_CODE : int
     , X
     , Y
     , Z
-    , CONTROL
-    , ALT
     , SUPER
     , F1
     , F2

@@ -304,9 +304,6 @@ bool GLDrawBinds::CheckRequirements() const
 
     for(const auto& pair : shaderBinds)
     {
-        if(!glIsShader(pair.second->GetShader()))
-            Logger::LogLine(LOG_TYPE::WARNING, "Isn't shader");
-
         switch(pair.first)
         {
             case GLEnums::SHADER_TYPE::VERTEX:

@@ -283,9 +283,10 @@ void Input::KeyEvent(
     if((event.state & Mod1Mask) > 0) //Alt, hopefully
         keyState.mods |= KEY_MODIFIERS::ALT;
 
-    int combinedMods = ShiftMask | ControlMask | Mod1Mask;
-    if((event.state & ~combinedMods) != 0)
-        keyState.mods |= KEY_MODIFIERS::UNKNOWN;
+    // Ignore unknown modifiers (caps, num ??)
+    //int combinedMods = ShiftMask | ControlMask | Mod1Mask;
+    //if((event.state & ~combinedMods) != 0)
+    //    keyState.mods |= KEY_MODIFIERS::UNKNOWN;
 
     //Set key
     keyState.key = OSKeyToKEY_CODE(XLookupKeysym(&event, event.state & ShiftMask ? 1 : 0));
@@ -331,6 +332,9 @@ void Input::KeyEvent(
 
 void Input::CharEvent(unsigned int key)
 {
+    if(key == 0)
+        return;
+
     //Outside of ASCII range
     if(key < 32 || key > 126
        || (ignoreIfPaused && listenWindow->IsPaused()))
@@ -593,6 +597,22 @@ KEY_CODE Input::OSKeyToKEY_CODE(
     {
         case XK_space:
             return KEY_CODE::SPACE;
+        case XK_BackSpace:
+            return KEY_CODE::BACKSPACE;
+        case XK_Delete:
+            return KEY_CODE::DELETE;
+        case XK_Return:
+            return KEY_CODE::ENTER;
+        case XK_End:
+            return KEY_CODE::END;
+        case XK_Home:
+            return KEY_CODE::HOME;
+        case XK_Tab:
+            return KEY_CODE::TAB;
+        case XK_Shift_L:
+            return KEY_CODE::SHIFT_L;
+        case XK_Shift_R:
+            return KEY_CODE::SHIFT_R;
         case XK_Up:
             return KEY_CODE::UP;
         case XK_Down:
@@ -720,11 +740,13 @@ KEY_CODE Input::OSKeyToKEY_CODE(
         case XK_z:
             return KEY_CODE::Z;
         case XK_Control_L:
+            return KEY_CODE::CONTROL_L;
         case XK_Control_R:
-            return KEY_CODE::CONTROL;
+            return KEY_CODE::CONTROL_R;
         case XK_Alt_L:
+            return KEY_CODE::ALT_L;
         case XK_Alt_R:
-            return KEY_CODE::ALT;
+            return KEY_CODE::ALT_R;
         case XK_Super_L:
         case XK_Super_R:
             return KEY_CODE::SUPER;
@@ -836,6 +858,30 @@ Input::KEY_CODEToOSKey(KEY_CODE keyCode)
     {
         case KEY_CODE::SPACE:
             return XK_space;
+        case KEY_CODE::BACKSPACE:
+            return XK_BackSpace;
+        case KEY_CODE::DELETE:
+            return XK_Delete;
+        case KEY_CODE::ENTER:
+            return XK_Return;
+        case KEY_CODE::END:
+            return XK_End;
+        case KEY_CODE::HOME:
+            return XK_Home;
+        case KEY_CODE::TAB:
+            return XK_Tab;
+        case KEY_CODE::SHIFT_L:
+            return XK_Shift_L;
+        case KEY_CODE::SHIFT_R:
+            return XK_Shift_R;
+        case KEY_CODE::CONTROL_L:
+            return XK_Control_L;
+        case KEY_CODE::CONTROL_R:
+            return XK_Control_R;
+        case KEY_CODE::ALT_L:
+            return XK_Alt_L;
+        case KEY_CODE::ALT_R:
+            return XK_Alt_R;
         case KEY_CODE::UP:
             return XK_Up;
         case KEY_CODE::DOWN:
@@ -936,10 +982,6 @@ Input::KEY_CODEToOSKey(KEY_CODE keyCode)
             return XK_Y;
         case KEY_CODE::Z:
             return XK_Z;
-        case KEY_CODE::CONTROL:
-            return XK_Control_L;
-        case KEY_CODE::ALT:
-            return XK_Alt_L;
         case KEY_CODE::SUPER:
             return XK_Super_L;
         case KEY_CODE::F1:
@@ -970,5 +1012,43 @@ Input::KEY_CODEToOSKey(KEY_CODE keyCode)
 #endif // WIN32
 
     throw std::runtime_error("Unknown KEY_CODE requested");
+}
+
+bool Input::GetAsyncKeyModifierState(KEY_MODIFIERS modifier)
+{
+    if(modifier == KEY_MODIFIERS::NONE || modifier == KEY_MODIFIERS::UNKNOWN)
+        return false;
+
+    std::vector<KEY_MODIFIERS> modifiers;
+    modifiers.reserve(6);
+
+    for(int i = 0; i < 6; ++i)
+    {
+        if(static_cast<int>(modifier) & (1 << i))
+            modifiers.push_back(static_cast<KEY_MODIFIERS>(1 << i));
+    }
+
+    for(const auto& currentModifier : modifiers)
+    {
+        switch(currentModifier)
+        {
+            case KEY_MODIFIERS::SHIFT:
+                if(!GetAsyncKeyState(KEY_CODE::SHIFT_L) && !GetAsyncKeyState(KEY_CODE::SHIFT_R))
+                    return false;
+                break;
+            case KEY_MODIFIERS::CONTROL:
+                if(!GetAsyncKeyState(KEY_CODE::CONTROL_L) && !GetAsyncKeyState(KEY_CODE::CONTROL_R))
+                    return false;
+                break;
+            case KEY_MODIFIERS::ALT:
+                if(!GetAsyncKeyState(KEY_CODE::ALT_L) && !GetAsyncKeyState(KEY_CODE::ALT_R))
+                    return false;
+                break;
+            default:
+                return false;
+        }
+    }
+
+    return true;
 }
 

@@ -46,56 +46,12 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 	////////////////////////////////////////////////////////////
 	//Create buffers
 	////////////////////////////////////////////////////////////
-	//CONTENT_ERROR_CODES errorCode = vertexBuffer.Init<Vertex2D>(device, VERTEX_BUFFER_SIZE, D3D11_CPU_ACCESS_WRITE, D3D11_USAGE_DYNAMIC);
-//	VertexBufferCreationParameters vertexCreationParameters("SpriteRenderer::vertexBufer", VERTEX_BUFFER_SIZE, sizeof(Vertex2D), D3D11_CPU_ACCESS_WRITE, D3D11_USAGE_DYNAMIC);
-//	vertexBuffer = contentManager->Load<VertexBuffer>("", &vertexCreationParameters);
-//	if(vertexBuffer == nullptr)
-//	{
-//		Logger::LogLine(LOG_TYPE::FATAL, "Couldn't create sprite renderer vertex buffer");
-//		return false;
-//	}
-//
-//	BufferCreationParameters indexCreationParameters("SpriteRenderer::indexBuffer", VERTEX_BUFFER_SIZE, D3D11_CPU_ACCESS_WRITE, D3D11_USAGE_DYNAMIC);
-//	indexBuffer = contentManager->Load<IndexBuffer>("", &indexCreationParameters);
-//	if(indexBuffer == nullptr)
-//	{
-//		Logger::LogLine(LOG_TYPE::FATAL, "Couldn't create sprite renderer index buffer");
-//		return false;
-//	}
-
     vertexBuffer.Init<glm::vec2, glm::vec2, glm::vec4>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_VERTEX_BUFFER_INSERTS);
     indexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_INDEX_BUFFER_INSERTS);
 
 	//////////////////////////////////////////////////////////////////////////
 	//Shaders
 	//////////////////////////////////////////////////////////////////////////
-//	ShaderContentParameters vertexContentParameters;
-//	vertexContentParameters.AddBind(resolutionBuffer, 0
-//									, vertexBuffer, 0
-//									, indexBuffer);
-//
-//	vertexShader = contentManager->Load<VertexShader>("shaders/spriteRendererVertex.hlsl", &vertexContentParameters);
-//	if(vertexShader == nullptr)
-//	{
-//		Logger::LogLine(LOG_TYPE::FATAL, "Couldn't load sprite vertex shader");
-//		return false;
-//	}
-//
-//	vertexShader->SetInputLayout("POSITION", VERTEX_INPUT_DATA::FLOAT2, true
-//								, "TEXCOORD", VERTEX_INPUT_DATA::FLOAT2, true
-//								, "COLOR", VERTEX_INPUT_DATA::FLOAT4, true);
-//
-//	ShaderContentParameters pixelContentParameters;
-//	pixelContentParameters.AddBind(SamplerStates::linearWrap->Get(), 0
-//								   , static_cast<Texture*>(nullptr), 0);
-//
-//	pixelShader = contentManager->Load<PixelShader>("shaders/spriteRendererPixel.hlsl", &pixelContentParameters);
-//	if(pixelShader == nullptr)
-//	{
-//		Logger::LogLine(LOG_TYPE::FATAL, "Couldn't load sprite pixel shader");
-//		return false;
-//	}
-
     drawBinds.AddShaders(contentManager
                      , GLEnums::SHADER_TYPE::VERTEX, "spriteVertex.glsl"
                      , GLEnums::SHADER_TYPE::PIXEL, "spritePixel.glsl");
@@ -115,7 +71,7 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 void SpriteRenderer::Begin()
 {
 	if(hasBegun)
-		Logger::LogLine(LOG_TYPE::WARNING, "SpriteRenderer::Begin called twice in a row!");
+		Logger::LogLine(LOG_TYPE::WARNING, "SpriteRenderer::Begin called twice in a row");
 
 	//////////////////////////////////////////////////
 	//Set
@@ -183,7 +139,7 @@ void SpriteRenderer::Draw(const Texture& texture2D, const Rect& position, const 
 		, color));
 	}
 
-void SpriteRenderer::Draw(const Rect& drawRect, glm::vec4 color /*= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)*/)
+void SpriteRenderer::Draw(const Rect& drawRect, glm::vec4 color /*= glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)*/)
 {
 	if(currentTexture != whiteTexture->GetTexture())
 		AddNewBatch(*whiteTexture);
@@ -330,84 +286,54 @@ void SpriteRenderer::AddDataToBatch(const BatchData& data)
 		Draw();
 }
 
-void SpriteRenderer::DrawString(const CharacterSet* characterSet, const std::string& text, glm::vec2 position, int maxWidth, glm::vec4 color /*= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)*/)
+void SpriteRenderer::DrawString(const CharacterSet* characterSet, const std::string& text, glm::vec2 position, int maxWidth, glm::vec4 color /*= glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)*/)
 {
-//#ifdef DETAILED_GRAPHS
-//	Timer timer;
-//	timer.Start();
-//#endif // DETAILED_GRAPHS
-//
-//	//This method would use an unsigned int for maxWidth but workarounds/hacks should allow a negative width on characters.
-//	//Besides, 0x7FFFFFFF should be plenty for maxWidth
-//	int currentWidth = 0;
-//
-//	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i)
-//	{
-//		const Character* character = characterSet->GetCharacter(text[i]);
-//
-//		if(currentWidth + character->xAdvance > maxWidth)
-//			return;
-//
-//		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
-//
-//		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
-//		position.x += character->xAdvance;
-//
-//		currentWidth += character->xAdvance;
-//	}
-//
-//#ifdef DETAILED_GRAPHS
-//	timer.Stop();
-//	drawStringTime += timer.GetTimeMillisecondsFraction();
-//#endif // DETAILED_GRAPHS
+	//This method would use an unsigned int for maxWidth but workarounds/hacks should allow a negative width on characters.
+	//Besides, 0x7FFFFFFF should be plenty for maxWidth
+	int currentWidth = 0;
+
+	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i)
+	{
+		const Character* character = characterSet->GetCharacter(text[i]);
+
+		if(currentWidth + character->xAdvance > maxWidth)
+			return;
+
+		glm::vec2 drawPosition(position.x + character->xOffset, position.y + characterSet->GetLineHeight() - character->yOffset);
+
+		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
+		position.x += character->xAdvance;
+
+		currentWidth += character->xAdvance;
+	}
 }
 
 glm::vec2 SpriteRenderer::DrawString(const CharacterSet* characterSet, const std::string& text, glm::vec2 position, glm::vec4 color)
 {
-//#ifdef DETAILED_GRAPHS
-//	Timer timer;
-//	timer.Start();
-//#endif // DETAILED_GRAPHS
-//
-//	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i)
-//	{
-//		const Character* character = characterSet->GetCharacter(text[i]);
-//
-//		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
-//
-//		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
-//		position.x += character->xAdvance;
-//	}
-//
-//#ifdef DETAILED_GRAPHS
-//	timer.Stop();
-//	drawStringTime += timer.GetTimeMillisecondsFraction();
-//#endif // DETAILED_GRAPHS
+	for(int i = 0, end = static_cast<int>(text.size()); i < end; ++i) //TODO: Optimize, bulk draw instead of calling Draw( ... )
+	{
+		const Character* character = characterSet->GetCharacter(text[i]);
+
+		glm::vec2 drawPosition(position.x + character->xOffset, position.y + characterSet->GetLineHeight() - character->yOffset);
+
+		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
+		position.x += character->xAdvance;
+	}
 
 	return position;
 }
 
 glm::vec2 SpriteRenderer::DrawString(const CharacterSet* characterSet, const std::string& text, glm::vec2 position, unsigned int startIndex, unsigned int count, glm::vec4 color)
 {
-//#ifdef DETAILED_GRAPHS
-//	Timer timer;
-//	timer.Start();
-//#endif // DETAILED_GRAPHS
-//
-//	for(int i = startIndex, end = startIndex + count; i < end; ++i)
-//	{
-//		const Character* character = characterSet->GetCharacter(text[i]);
-//
-//		glm::vec2 drawPosition(position.x + character->xOffset, position.y + character->yOffset);
-//
-//		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
-//		position.x += character->xAdvance;
-//	}
-//
-//#ifdef DETAILED_GRAPHS
-//	timer.Stop();
-//	drawStringTime += timer.GetTimeMillisecondsFraction();
-//#endif // DETAILED_GRAPHS
+	for(int i = startIndex, end = startIndex + count; i < end; ++i)
+	{
+		const Character* character = characterSet->GetCharacter(text[i]);
+
+		glm::vec2 drawPosition(position.x + character->xOffset, position.y + characterSet->GetLineHeight() - character->yOffset);
+
+		Draw(*characterSet->GetTexture(), drawPosition, Rect(character->x, character->y, character->width, character->height), color);
+		position.x += character->xAdvance;
+	}
 
 	return position;
 }

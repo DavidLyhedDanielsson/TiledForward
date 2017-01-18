@@ -8,7 +8,7 @@
 struct SpriteInfo
 {
 	SpriteInfo() {};
-	SpriteInfo(Rect position, Rect clipRect, DirectX::XMFLOAT4 color)
+	SpriteInfo(Rect position, Rect clipRect, glm::vec4 color)
 		: position(position)
 		, clipRect(clipRect)
 		, color(color)
@@ -17,7 +17,7 @@ struct SpriteInfo
 
 	Rect position;
 	Rect clipRect;
-	DirectX::XMFLOAT4 color;
+	glm::vec4 color;
 };
 
 #endif // SpriteInfo_h__

@@ -12,7 +12,7 @@
 #if defined(USE_DX) && !defined(USE_GLM)
 #include <windows.h>
 
-typedef DirectX::XMFLOAT2 float2
+typedef glm::vec2 float2
 typedef DirectX::XMINT2 int2
 #else
 #include <glm/vec2.hpp>
@@ -159,6 +159,7 @@ public:
     static void CharEvent(unsigned int key);
 	static void ScrollEvent(int distance);
 	/**@}*/
+	static bool GetAsyncKeyModifierState(KEY_MODIFIERS modifier);
 private:
 	Input();
 	~Input();

@@ -1,7 +1,7 @@
 #ifndef CharacterBlock_h__
 #define CharacterBlock_h__
 
-#include <lib/character.h>
+#include "character.h"
 
 #include <vector>
 

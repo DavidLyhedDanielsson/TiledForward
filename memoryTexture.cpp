@@ -24,12 +24,6 @@ CONTENT_ERROR_CODES MemoryTexture::Load(const char* filePath, ContentManager* co
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	unsigned char whiteTextureData[] =
-			{
-					255, 255, 255, 255, 255, 255, 255, 255,
-					255, 255, 255, 255, 255, 255, 255, 255
-			};
-
     // TODO: Create mipmaps?
 	glTexImage2D(GL_TEXTURE_2D
 				 , 0
@@ -39,7 +33,7 @@ CONTENT_ERROR_CODES MemoryTexture::Load(const char* filePath, ContentManager* co
 				 , 0
 				 , (GLenum)parameters->format
 				 , (GLenum)parameters->type
-				 , whiteTextureData);
+				 , parameters->data);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 

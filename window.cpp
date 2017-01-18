@@ -69,11 +69,10 @@ OSWindow::CREATE_WINDOW_ERROR OSWindow::Create(unsigned int width, unsigned int 
 #ifdef GL_ERROR_CALLBACK
     if(glDebugMessageCallback)
     {
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(GLMessageCallback, nullptr);
-
-        GLuint unusedID = 0;
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedID, true);
     }
     else
         LOG_DEBUG("GL_ERROR_CALLBACK was defined but glDebugMessageCallback is false");
@@ -393,7 +392,7 @@ void OSWindow::CreateXWindow(Window& window, Colormap& colormap, GLXFBConfig fbC
     XSetWindowAttributes windowAttributes;
     colormap = XCreateColormap(display, RootWindow(display, visualInfo->screen), visualInfo->visual, AllocNone);
     windowAttributes.border_pixel = 0;
-    windowAttributes.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPress | ButtonRelease | PointerMotionMask | FocusChangeMask;
+    windowAttributes.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask;
     windowAttributes.colormap = colormap;
     windowAttributes.background_pixmap = None;
 
@@ -551,9 +550,15 @@ bool OSWindow::PollEvents()
         switch(event.type)
         {
             case KeyPress:
-                Input::CharEvent((char)XLookupKeysym(&event.xkey, event.xkey.state));
+            {
+                char text[255];
+                KeySym key;
+                int value = XLookupString(&event.xkey, text, 255, &key, 0);
+                for(int i = 0; i < value; ++i)
+                    Input::CharEvent(text[i]);
 
                 Input::KeyEvent(event.xkey);
+            }
                 break;
             case KeyRelease:
                 Input::KeyEvent(event.xkey);
@@ -596,6 +601,9 @@ void GLMessageCallback(GLenum source
                        , const GLchar* message
                        , const void* userParam)
 {
+    if(id == 131185) // Workaround for Nvidias apparently buggy driver
+        return;
+
     std::string stringMessage = "---------- OpenGL message ----------\n";
 
     stringMessage += "Severity: ";
@@ -646,6 +654,8 @@ void GLMessageCallback(GLenum source
             stringMessage += "UNKNOWN";
             break;
     }
+
+    stringMessage += " (" + std::to_string(id) + ")";
 
     switch(severity)
     {

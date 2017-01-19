@@ -475,6 +475,12 @@ protected:
 	*/
 	std::string GenerateSuggestionText();
 
+private:
+    const static glm::vec4 defaultBackgroundColor;
+    const static glm::vec4 defaultSecondaryColor;
+    const static glm::vec4 defaultTextColor;
+    const static glm::vec4 defaultHighlightColor;
+    const static glm::vec4 defaultHighlightBackgroundColor;
 };
 
 #endif //OPENGLWINDOW_CONSOLE_H

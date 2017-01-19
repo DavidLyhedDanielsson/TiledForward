@@ -20,6 +20,13 @@
 #include "commandDumpConsole.h"
 #include "commandPrint.h"
 #include "commandCallMethod.h"
+#include "colorBackgroundStyle.h"
+
+const glm::vec4 Console::defaultBackgroundColor = COLORS::ivoryblack;
+const glm::vec4 Console::defaultSecondaryColor = COLORS::gray88;
+const glm::vec4 Console::defaultTextColor = COLORS::white;
+const glm::vec4 Console::defaultHighlightColor = defaultBackgroundColor;
+const glm::vec4 Console::defaultHighlightBackgroundColor = defaultTextColor;
 
 Console::Console()
 	: completeListMode(COMPLETE_LIST_MODE::HISTORY)
@@ -1184,15 +1191,13 @@ std::shared_ptr<ConsoleStyle>Console::GenerateDoomStyle(ContentManager* contentM
 	style->inputOutputPadding = 2.0f;
 	style->labelText = ">";
 
-	std::shared_ptr<ScrollbarStyle> scrollbarStyle = std::make_shared<ScrollbarStyle>();
-
 	////////////////////////////////////////
 	//Label
 	////////////////////////////////////////
 	std::shared_ptr<LabelStyle> labelStyle = std::make_shared<LabelStyle>();
 
 	labelStyle->characterSet = style->characterSet;
-	labelStyle->textColor = COLORS::black;
+	labelStyle->textColor = defaultTextColor;
 
 	style->labelStyle = labelStyle;
 
@@ -1200,12 +1205,15 @@ std::shared_ptr<ConsoleStyle>Console::GenerateDoomStyle(ContentManager* contentM
 	//Output
 	////////////////////////////////////////
 	std::shared_ptr<TextFieldStyle> outputStyle = std::make_shared<TextFieldStyle>();
-	outputStyle->textColorNormal = COLORS::black;
+	outputStyle->textColorNormal = defaultTextColor;
 	outputStyle->characterSet = style->characterSet;
 	outputStyle->cursorSize = glm::vec2(2.0f, style->characterSet->GetLineHeight());
+    outputStyle->textHighlightColor = defaultHighlightBackgroundColor; // TODO
+
+    std::shared_ptr<ScrollbarStyle> scrollbarStyle = std::make_shared<ScrollbarStyle>();
 
 	//Scrollbar
-	scrollbarStyle->thumbColor = COLORS::gray66;
+	scrollbarStyle->thumbColor = defaultSecondaryColor;
 	scrollbarStyle->thumbWidth = 8;
 	scrollbarStyle->thumbMinSize = 16;
 
@@ -1220,10 +1228,12 @@ std::shared_ptr<ConsoleStyle>Console::GenerateDoomStyle(ContentManager* contentM
 	//Input
 	////////////////////////////////////////
 	auto inputStyle = std::make_shared<TextBoxStyle>();
-	inputStyle->textColorNormal = COLORS::white;
+	inputStyle->textColorNormal = defaultTextColor;
 	inputStyle->characterSet = style->characterSet;
 	inputStyle->cursorSize = glm::vec2(2.0f, style->characterSet->GetLineHeight());
-	inputStyle->cursorColorNormal = COLORS::white;
+	inputStyle->cursorColorNormal = defaultTextColor;
+    inputStyle->textHighlightColor = defaultHighlightBackgroundColor;
+    inputStyle->textColorSelected = defaultHighlightColor;
 
 	style->inputStyle = inputStyle;
 	style->inputBackgroundStyle = nullptr;
@@ -1231,11 +1241,8 @@ std::shared_ptr<ConsoleStyle>Console::GenerateDoomStyle(ContentManager* contentM
 	////////////////////////////////////////
 	//Completelist
 	////////////////////////////////////////
-	auto completeListBackgroundStyle = std::make_shared<OutlineBackgroundStyle>();
-	completeListBackgroundStyle->AddColor(COLORS::gray50, COLORS::gray66);
-	completeListBackgroundStyle->outlineSides = DIRECTIONS::BOTTOM;// | DIRECTIONS::LEFT | DIRECTIONS::RIGHT;
-	completeListBackgroundStyle->inclusiveBorder = false;
-	completeListBackgroundStyle->outlineThickness = 2.0f;
+	auto completeListBackgroundStyle = std::make_shared<ColorBackgroundStyle>();
+	completeListBackgroundStyle->colors.push_back(defaultBackgroundColor);
 
 	auto completeListStyle = std::make_shared<ListStyle>();
 	completeListStyle->scrollDistance = style->characterSet->GetLineHeight();
@@ -1247,20 +1254,20 @@ std::shared_ptr<ConsoleStyle>Console::GenerateDoomStyle(ContentManager* contentM
 
 	auto buttonStyle = std::make_shared<ButtonStyle>();
 
-	buttonStyle->textColors[static_cast<int>(ButtonStyle::BUTTON_STATES::NORMAL)] = COLORS::black;
-	buttonStyle->textColors[static_cast<int>(ButtonStyle::BUTTON_STATES::CLICK)] = COLORS::black;
-	buttonStyle->textColors[static_cast<int>(ButtonStyle::BUTTON_STATES::HOVER)] = COLORS::black;
+	buttonStyle->textColors[static_cast<int>(ButtonStyle::BUTTON_STATES::NORMAL)] = defaultTextColor;
+	buttonStyle->textColors[static_cast<int>(ButtonStyle::BUTTON_STATES::CLICK)] = defaultBackgroundColor;
+	buttonStyle->textColors[static_cast<int>(ButtonStyle::BUTTON_STATES::HOVER)] = defaultBackgroundColor;
 
 	buttonStyle->characterSet = style->characterSet;
 
 	style->completeListButtonStyle = buttonStyle;
 
-	auto buttonBackgroundStyle = std::make_shared<OutlineBackgroundStyle>();
+	auto buttonBackgroundStyle = std::make_shared<ColorBackgroundStyle>();
 
 	//Normal, Click, Hover
-	buttonBackgroundStyle->AddColor(COLORS::transparent, COLORS::transparent);
-	buttonBackgroundStyle->AddColor(COLORS::darkgray, COLORS::darkgray);
-	buttonBackgroundStyle->AddColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    buttonBackgroundStyle->colors.push_back(COLORS::transparent);
+    buttonBackgroundStyle->colors.push_back(defaultTextColor);
+    buttonBackgroundStyle->colors.push_back(defaultTextColor);
 
 	style->completeListButtonBackgroundStyle = buttonBackgroundStyle;
 
@@ -1268,10 +1275,10 @@ std::shared_ptr<ConsoleStyle>Console::GenerateDoomStyle(ContentManager* contentM
 	//Last messages
 	////////////////////////////////////////
 	auto lastMessagesStyle = std::make_shared<TextFieldStyle>();
-	lastMessagesStyle->textColorNormal = COLORS::white;
+	lastMessagesStyle->textColorNormal = defaultTextColor;
 	lastMessagesStyle->characterSet = style->characterSet;
 	lastMessagesStyle->cursorSize = glm::vec2(2.0f, 16.0f);
-	lastMessagesStyle->cursorColorNormal = COLORS::white;
+	lastMessagesStyle->cursorColorNormal = defaultTextColor;
 
 	lastMessagesStyle->scrollbarBackground = std::make_unique<EmptyBackground>();
 	lastMessagesStyle->scrollbarBackgroundStyle = nullptr;
@@ -1292,12 +1299,9 @@ std::unique_ptr<GUIBackground> Console::GenerateDoomStyleBackground(ContentManag
 
 std::shared_ptr<GUIBackgroundStyle> Console::GenerateDoomStyleBackgroundStyle(ContentManager* contentManager)
 {
-	auto style = std::make_shared<OutlineBackgroundStyle>();
+	auto style = std::make_shared<ColorBackgroundStyle>();
 
-	style->AddColor(COLORS::gray50, COLORS::gray66);
-	style->outlineSides = DIRECTIONS::BOTTOM;
-	style->inclusiveBorder = false;
-	style->outlineThickness = 2.0f;
+	style->colors.push_back(defaultBackgroundColor);
 
 	return style;
 }

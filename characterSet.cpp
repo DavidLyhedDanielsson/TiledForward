@@ -206,6 +206,8 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 		}
 	};
 
+    int baselineOffset = 0;
+
 	std::multiset<Character, CharacterComparison> tempCharacters;
     for(int i = 32; i <= 126; ++i)
 	{
@@ -238,6 +240,8 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 											, static_cast<char>(slot->metrics.horiBearingX >> 6)
 											, static_cast<char>(slot->metrics.horiBearingY >> 6)
 											, static_cast<unsigned short>(slot->advance.x >> 6)));
+
+        baselineOffset = std::min(baselineOffset, (int)((slot->metrics.horiBearingY >> 6) - (slot->metrics.height >> 6)));
 	}
 
 	lineHeight = face->size->metrics.height >> 6;
@@ -325,7 +329,7 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 	++height;
 
 	returnVector.resize(width * height * 4, 0);
-	for(const auto& character : characters)
+	for(auto& character : characters)
 	{
 		error = FT_Load_Char(face, character.first, FT_LOAD_RENDER);
 		if(error)
@@ -346,6 +350,8 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
                 returnVector[(character.second.y + y) * width * 4 + (character.second.x + x) * 4 + 3] = slot->bitmap.buffer[y * slot->bitmap.width + x];
             }
         }
+
+        character.second.yOffset -= baselineOffset;
 	}
 
 	FT_Done_Face(face);

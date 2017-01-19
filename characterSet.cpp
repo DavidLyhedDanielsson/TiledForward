@@ -2,26 +2,24 @@
 
 #include "logger.h"
 #include "contentManager.h"
-
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
-#include <map>
-#include <set>
-#include <cmath>
-#include <assert.h>
-
-#include "content.h"
 #include "memoryTexture.h"
 #include "textureCreationParameters.h"
 
-#if defined(_DEBUG) | defined(DEBUG_CHECKS)
+#include <map>
+#include <set>
+#include <cmath>
+
+#include <freetype2/ft2build.h>
+#include FT_FREETYPE_H
+
+#ifndef NDEBUG
 #include <assert.h>
-#endif
+#endif // NDEBUG
 
 CharacterSet::CharacterSet()
 	: fontSize(0)
-	, lineHeight(-1)
-	, spaceXAdvance(-1)
+	, lineHeight((unsigned int)-1)
+	, spaceXAdvance((unsigned int)-1)
 	, texture(nullptr)
 {
 }
@@ -182,7 +180,7 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 		return returnVector;
 	}
 
-	fontSize = nameAndSize.second;
+	fontSize = (unsigned int)nameAndSize.second;
 	error = FT_Set_Pixel_Sizes(face, 0, fontSize);
 	if(error)
 	{
@@ -206,6 +204,8 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 		}
 	};
 
+    // Used to offset every character so that all characters are placed within the correct bounds.
+    // Otherwise, _ could be below the line since it's under the baseline
     int baselineOffset = 0;
 
 	std::multiset<Character, CharacterComparison> tempCharacters;
@@ -231,20 +231,19 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 			Logger::LogLine(LOG_TYPE::WARNING, "Character x-advance is greater than min value of a char");
 #endif // NDEBUG
 
-		//if(i != 32) //Space
-			tempCharacters.insert(Character(i
-											, -1
-											, -1
-											, static_cast<unsigned char>(slot->metrics.width >> 6)
-											, static_cast<unsigned char>(slot->metrics.height >> 6)
-											, static_cast<char>(slot->metrics.horiBearingX >> 6)
-											, static_cast<char>(slot->metrics.horiBearingY >> 6)
-											, static_cast<unsigned short>(slot->advance.x >> 6)));
+        tempCharacters.insert(Character(i
+                                        , (unsigned short)-1 // Assigned later (below)
+                                        , (unsigned short)-1 // Assigned later (below)
+                                        , static_cast<unsigned char>(slot->metrics.width >> 6)
+                                        , static_cast<unsigned char>(slot->metrics.height >> 6)
+                                        , static_cast<char>(slot->metrics.horiBearingX >> 6)
+                                        , static_cast<char>(slot->metrics.horiBearingY >> 6)
+                                        , static_cast<unsigned short>(slot->advance.x >> 6)));
 
         baselineOffset = std::min(baselineOffset, (int)((slot->metrics.horiBearingY >> 6) - (slot->metrics.height >> 6)));
 	}
 
-	lineHeight = face->size->metrics.height >> 6;
+	lineHeight = (unsigned int)(face->size->metrics.height >> 6);
 
 	//////////////////////////////////////////////////
 	//Pack characters
@@ -257,9 +256,9 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 	//Very simple and probably not well-fitting since not all characters are the same size
 	int dimension = static_cast<int>(std::ceil(std::sqrt(tempCharacters.size())));
 
-	width = dimension * tempCharacters.begin()->width;
+	width = (unsigned int)(dimension * tempCharacters.begin()->width);
 
-	//Round to next power of two to create a texture of that size
+	// Round to next power of two to create a texture of that size
 	--width;
 	width |= width >> 1;
 	width |= width >> 2;
@@ -279,12 +278,12 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 			//Fit smaller characters until it's not possible anymore.
 			//Characters are sorted after width, so lower_bound will
 			//always return an element after iter
-			auto tempIter = tempCharacters.lower_bound(Character(0, 0, 0, width - posX, 0, 0, 0, 0));
+			auto tempIter = tempCharacters.lower_bound(Character(0, 0, 0, (unsigned char)(width - posX), 0, 0, 0, 0));
 			while(tempIter != tempCharacters.end())
 			{
 				Character character = *tempIter;
-				character.x = posX;
-				character.y = posY;
+				character.x = (unsigned short)posX;
+				character.y = (unsigned short)posY;
 
 #ifndef NDEBUG
 				assert(removedCharacters.find(character.id) == removedCharacters.end());
@@ -297,7 +296,7 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 				tempCharacters.erase(tempIter);
 
 				posX += character.width;
-				tempIter = tempCharacters.lower_bound(Character(0, 0, 0, width - posX, 0, 0, 0, 0));
+				tempIter = tempCharacters.lower_bound(Character(0, 0, 0, (unsigned char)(width - posX), 0, 0, 0, 0));
 			}
 
 			posX = 0;
@@ -305,8 +304,8 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 		}
 
 		Character character = *iter;
-		character.x = posX;
-		character.y = posY;
+		character.x = (unsigned short)posX;
+		character.y = (unsigned short)posY;
 
 #ifndef NDEBUG
 		assert(removedCharacters.find(character.id) == removedCharacters.end());
@@ -342,7 +341,7 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
         //TODO: Implement swizzling
 		for(int y = static_cast<int>(character.second.height) - 1; y >= 0; --y)
         {
-            for(int x = 0, endx = static_cast<int>(character.second.width); x < endx; ++x)
+            for(int x = 0, endX = static_cast<int>(character.second.width); x < endX; ++x)
             {
                 returnVector[(character.second.y + y) * width * 4 + (character.second.x + x) * 4] = 255;
                 returnVector[(character.second.y + y) * width * 4 + (character.second.x + x) * 4 + 1] = 255;
@@ -357,7 +356,7 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 	FT_Done_Face(face);
 	FT_Done_FreeType(ftLibrary);
 
-    spaceXAdvance = GetCharacter(32)->xAdvance;
+    spaceXAdvance = (unsigned int)GetCharacter(32)->xAdvance;
 
 	return returnVector;
 }
@@ -436,7 +435,7 @@ unsigned int CharacterSet::GetWidthAtIndex(const char* text, unsigned int index)
 	std::string textString(text);
 	for(char stringCharacter : textString)
 	{
-		const Character* character = GetCharacter(stringCharacter);
+		const Character* character = GetCharacter((unsigned int)stringCharacter);
 
 		currentWidth += character->xAdvance;
 		++currentIndex;

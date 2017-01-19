@@ -47,8 +47,8 @@ public:
 	* Inserts text at the given index
 	*/
 	void Insert(int index, unsigned int character);
-	void Insert(unsigned int index, const std::string& text);
-	void Insert(unsigned int index, const char* text);
+	void Insert(unsigned int index, const std::string& newText);
+	void Insert(unsigned int index, const char* newText);
 	/**@}*/
 	
 	/**
@@ -74,7 +74,7 @@ public:
 	*
 	* \param text
 	*/
-	void SetText(const std::string& text);
+	void SetText(const std::string& newText);
 
 	/**@{*/
 	/**
@@ -138,7 +138,8 @@ public:
 	static std::unique_ptr<GUIBackground> GenerateDefaultBackground(ContentManager* contentManager);
 	static std::shared_ptr<GUIBackgroundStyle> GenerateDefaultBackgroundStyle(ContentManager* contentManager);
 protected:
-	ConstructedString constructedString;
+	//ConstructedString constructedString;
+	std::string text;
 
 	std::shared_ptr<TextBoxStyle> style;
 

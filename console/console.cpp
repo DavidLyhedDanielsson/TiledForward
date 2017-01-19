@@ -1138,12 +1138,12 @@ void Console::HighlightCompleteListIndex(int index)
 	completeList.SetIgnoreMouse(true);
 }
 
-void Console::AcceptText(std::string text)
+void Console::AcceptText(std::string newText)
 {
 	if(completeListMode == COMPLETE_LIST_MODE::HISTORY)
 	{
-		input.SetText(text);
-		input.SetCursorIndex(static_cast<unsigned int>(text.size()));
+		input.SetText(newText);
+		input.SetCursorIndex(static_cast<unsigned int>(newText.size()));
 	}
 	else
 	{
@@ -1162,15 +1162,15 @@ void Console::AcceptText(std::string text)
 		//bar1
 		//)
 		//It is within a character block so there will be no spaces
-		ConstructedString constructedString(style->characterSet, currentText, "(),", true);
+		std::vector<CharacterBlock> splitText = style->characterSet->Split(currentText.c_str(), "(),", true);
 
 		int currentIndex = 0;
-		for(const CharacterBlock& characterBlock : constructedString.characterBlocks)
+		for(const CharacterBlock& characterBlock : splitText)// TODO: Make sure this works as intended
 		{
 			if(currentIndex + characterBlock.length >= localCursorIndex)
 			{
 				localCursorIndex = currentIndex;
-				currentText.replace(currentIndex, characterBlock.length, text);
+				currentText.replace(currentIndex, characterBlock.length, newText);
 				break;
 			}
 
@@ -1178,7 +1178,7 @@ void Console::AcceptText(std::string text)
 		}
 
 		input.ReplaceActiveCharacterBlockText(currentText);
-		input.SetCursorIndex(characterBlockCursorIndex + localCursorIndex + static_cast<unsigned int>(text.size()));
+		input.SetCursorIndex(characterBlockCursorIndex + localCursorIndex + static_cast<unsigned int>(newText.size()));
 	}
 }
 
@@ -1312,10 +1312,10 @@ std::string Console::GenerateSuggestionText()
 	std::string text = input.GetActiveCharacterBlockText(localCursorIndex);
 	localCursorIndex = input.GetCursorIndex() - localCursorIndex;
 
-	ConstructedString constructedString(this->style->characterSet, text, "(),", true);
+	std::vector<CharacterBlock> blocks = this->style->characterSet->Split(text.c_str(), "(),", true);
 
 	int currentIndex = 0;
-	for(const CharacterBlock& characterBlock : constructedString.characterBlocks)
+	for(const CharacterBlock& characterBlock : blocks)
 	{
 		if(currentIndex + characterBlock.length >= localCursorIndex)
 			return text.substr(currentIndex, characterBlock.length);

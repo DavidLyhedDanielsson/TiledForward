@@ -448,9 +448,7 @@ int TextField::GetCursorIndex(int width, int line) const
 	if(width <= 0)
 		return 0;
 
-	ConstructedString constructedString = ConstructedString(style->characterSet, std::get<0>(lines[line]));
-
-	return constructedString.GetIndexAtWidth(style->characterSet, width);
+	return style->characterSet->GetIndexAtWidth(std::get<0>(lines[line]).c_str(), width);
 }
 
 bool TextField::OnKeyDown(const KeyState& keyState)
@@ -1183,8 +1181,7 @@ void TextField::MoveCursorUp()
 			UpdateVisibleStrings();
 		}
 
-		ConstructedString constructedString = ConstructedString(style->characterSet, std::get<0>(lines[cursorLineIndex]).c_str());
-		SetCursorIndex(constructedString.GetIndexAtWidth(style->characterSet, matchWidth));
+		SetCursorIndex(style->characterSet->GetIndexAtWidth(std::get<0>(lines[cursorLineIndex]).c_str(), matchWidth));
 	}
 }
 
@@ -1201,8 +1198,7 @@ void TextField::MoveCursorDown()
 			UpdateVisibleStrings();
 		}
 
-		ConstructedString constructedString = ConstructedString(style->characterSet, std::get<0>(lines[cursorLineIndex]).c_str());
-		SetCursorIndex(constructedString.GetIndexAtWidth(style->characterSet, matchWidth));
+		SetCursorIndex(style->characterSet->GetIndexAtWidth(std::get<0>(lines[cursorLineIndex]).c_str(), matchWidth));
 	}
 }
 
@@ -1506,8 +1502,8 @@ std::vector<std::tuple<std::string, bool>> TextField::CreateLineData(const std::
 	int drawStartIndex = 0;
 	int drawCount = 0;
 
-	ConstructedString constructedString(style->characterSet, text);
-	for(const CharacterBlock& block : constructedString.characterBlocks)
+	std::vector<CharacterBlock> blocks = style->characterSet->Split(text.c_str());
+	for(const CharacterBlock& block : blocks)
 	{
 		if(width + block.width <= background->GetWorkArea().GetWidth() - scrollbar.GetSize().x - style->scrollBarPadding)
 		{

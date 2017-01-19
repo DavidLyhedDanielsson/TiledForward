@@ -44,13 +44,6 @@ const Character* CharacterSet::GetCharacter(unsigned int id) const
 	}
 }
 
-/*
-const char* CharacterSet::GetName() const
-{
-	return name.c_str();
-}
-*/
-
 unsigned int CharacterSet::GetFontSize() const
 {
 	return fontSize;
@@ -356,7 +349,7 @@ std::vector<uint8_t> CharacterSet::CreateBuffer(const char* filePath, unsigned i
 	FT_Done_Face(face);
 	FT_Done_FreeType(ftLibrary);
 
-    spaceXAdvance = (unsigned int)GetCharacter(32)->xAdvance;
+    spaceXAdvance = (unsigned int)GetCharacter(SPACE_CHARACTER)->xAdvance;
 
 	return returnVector;
 }
@@ -426,25 +419,131 @@ unsigned int CharacterSet::GetLineHeight() const
 
 unsigned int CharacterSet::GetWidthAtIndex(const char* text, unsigned int index) const
 {
-	if(index == 0)
-		return 0;
-
 	unsigned int currentWidth = 0;
-	unsigned int currentIndex = 0;
 
-	std::string textString(text);
-	for(char stringCharacter : textString)
+	for(int i = 0; text[i] != '\0' && i != index; ++i)
+		currentWidth += GetCharacter(text[i])->xAdvance;
+
+	return currentWidth;
+}
+
+unsigned int CharacterSet::GetWidthAtMaxWidth(const char* text, unsigned int maxWidth) const
+{
+	unsigned int currentWidth = 0;
+
+    for(int i = 0; text[i] != '\0'; ++i)
 	{
-		const Character* character = GetCharacter((unsigned int)stringCharacter);
+        short characterXAdvance = GetCharacter(text[i])->xAdvance;
 
-		currentWidth += character->xAdvance;
-		++currentIndex;
-
-		if(currentIndex == index)
-			return currentWidth;
+        if(currentWidth + characterXAdvance <= maxWidth)
+            currentWidth += characterXAdvance;
+        else
+            return currentWidth;
 	}
 
 	return currentWidth;
+}
+
+unsigned int CharacterSet::GetIndexAtWidth(const char* text, unsigned int width, float roundingValue /*= 0.6f*/) const
+{
+	unsigned int currentWidth = 0;
+
+	//Used for index rounding
+	int lastCharXAdvance = 0;
+
+    unsigned int index;
+    for(index = 0; text[index] != '\0'; ++index)
+	{
+        const Character* character = GetCharacter(text[index]);
+
+        if(currentWidth + character->xAdvance < width)
+            currentWidth += character->xAdvance;
+        else
+            break;
+
+        lastCharXAdvance = character->xAdvance;
+	}
+
+    index += (currentWidth + lastCharXAdvance - width) < (lastCharXAdvance * roundingValue);
+
+	return index;
+}
+
+unsigned int CharacterSet::GetRowsAtWidth(const char* text, unsigned int width) const
+{
+	unsigned int rows = 1;
+	unsigned int currentWidth = 0;
+
+    for(int i = 0; text[i] != '\0'; ++i)
+    {
+        const Character* character = GetCharacter(text[i]);
+
+        if(currentWidth + character->xAdvance <= width)
+            currentWidth += character->xAdvance;
+        else
+        {
+            ++rows;
+            currentWidth = (unsigned int)character->xAdvance;
+        }
+	}
+
+	return rows;
+}
+
+std::vector<CharacterBlock> CharacterSet::Split(const char* text
+                                                , const std::string& separators
+                                                , const bool keepSeparators) const
+{
+    std::vector<CharacterBlock> returnVector;
+
+    CharacterBlock characterBlock;
+
+    int i = 0;
+    while(text[i] != '\0')
+    {
+        const Character* character = GetCharacter(text[i]);
+        ++i;
+
+        if(separators.find(character->id) != separators.npos)
+        {
+            //Emplace current block
+            returnVector.emplace_back(std::move(characterBlock));
+
+            //Emplace block with separator if they should be kept
+            if(keepSeparators)
+            {
+                characterBlock.width = static_cast<unsigned int>(character->xAdvance);
+                characterBlock.characters.clear();
+                characterBlock.characters.emplace_back(character);
+                characterBlock.length = 1;
+
+                returnVector.emplace_back(std::move(characterBlock));
+            }
+
+            characterBlock.characters.clear();
+            characterBlock.width = 0;
+            characterBlock.length = 0;
+        }
+        else
+        {
+            characterBlock.width += character->xAdvance;
+            characterBlock.characters.emplace_back(character);
+            characterBlock.length++;
+        }
+    }
+
+    returnVector.emplace_back(characterBlock);
+
+    //width = totalWidth;
+    //text = text;
+    //length = length;
+
+    return returnVector;
+}
+
+std::vector<CharacterBlock> CharacterSet::Split(const char* text) const
+{
+    return Split(text, " ", false);
 }
 
 int CharacterSet::GetSpaceXAdvance() const

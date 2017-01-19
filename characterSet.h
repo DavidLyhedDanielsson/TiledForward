@@ -4,6 +4,7 @@
 #include "character.h"
 
 #include "content.h"
+#include "characterBlock.h"
 
 #include <unordered_map>
 #include <vector>
@@ -20,13 +21,12 @@ public:
 
 	const static int SPACE_CHARACTER = ' '; //Change this if needed. Should correspond to your desired value for a blankspace
 
-	//const char* GetName() const;
 	unsigned int GetFontSize() const;
 	Texture* GetTexture() const;
 
 	int GetSpaceXAdvance() const;
 
-	const Character* GetCharacter(unsigned int id) const;
+    const Character* GetCharacter(unsigned int id) const;
 
 	//************************************
 	// Method:		GetLineHeight
@@ -38,6 +38,12 @@ public:
 	//************************************
 	unsigned int GetLineHeight() const;
 	unsigned int GetWidthAtIndex(const char* text, unsigned int index) const;
+    unsigned int GetIndexAtWidth(const char* text, unsigned int width, float roundingValue = 0.6f) const;
+    unsigned int GetRowsAtWidth(const char* text, unsigned int width) const;
+    unsigned int GetWidthAtMaxWidth(const char* text, unsigned int maxWidth) const;
+
+    std::vector<CharacterBlock> Split(const char* text) const;
+    std::vector<CharacterBlock> Split(const char* text, const std::string& separators, const bool keepSeparators) const;
 
 	virtual int GetStaticVRAMUsage() const override;
 	virtual int GetDynamicVRAMUsage() const override;

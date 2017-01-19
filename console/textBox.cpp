@@ -78,7 +78,7 @@ void TextBox::Update(std::chrono::nanoseconds delta)
 
 			if(SelectionMade())
 			{
-				unsigned int newSelectionIndex = constructedString.GetIndexAtWidth(style->characterSet, static_cast<unsigned int>(std::max(mousePos.x - background->GetWorkArea().GetMinPosition().x - xOffset, 0.0f)));
+				unsigned int newSelectionIndex = style->characterSet->GetIndexAtWidth(text.c_str(), static_cast<unsigned int>(std::max(mousePos.x - background->GetWorkArea().GetMinPosition().x - xOffset, 0.0f)));
 
 				SetCursorIndex(newSelectionIndex);
 				ExtendSelectionToCursor();
@@ -86,7 +86,7 @@ void TextBox::Update(std::chrono::nanoseconds delta)
 			}
 			else
 			{
-				unsigned int index = constructedString.GetIndexAtWidth(style->characterSet, static_cast<int>(mousePos.x - background->GetWorkArea().GetMinPosition().x + - xOffset));
+				unsigned int index = style->characterSet->GetIndexAtWidth(text.c_str(), static_cast<int>(mousePos.x - background->GetWorkArea().GetMinPosition().x + - xOffset));
 
 				if(index != cursorIndex)
 				{
@@ -107,13 +107,13 @@ void TextBox::Draw(SpriteRenderer* spriteRenderer)
 
 	//TODO: Find a way to get rid of this scissor test
 	spriteRenderer->EnableScissorTest(workArea);
-	if(constructedString != "")
+	if(text != "")
 	{
 		//Draw text
 		if(SelectionMade())
 		{
-			unsigned int selectionMinX = constructedString.GetWidthAtIndex(style->characterSet, selectionStartIndex);
-			unsigned int selectionMaxX = constructedString.GetWidthAtIndex(style->characterSet, selectionEndIndex);
+			unsigned int selectionMinX = style->characterSet->GetWidthAtIndex(text.c_str(),selectionStartIndex);
+			unsigned int selectionMaxX = style->characterSet->GetWidthAtIndex(text.c_str(),selectionEndIndex);
 
 			//Selection highlight
 			glm::vec2 minPosition(workArea.GetMinPosition());
@@ -125,13 +125,13 @@ void TextBox::Draw(SpriteRenderer* spriteRenderer)
 
 			drawPosition.x = minPosition.x + xOffset;
 
-			spriteRenderer->DrawString(style->characterSet, constructedString.text, drawPosition, 0, selectionStartIndex, style->textColorNormal); //Text before selection
+			spriteRenderer->DrawString(style->characterSet, text, drawPosition, 0, selectionStartIndex, style->textColorNormal); //Text before selection
 
 			drawPosition.x = minPosition.x + xOffset + selectionMinX;
-			spriteRenderer->DrawString(style->characterSet, constructedString.text, drawPosition, selectionStartIndex, selectionEndIndex - selectionStartIndex, style->textColorSelected); //Selected text
+			spriteRenderer->DrawString(style->characterSet, text, drawPosition, selectionStartIndex, selectionEndIndex - selectionStartIndex, style->textColorSelected); //Selected text
 
 			drawPosition.x = minPosition.x + xOffset + selectionMaxX;
-			spriteRenderer->DrawString(style->characterSet, constructedString.text, drawPosition, selectionEndIndex, static_cast<unsigned int>(constructedString.text.size()) - selectionEndIndex, style->textColorNormal); //Text after selection
+			spriteRenderer->DrawString(style->characterSet, text, drawPosition, selectionEndIndex, static_cast<unsigned int>(text.size()) - selectionEndIndex, style->textColorNormal); //Text after selection
 		}
 		else
 		{
@@ -140,7 +140,7 @@ void TextBox::Draw(SpriteRenderer* spriteRenderer)
 
 			drawPosition.x += xOffset;
 
-			spriteRenderer->DrawString(style->characterSet, constructedString.text, drawPosition, style->textColorNormal); //TODO: Improve this, use ranged drawing instead
+			spriteRenderer->DrawString(style->characterSet, text, drawPosition, style->textColorNormal); //TODO: Improve this, use ranged drawing instead
 		}
 	}
 	spriteRenderer->DisableScissorTest();
@@ -158,9 +158,9 @@ void TextBox::Draw(SpriteRenderer* spriteRenderer)
 		drawPosition.x += style->cursorOffset.x;
 		drawPosition.y += style->cursorOffset.y;
 
-		if(constructedString != "")
+		if(text != "")
 		{
-			int width = constructedString.GetWidthAtIndex(style->characterSet, cursorIndex);
+			int width = style->characterSet->GetWidthAtIndex(text.c_str(), cursorIndex);
 
 			drawPosition.x += width + xOffset;
 
@@ -176,35 +176,35 @@ void TextBox::Insert(int index, unsigned int character)
 	if(SelectionMade())
 		EraseSelection();
 	
-	constructedString.Insert(style->characterSet, index, character);
+	text.insert(index, 1, character);
 
 	cursorIndex++;
 	SetXOffset();
 }
 
-void TextBox::Insert(unsigned int index, const std::string& text)
+void TextBox::Insert(unsigned int index, const std::string& newText)
 {
 	if(SelectionMade())
 		EraseSelection();
 
-	if(index > constructedString.length)
-		index = constructedString.length;
+	if(index > text.size())
+		index = text.size();
 
-	constructedString.Insert(style->characterSet, index, text);
+	text.insert(index, newText);
 
 	cursorIndex += static_cast<int>(text.size());
 	SetXOffset();
 }
 
-void TextBox::Insert(unsigned int index, const char* text)
+void TextBox::Insert(unsigned int index, const char* newText)
 {
-	std::string textString(text);
+	std::string textString(newText);
 	Insert(index, textString);
 }
 
 void TextBox::Erase(unsigned int startIndex, unsigned int count)
 {
-	constructedString.Erase(style->characterSet, startIndex, count);
+	text.erase(startIndex, count);
 
 	if(count > 0)
 	{
@@ -259,7 +259,7 @@ bool TextBox::OnMouseDown(const MouseButtonState& keyState, const glm::vec2& mou
 
 				drawCursor = true;
 
-				unsigned int newCursorIndex = constructedString.GetIndexAtWidth(style->characterSet, static_cast<unsigned int>(mousePosition.x - background->GetWorkArea().GetMinPosition().x + -(xOffset)));
+				unsigned int newCursorIndex = style->characterSet->GetIndexAtWidth(text.c_str(), static_cast<unsigned int>(mousePosition.x - background->GetWorkArea().GetMinPosition().x + -(xOffset)));
 
 				if(keyState.mods == KEY_MODIFIERS::SHIFT)
 				{
@@ -423,7 +423,7 @@ bool TextBox::OnKeyDown(const KeyState& keyState)
 				{
 					SetCursorIndex(0);
 					BeginSelection();
-					SetCursorIndex(constructedString.length);
+					SetCursorIndex(text.size());
 					ExtendSelectionToCursor();
 					SetXOffset();
 				}
@@ -453,14 +453,14 @@ bool TextBox::OnKeyDown(const KeyState& keyState)
 					if(!SelectionMade())
 						BeginSelection();
 
-					SetCursorIndex(constructedString.length);
+					SetCursorIndex(text.size());
 
 					ExtendSelectionToCursor();
 				}
 				else
 				{
 					Deselect();
-					SetCursorIndex(constructedString.length);
+					SetCursorIndex(text.size());
 				}
 
 				SetXOffset();
@@ -602,9 +602,7 @@ void TextBox::BackspacePressed(const KeyState& keyState)
 			if(cursorIndex == 0)
 				return;
 
-			auto iter = constructedString.text.begin() + cursorIndex - 1;
-
-			constructedString.Erase(style->characterSet, cursorIndex - 1, 1);
+			text.erase(cursorIndex - 1, 1);
 
 			MoveCursorLeft();
 			unsigned int index = cursorIndex;
@@ -632,7 +630,7 @@ void TextBox::DeletePressed(const KeyState& keyState)
 		if(SelectionMade())
 			EraseSelection();
 		else
-			constructedString.Erase(style->characterSet, cursorIndex, 1);
+			text.erase(cursorIndex, 1);
 	}
 
 	SetXOffset();
@@ -646,7 +644,7 @@ void TextBox::MoveCursorLeft()
 
 void TextBox::MoveCursorRight()
 {
-	if(cursorIndex < static_cast<int>(constructedString.length))
+	if(cursorIndex < static_cast<int>(text.size()))
 		cursorIndex++;
 }
 
@@ -661,11 +659,11 @@ void TextBox::JumpCursorLeft()
 	//cursorIndex is used "locally" here, so make sure to call SetCursorIndex before returning!
 	--cursorIndex;
 
-	bool nonSpace = jumpSeparators.find(constructedString.text[cursorIndex]) == jumpSeparators.npos;
+	bool nonSpace = jumpSeparators.find(text[cursorIndex]) == jumpSeparators.npos;
 
 	for(; cursorIndex > 0; --cursorIndex)
 	{
-		if(jumpSeparators.find(constructedString.text[cursorIndex - 1]) != jumpSeparators.npos)
+		if(jumpSeparators.find(text[cursorIndex - 1]) != jumpSeparators.npos)
 		{
 			if(nonSpace)
 			{
@@ -683,14 +681,14 @@ void TextBox::JumpCursorLeft()
 void TextBox::JumpCursorRight()
 {
 	//TODO: Rewrite this? Look at JumpCursorLeft
-	auto iter = constructedString.text.begin() + cursorIndex;
+	auto iter = text.begin() + cursorIndex;
 
-	if(iter == constructedString.text.end())
+	if(iter == text.end())
 		return;
 
 	bool nonSpace = jumpSeparators.find(*iter) == jumpSeparators.npos;
 
-	for(MoveCursorRight(), ++iter; cursorIndex < static_cast<int>(constructedString.length); cursorIndex++)
+	for(MoveCursorRight(), ++iter; cursorIndex < static_cast<int>(text.size()); cursorIndex++)
 	{
 		//if(*iter == CharacterSet::SPACE_CHARACTER)
 		if(jumpSeparators.find(*iter) != jumpSeparators.npos)
@@ -740,7 +738,7 @@ void TextBox::EraseSelection()
 {
 	if(SelectionMade())
 	{
-		constructedString.Erase(style->characterSet, selectionStartIndex, selectionEndIndex - selectionStartIndex);
+		text.erase(selectionStartIndex, selectionEndIndex - selectionStartIndex);
 		SetCursorIndex(selectionStartIndex);
 		Deselect();
 	}
@@ -753,7 +751,7 @@ bool TextBox::SelectionMade() const
 
 void TextBox::SetXOffset()
 {
-	int widthAtCursor = constructedString.GetWidthAtIndex(style->characterSet, cursorIndex);
+	int widthAtCursor = style->characterSet->GetWidthAtIndex(text.c_str(), cursorIndex);
 
 	if(widthAtCursor > background->GetWorkArea().GetWidth() - (xOffset + style->cursorSize.x))
 		xOffset = -(widthAtCursor - background->GetWorkArea().GetWidth() + style->cursorSize.x);
@@ -761,7 +759,7 @@ void TextBox::SetXOffset()
 		xOffset = static_cast<float>(-widthAtCursor);
 }
 
-void TextBox::SetText(const std::string& text)
+void TextBox::SetText(const std::string& newText)
 {
 	if(!style->characterSet->IsLoaded())
 	{
@@ -769,7 +767,8 @@ void TextBox::SetText(const std::string& text)
 		return;
 	}
 
-	constructedString = ConstructedString(style->characterSet, text);
+	//constructedString = ConstructedString(style->characterSet, text);
+	text = newText;
 	//SetCursorIndex(static_cast<unsigned int>(utf8::unchecked::distance(text.begin(), text.end())));
 	SetCursorIndex(static_cast<unsigned int>(text.size()));
 
@@ -778,7 +777,7 @@ void TextBox::SetText(const std::string& text)
 
 std::string TextBox::GetText() const
 {
-	return constructedString.text;
+	return text;
 }
 
 std::string TextBox::GetSelectedText() const
@@ -786,7 +785,7 @@ std::string TextBox::GetSelectedText() const
 	if(!SelectionMade())
 		return "";
 
-	auto beginIter = constructedString.text.begin() + selectionStartIndex;
+	auto beginIter = text.begin() + selectionStartIndex;
 	//for(int i = 0; i < selectionStartIndex; i++)
 	//	utf8::unchecked::next(beginIter);
 
@@ -794,18 +793,18 @@ std::string TextBox::GetSelectedText() const
 	//for(int i = selectionStartIndex; i < selectionEndIndex; i++)
 	//	utf8::unchecked::next(endIter);
 
-	std::string returnString = constructedString.text.substr(static_cast<unsigned int>(std::distance(constructedString.text.begin(), beginIter)), static_cast<unsigned int>(std::distance(beginIter, endIter)));
+	std::string returnString = text.substr(static_cast<unsigned int>(std::distance(text.begin(), beginIter)), static_cast<unsigned int>(std::distance(beginIter, endIter)));
 
 	return returnString;
 }
 
 int TextBox::GetCharacterAt(unsigned int index) const
 {
-	if(constructedString.length == 0
-	   || index > constructedString.length)
+	if(text.size() == 0
+	   || index > text.size())
 		return 0;
 
-	auto iter = constructedString.text.begin() + index;
+	auto iter = text.begin() + index;
 	//utf8::unchecked::advance(iter, index);
 
 	return *iter;
@@ -813,7 +812,7 @@ int TextBox::GetCharacterAt(unsigned int index) const
 
 int TextBox::GetTextLength() const
 {
-	return constructedString.length;
+	return text.size();
 }
 
 int TextBox::GetCursorIndex() const
@@ -823,8 +822,8 @@ int TextBox::GetCursorIndex() const
 
 void TextBox::SetCursorIndex(unsigned int newIndex)
 {
-	if(newIndex > constructedString.length)
-		newIndex = constructedString.length;
+	if(newIndex > text.size())
+		newIndex = text.size();
 
 	cursorIndex = newIndex;
 }
@@ -848,12 +847,12 @@ void TextBox::SetCharacterSet(const CharacterSet* characterSet)
 {
 	style->characterSet = characterSet;
 
-	constructedString = ConstructedString(style->characterSet, constructedString.text);
+	//constructedString = ConstructedString(style->characterSet, constructedString.text);
 }
 
 bool TextBox::GetIsEmpty() const
 {
-	return constructedString.text.empty();
+	return text.empty();
 }
 
 bool TextBox::GetSelectionMade() const
@@ -871,7 +870,9 @@ void TextBox::ReplaceActiveCharacterBlockText(std::string newText) //TODO: Resto
 	Deselect();
 
 	unsigned int index = 0;
-	for(const CharacterBlock& block : constructedString.characterBlocks)
+
+	std::vector<CharacterBlock> blocks = style->characterSet->Split(text.c_str());
+	for(const CharacterBlock& block : blocks)
 	{
 		if(static_cast<int>(index + block.length) >= cursorIndex)
 		{
@@ -892,10 +893,11 @@ void TextBox::ReplaceActiveCharacterBlockText(std::string newText) //TODO: Resto
 std::string TextBox::GetActiveCharacterBlockText()
 {
 	unsigned int index = 0;
-	for(const CharacterBlock& block : constructedString.characterBlocks)
+	std::vector<CharacterBlock> blocks = style->characterSet->Split(text.c_str());
+	for(const CharacterBlock& block : blocks)
 	{
 		if(static_cast<int>(index + block.length) >= cursorIndex)
-			return constructedString.text.substr(index, block.length);
+			return text.substr(index, block.length);
 		else
 			index += block.length + 1;
 	}
@@ -906,10 +908,12 @@ std::string TextBox::GetActiveCharacterBlockText()
 std::string TextBox::GetActiveCharacterBlockText(unsigned int& index)
 {
 	index = 0;
-	for(const CharacterBlock& block : constructedString.characterBlocks)
+
+	std::vector<CharacterBlock> blocks = style->characterSet->Split(text.c_str());
+	for(const CharacterBlock& block : blocks)
 	{
 		if(static_cast<int>(index + block.length) >= cursorIndex)
-			return constructedString.text.substr(index, block.length);
+			return text.substr(index, block.length);
 		else
 			index += block.length + 1;
 	}

@@ -458,7 +458,7 @@ protected:
 	* 
 	* \param text text to use when replacing
 	*/
-	void AcceptText(std::string text);
+	void AcceptText(std::string newText);
 
 	/**
 	* Generates the text for which suggestions should be generated.

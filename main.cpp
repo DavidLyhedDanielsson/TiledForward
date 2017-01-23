@@ -16,6 +16,10 @@
 #include "console/guiManager.h"
 #include "console/console.h"
 
+#include "libobj.h"
+#include "console/commandGetSet.h"
+#include "OBJModel.h"
+
 //Cool shit!
 #ifdef _WIN32
 #define IF_WINDOWS(...) __VA_ARGS__
@@ -56,12 +60,35 @@ int main(int argc, char* argv[])
                                , glm::half_pi<float>()
                                , 1280
                                , 720
-                               , 0.01f
-                               , 100.0f);
+                               , 100.0f
+                               , 0.01f);
 
         std::set<KEY_CODE> keysDown;
 
         GUIManager guiManager;
+        ContentManager contentManager("content");
+        CharacterSet* characterSet = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
+
+        OBJModel* worldModel = contentManager.Load<OBJModel>("sponza.obj");
+        if(worldModel == nullptr)
+            return 3;
+
+        int count = 3;
+        int offset = 0;
+        Console console;
+        console.Init(&contentManager, Rect(0.0f, 0.0f, 1280.0f, 360.0f), console.GenerateDoomStyle(&contentManager, characterSet), console.GenerateDoomStyleBackgroundStyle(&contentManager), false, false, false, false);
+
+        auto countCommand = new CommandGetSet<int>("count", &count);
+        if(!console.AddCommand(countCommand))
+            delete countCommand;
+
+        auto offsetCommand = new CommandGetSet<int>("offset", &offset);
+        if(!console.AddCommand(offsetCommand))
+            delete offsetCommand;
+
+        auto drawOnlyCommand = new CommandGetSet<int>("drawOnly", &worldModel->drawOnlyIndex);
+        if(!console.AddCommand(drawOnlyCommand))
+            delete drawOnlyCommand;
 
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)
@@ -70,6 +97,20 @@ int main(int argc, char* argv[])
                     {
                         if(!keysDown.count(keyState.key))
                             keysDown.insert(keyState.key);
+
+                        if(keyState.key == KEY_CODE::SECTION)
+                        {
+                            if(console.GetActive())
+                            {
+                                Input::LockCursor(1280 / 2, 720 / 2);
+                                console.Deactivate();
+                            }
+                            else
+                            {
+                                Input::LockCursor(-1, -1);
+                                console.Activate();
+                            }
+                        }
                     }
                     else if(keyState.action == KEY_ACTION::UP)
                     {
@@ -90,85 +131,35 @@ int main(int argc, char* argv[])
                     guiManager.CharEvent(character);
                 });
 
+        Input::RegisterScrollCallback(
+                [&](int distance)
+                {
+                    guiManager.ScrollEvent(distance);
+                });
+
         window.RegisterFocusGainCallback(
                 [&]()
                 {
-                    //Input::LockCursor(1280 / 2, 720 / 2);
+                    if(!console.GetActive())
+                        Input::LockCursor(1280 / 2, 720 / 2);
                 });
 
         window.RegisterFocusLossCallback(
                 [&]()
                 {
-                    //Input::LockCursor(-1, -1);
+                    Input::LockCursor(-1, -1);
                 });
 
         Input::Update();
 
-        //Input::LockCursor(1280 / 2, 720 / 2);
-
-        ContentManager contentManager("content");
-
-        CharacterSet* characterSet = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
-
-        Console console;
-        console.Init(&contentManager, Rect(0.0f, 0.0f, 1280.0f, 360.0f), console.GenerateDoomStyle(&contentManager, characterSet), console.GenerateDoomStyleBackgroundStyle(&contentManager), false, false, false, false);
-
-        console.Activate();
-
         guiManager.AddContainer(&console);
 
-//        GLVertexBuffer vertexBuffer;
-//        vertexBuffer.Init<float, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC,
-//                {
-//                        -0.5f , -0.5f, 0.0f, 0.0f, 0.0f
-//                        , 0.5f, -0.5f, 0.0f, 1.0f, 0.0f
-//                        , -0.5f, 0.5f, 0.0f, 0.0f, 1.0f
-//                        , 0.5f, 0.5f, 0.0f, 1.0f, 1.0f
-//                });
-//
-//        std::vector<glm::mat4x4> transforms =
-//                {
-//                        glm::mat4x4()
-//                        , glm::mat4x4()
-//                        , glm::mat4x4()
-//                        , glm::mat4x4()
-//                        , glm::mat4x4()
-//                };
-//
-//        for(int i = 0, end = transforms.size(); i < end; ++i)
-//            transforms[i] = glm::translate(transforms[i], glm::vec3((float)i * 2.0f, 0.0f, 0.0f));
-//
-//        GLVertexBuffer transformBuffer;
-//        transformBuffer.Init<glm::mat4x4, glm::mat4x4>(GLEnums::BUFFER_USAGE::STREAM, transforms);
-//
-//        GLIndexBuffer indexBuffer;
-//        indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, { 0, 2, 1, 3, 1, 2 });
-//
-//        GLDrawBinds binds;
-//        binds.AddShaders(contentManager
-//                         , GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
-//                         , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl");
-//
-//        GLInputLayout vertexBufferLayout;
-//        vertexBufferLayout.SetInputLayout<glm::vec3, glm::vec2>();
-//
-//        GLInputLayout transformBufferLayout;
-//        transformBufferLayout.SetInputLayout<glm::mat4x4>(2);
-//
-//        //TODO: bind transformBuffer first to make sure default input layout generation works
-//        binds.AddBuffers(&vertexBuffer, vertexBufferLayout
-//                         , &transformBuffer, transformBufferLayout
-//                         , &indexBuffer);
-//        binds.AddUniform("color", 0.0f);
-//        binds.AddUniform("viewProjectionMatrix", glm::mat4x4());
-//
-//        if(!binds.Init())
-//            return 2;
+        //TODO: bind transformBuffer first to make sure default input layout generation works
+
+
 
         Timer timeSinceStart;
         timeSinceStart.Start();
-
-        Texture* testTexture = contentManager.Load<Texture>("testTexture.png");
 
         SpriteRenderer spriteRenderer;
         if(!spriteRenderer.Init(contentManager, 1280, 720))
@@ -177,50 +168,71 @@ int main(int argc, char* argv[])
             return 1;
         }
 
+//        double frameTime = 0.0;
+//        unsigned long frameCount = 0;
+
+        glDepthRange(1, -1);
+
         while(window.PollEvents())
         {
             timer.UpdateDelta();
 
-            if(keysDown.count(KEY_CODE::A))
-                camera.MoveRight(-0.01f * timer.GetDeltaMillisecondsFraction());
-            else if(keysDown.count(KEY_CODE::D))
-                camera.MoveRight(0.01f * timer.GetDeltaMillisecondsFraction());
+//            frameTime += timer.GetDeltaMillisecondsFraction();
+//            ++frameCount;
+//
+//            if(frameCount % 100 == 0)
+//            {
+//                Logger::LogLine(LOG_TYPE::INFO, frameTime / (double)frameCount);
+//
+//                frameCount = 0;
+//                frameTime = 0.0;
+//            }
 
-            if(keysDown.count(KEY_CODE::W))
-                camera.MoveFoward(0.01f * timer.GetDeltaMillisecondsFraction());
-            else if(keysDown.count(KEY_CODE::S))
-                camera.MoveFoward(-0.01f * timer.GetDeltaMillisecondsFraction());
+            if(!console.GetActive())
+            {
+                if(keysDown.count(KEY_CODE::A))
+                    camera.MoveRight(-0.01f * timer.GetDeltaMillisecondsFraction());
+                else if(keysDown.count(KEY_CODE::D))
+                    camera.MoveRight(0.01f * timer.GetDeltaMillisecondsFraction());
 
-            if(keysDown.count(KEY_CODE::V))
-                camera.MoveUp(0.01f * timer.GetDeltaMillisecondsFraction());
-            else if(keysDown.count(KEY_CODE::C))
-                camera.MoveUp(-0.01f * timer.GetDeltaMillisecondsFraction());
+                if(keysDown.count(KEY_CODE::W))
+                    camera.MoveFoward(0.01f * timer.GetDeltaMillisecondsFraction());
+                else if(keysDown.count(KEY_CODE::S))
+                    camera.MoveFoward(-0.01f * timer.GetDeltaMillisecondsFraction());
 
-            glm::vec2 mouseDelta = Input::GetMouseDelta();
-            //if(mouseDelta.x != mouseDelta.y != 0.0f)
-            //    std::cout << mouseDelta.x << ", " << mouseDelta.y << std::endl;
-            camera.Rotate(mouseDelta * 0.0025f);
+                if(keysDown.count(KEY_CODE::V))
+                    camera.MoveUp(0.01f * timer.GetDeltaMillisecondsFraction());
+                else if(keysDown.count(KEY_CODE::C))
+                    camera.MoveUp(-0.01f * timer.GetDeltaMillisecondsFraction());
+
+                glm::vec2 mouseDelta = Input::GetMouseDelta();
+
+                camera.Rotate(mouseDelta * 0.0025f);
+            }
 
             guiManager.Update(timer.GetDelta());
 
             contentManager.HotReload();
 
             glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glEnable(GL_CULL_FACE);
+            glEnable(GL_DEPTH_TEST);
+            glCullFace(GL_BACK);
+            //glDepthFunc(GL_GREATER);
 
-            //binds["color"] = std::fmod(timeSinceStart.GetTimeMillisecondsFraction() / 1000.0f, 1.0f);
-            //binds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+            worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 
-            //binds.Bind();
-            //glBindTexture(GL_TEXTURE_2D, texture->GetTexture());
+            //glDisable(GL_CULL_FACE);
+            worldModel->Draw();
 
-            //binds.DrawElementsInstanced(5);
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-            //glBindTexture(GL_TEXTURE_2D, 0);
-            //binds.Unbind();
+            //glDepthFunc(GL_GREATER);
+
+            glDisable(GL_DEPTH_TEST);
 
             spriteRenderer.Begin();
-            //spriteRenderer.Draw(Rect(64.0f, 64.0f, 64.0f, 64.0f));
 
             guiManager.Draw(&spriteRenderer);
 

@@ -43,7 +43,7 @@ public:
      * @param memcpyData Should the data be copied, or can a pointer to the first element inside \p initialData be used?
      * @return Whether or not initialization succeeded
      */
-    template<typename VectorType, typename... T>
+    template<typename... T, typename VectorType>
     bool Init(GLEnums::BUFFER_USAGE usage, const std::vector<VectorType>& initialData)
     {
         // TODO: Make sure initialData.size matches stride

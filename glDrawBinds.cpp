@@ -70,7 +70,7 @@ void GLDrawBinds::AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE
 {
     ShaderContentParameters parameters(type);
 
-    GLShader* newShader = contentManager.Load<GLShader>(shaderPath, &parameters);
+    GLShader* newShader = contentManager.Load<GLShader>(shaderPath, &parameters); // TODO: Error handing
 
     shaderBinds.push_back(std::make_pair(type, newShader));
 }
@@ -192,12 +192,14 @@ bool GLDrawBinds::CreateShaderProgram()
             return false;
         }
 
+#ifndef NDEBUG
         int numberOfFloats = 0;
         for(const auto& attrib : attributes)
             numberOfFloats += GetNumberOfFloats(attrib.type);
 
         if(numberOfFloats * sizeof(float) != vertexBuffers[0]->GetStride())
             LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes, is this intended?");
+#endif // NDEBUG
 
         GLBufferLock bufferLock(vertexBuffers[0]);
 
@@ -217,6 +219,17 @@ bool GLDrawBinds::CreateShaderProgram()
     else
     {
         // User has defined input layouts
+#ifndef NDEBUG
+
+        int numberOfFloats = 0;
+        for(const auto& attrib : attributes)
+            numberOfFloats += GetNumberOfFloats(attrib.type);
+
+        if(numberOfFloats * sizeof(float) != vertexBuffers[0]->GetStride()) // TODO: Multiple buffers
+            LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes, is this intended?");
+
+        // TODO: Count size of input layouts?
+#endif // NDEBUG
 
         for(int i = 0; i < inputLayouts.size(); ++i)
         {
@@ -253,8 +266,8 @@ bool GLDrawBinds::CreateShaderProgram()
 
                 // TODO: Apparently this is needed even when only one instance is drawn
                 // FIXME: Yeah
-                if(location >= 2)
-                    glVertexAttribDivisor(location, 1);
+                //if(location >= 2)
+                //    glVertexAttribDivisor(location, 1);
             }
         }
     }

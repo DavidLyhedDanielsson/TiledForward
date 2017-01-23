@@ -419,9 +419,10 @@ void Input::MouseButtonEvent(
     if((event.state & Mod1Mask) > 0) //Alt, hopefully
         mouseButtonState.mods |= KEY_MODIFIERS::ALT;
 
-    int combinedMods = ShiftMask | ControlMask | Mod1Mask;
-    if((event.state & ~combinedMods) != 0)
-        mouseButtonState.mods |= KEY_MODIFIERS::UNKNOWN;
+    // Ignore unknown
+    //int combinedMods = ShiftMask | ControlMask | Mod1Mask;
+    //if((event.state & ~combinedMods) != 0)
+    //    mouseButtonState.mods |= KEY_MODIFIERS::UNKNOWN;
 
     if(event.button == Button1)
         mouseButtonState.button = MOUSE_BUTTON::LEFT;
@@ -597,6 +598,8 @@ KEY_CODE Input::OSKeyToKEY_CODE(
     {
         case XK_space:
             return KEY_CODE::SPACE;
+        case XK_section:
+            return KEY_CODE::SECTION;
         case XK_BackSpace:
             return KEY_CODE::BACKSPACE;
         case XK_Delete:
@@ -858,6 +861,8 @@ Input::KEY_CODEToOSKey(KEY_CODE keyCode)
     {
         case KEY_CODE::SPACE:
             return XK_space;
+        case KEY_CODE::SECTION:
+            return XK_section;
         case KEY_CODE::BACKSPACE:
             return XK_BackSpace;
         case KEY_CODE::DELETE:

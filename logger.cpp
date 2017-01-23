@@ -101,7 +101,9 @@ void Logger::Log(LOG_TYPE logType, const std::string& text)
 	   && (logType == LOG_TYPE::WARNING
 		   || logType == LOG_TYPE::FATAL
 		   || logType == LOG_TYPE::WARNING_NOWRITE 
-		   || logType == LOG_TYPE::FATAL_NOWRITE))
+		   || logType == LOG_TYPE::FATAL_NOWRITE
+		   || logType == LOG_TYPE::DEBUG
+           || logType == LOG_TYPE::DEBUG_NOWRITE))
 	{
 		message += "Stack trace:\n";
 

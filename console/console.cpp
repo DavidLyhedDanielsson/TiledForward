@@ -22,7 +22,7 @@
 #include "commandCallMethod.h"
 #include "colorBackgroundStyle.h"
 
-const glm::vec4 Console::defaultBackgroundColor = COLORS::ivoryblack;
+const glm::vec4 Console::defaultBackgroundColor = glm::vec4(glm::vec3(COLORS::ivoryblack), 0.5f);
 const glm::vec4 Console::defaultSecondaryColor = COLORS::gray88;
 const glm::vec4 Console::defaultTextColor = COLORS::white;
 const glm::vec4 Console::defaultHighlightColor = defaultBackgroundColor;

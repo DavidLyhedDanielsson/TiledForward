@@ -34,6 +34,7 @@ enum class KEY_MODIFIERS : int
 enum class KEY_CODE : int
 {
     SPACE = 0
+	, SECTION
 	, BACKSPACE
 	, DELETE
 	, ENTER

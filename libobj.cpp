@@ -48,8 +48,11 @@ auto LibOBJ::ReadModel(const std::string& path) -> OBJModel
         if(line[0] == '#')
             continue;
 
+        if(line.find("Material__25") != line.npos)
+            int asdf = 5;
+
         if(BeginsWith(line, "v "))
-            positions.push_back(GetVec3(line));
+            positions.push_back(GetVec3(line) * 0.02f); // FIXME: constant offset
         else if(BeginsWith(line, "vn "))
             normals.push_back(GetVec3(line));
         else if(BeginsWith(line, "vt "))
@@ -66,7 +69,6 @@ auto LibOBJ::ReadModel(const std::string& path) -> OBJModel
             returnModel.materials = GetMtllib(pathPrefix + mtillibName);
         }
     }
-
     return returnModel;
 }
 
@@ -131,6 +133,8 @@ void GetTriangles(const std::string& line
 
 auto GetMtllib(const std::string& mtllibPath) -> std::map<std::string, Material>
 {
+    // TODO: Materials without textures?
+
     std::ifstream in(mtllibPath);
     if(!in.is_open())
         throw std::runtime_error("Couldn't open file \"" + mtllibPath + "\"");
@@ -155,9 +159,10 @@ auto GetMtllib(const std::string& mtllibPath) -> std::map<std::string, Material>
             {
                 returnMap[materialName] = newMaterial;
 
-                materialName = line.substr(line.find_first_not_of(' ') + 1);
-                newMaterial = Material();
+                //newMaterial = Material();
             }
+
+            materialName = line.substr(line.find_first_of(' ') + 1);
         }
         else if(BeginsWith(line, "Ka"))
             newMaterial.ambient = GetVec3(line);
@@ -216,7 +221,7 @@ auto GetFloat(const std::string& line) -> float
 
 auto GetString(const std::string& line) -> std::string
 {
-    auto firstDigit = line.find_first_not_of(' ');
+    auto firstDigit = line.find_first_of(' ') + 1;
 
     return line.substr(firstDigit);
 }

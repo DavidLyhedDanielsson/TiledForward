@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
 #endif
 
     IF_WINDOWS(Logger::Init());
+    Logger::ClearLog();
 
     OSWindow window;
     if(window.Create(1280, 720 IF_WINDOWS(, hInstance, nShowCmd)) == OSWindow::NONE)
@@ -54,6 +55,7 @@ int main(int argc, char* argv[])
 
         Input::Init(&window, true);
 
+        // Uses a reversed depth buffer
         PerspectiveCamera camera;
         camera.InitFovVertical({0.0f, 0.0f, -5.0f}
                                , {0.0f, 0.0f, 0.0f}
@@ -62,6 +64,7 @@ int main(int argc, char* argv[])
                                , 720
                                , 100.0f
                                , 0.01f);
+        glDepthRange(1, -1);
 
         std::set<KEY_CODE> keysDown;
 
@@ -168,25 +171,23 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-//        double frameTime = 0.0;
-//        unsigned long frameCount = 0;
-
-        glDepthRange(1, -1);
+        double frameTime = 0.0;
+        unsigned long frameCount = 0;
 
         while(window.PollEvents())
         {
             timer.UpdateDelta();
 
-//            frameTime += timer.GetDeltaMillisecondsFraction();
-//            ++frameCount;
-//
-//            if(frameCount % 100 == 0)
-//            {
-//                Logger::LogLine(LOG_TYPE::INFO, frameTime / (double)frameCount);
-//
-//                frameCount = 0;
-//                frameTime = 0.0;
-//            }
+            frameTime += timer.GetDeltaMillisecondsFraction();
+            ++frameCount;
+
+            if(frameCount % 100 == 0)
+            {
+                Logger::LogLine(LOG_TYPE::INFO_NOWRITE, frameTime / (double)frameCount);
+
+                frameCount = 0;
+                frameTime = 0.0;
+            }
 
             if(!console.GetActive())
             {
@@ -219,7 +220,6 @@ int main(int argc, char* argv[])
             glEnable(GL_CULL_FACE);
             glEnable(GL_DEPTH_TEST);
             glCullFace(GL_BACK);
-            //glDepthFunc(GL_GREATER);
 
             worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 

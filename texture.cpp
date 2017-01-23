@@ -71,7 +71,10 @@ bool Texture::Apply(Content* content)
 CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentManager /*= nullptr*/, ContentParameters* contentParameters /*= nullptr*/)
 {
     // TODO: Error handling
-    ReadData(filePath);
+    CONTENT_ERROR_CODES error = ReadData(filePath);
+	if(error != CONTENT_ERROR_CODES::NONE)
+		return error;
+
     ApplyHotReload();
 
 	return CONTENT_ERROR_CODES::NONE;
@@ -144,6 +147,9 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
     void* library = dlopen(libraryName.c_str(), RTLD_LAZY);
 #endif // NDEBUG
 
+	if(library == nullptr)
+		return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+
     typedef bool (*Dimensions)(const char*, uint32_t&, uint32_t&);
     typedef CONTENT_ERROR_CODES (*Load)(const char*, unsigned char*);
 
@@ -174,13 +180,19 @@ bool Texture::ApplyHotReload()
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+    GLfloat anisotropy;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &anisotropy);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 

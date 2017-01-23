@@ -77,11 +77,50 @@ private:
     template<typename T>
     void AppendInputLayout()
     {
-        Logger::LogLine(LOG_TYPE::FATAL, "Unknown input layout type!");
+        Logger::LogLine(LOG_TYPE::FATAL, "Unknown input layout type");
     }
 
     std::vector<std::pair<std::string, InputLayout>> namedInputLayouts;
     size_t vertexBuffer;
 };
+
+template<>
+inline void GLInputLayout::AppendInputLayout<int>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 1, GLEnums::DATA_TYPE::INT, GL_FALSE, -1, -1);
+}
+
+template<>
+inline void GLInputLayout::AppendInputLayout<float>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 1, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+inline void GLInputLayout::AppendInputLayout<glm::vec2>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 2, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+inline void GLInputLayout::AppendInputLayout<glm::vec3>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 3, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+inline void GLInputLayout::AppendInputLayout<glm::vec4>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
+
+template<>
+inline void GLInputLayout::AppendInputLayout<glm::mat4x4>()
+{
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+    AddInputLayout((int)namedInputLayouts.size(), 4, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, -1, -1);
+}
 
 #endif // GLINPUTLAYOUT_H__

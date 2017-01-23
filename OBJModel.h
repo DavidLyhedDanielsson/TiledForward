@@ -5,6 +5,8 @@
 #include "glDrawBinds.h"
 #include "libobj.h"
 
+class Texture;
+
 class OBJModel
         : public DiskContent
 {
@@ -38,6 +40,7 @@ protected:
 
 private:
     std::vector<std::pair<LibOBJ::Material, std::pair<int, int>>> materialOffset;
+    std::map<std::string, Texture*> textureNameToTexture;
 
     GLIndexBuffer indexBuffer;
     GLVertexBuffer vertexBuffer;

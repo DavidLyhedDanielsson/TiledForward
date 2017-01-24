@@ -66,13 +66,17 @@ bool GLDrawBinds::Init()
     return true;
 }
 
-void GLDrawBinds::AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath)
+bool GLDrawBinds::AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath)
 {
     ShaderContentParameters parameters(type);
 
-    GLShader* newShader = contentManager.Load<GLShader>(shaderPath, &parameters); // TODO: Error handing
+    GLShader* newShader = contentManager.Load<GLShader>(shaderPath, &parameters);
+    if(newShader == nullptr)
+        return false;
 
     shaderBinds.push_back(std::make_pair(type, newShader));
+
+    return true;
 }
 
 std::vector<GLDrawBinds::Attrib> GLDrawBinds::GetActiveAttribs() const
@@ -225,8 +229,8 @@ bool GLDrawBinds::CreateShaderProgram()
         for(const auto& attrib : attributes)
             numberOfFloats += GetNumberOfFloats(attrib.type);
 
-        if(numberOfFloats * sizeof(float) != vertexBuffers[0]->GetStride()) // TODO: Multiple buffers
-            LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes, is this intended?");
+        if(vertexBuffers[0]->GetStride() != numberOfFloats * sizeof(float)) // TODO: Multiple buffers
+            LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes (" + std::to_string(vertexBuffers[0]->GetStride()) + " != " + std::to_string(numberOfFloats * sizeof(float)) + ") is this intended?");
 
         // TODO: Count size of input layouts?
 #endif // NDEBUG

@@ -403,7 +403,8 @@ Content* ContentManager::ContentAlreadyLoaded(const std::string path, ContentPar
 
 bool ContentManager::Load(Content* newContent, const std::string path, ContentParameters* contentParameters)
 {
-	CONTENT_ERROR_CODES errorCode = newContent->Load((contentRootDirectory + "/" + path).c_str(), this, contentParameters);
+	newContent->SetPath(path.c_str());
+	CONTENT_ERROR_CODES errorCode = newContent->Load(path.c_str(), this, contentParameters);
 	if(errorCode == CONTENT_ERROR_CODES::NONE)
 	{
 		++uniqueID;
@@ -411,7 +412,7 @@ bool ContentManager::Load(Content* newContent, const std::string path, ContentPa
 		++newContent->refCount;
 
 		if(!path.empty())
-			AddToMap(contentRootDirectory + "/" + path, newContent);
+			AddToMap(path, newContent);
 		else
 		{
 			ContentCreationParameters* creationParameters = dynamic_cast<ContentCreationParameters*>(contentParameters);
@@ -452,8 +453,11 @@ bool ContentManager::Load(Content* newContent, const std::string path, ContentPa
 			case CONTENT_ERROR_CODES::UNKNOWN:
 				Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\" due to an unknown error");
 				break;
-			case CONTENT_ERROR_CODES::COULDNT_OPEN_FILE:
+			case CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE:
 				Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\" because a file couldn't be opened");
+				break;
+			case CONTENT_ERROR_CODES::COULDNT_OPEN_DEPENDENCY_FILE:
+				Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\" because a dependency file couldn't be opened");
 				break;
 			case CONTENT_ERROR_CODES::CONTENT_PARAMETER_CAST:
 				Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\" because the content parameters failed a cast");

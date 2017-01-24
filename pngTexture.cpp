@@ -32,7 +32,7 @@ CONTENT_ERROR_CODES LoadContent(const char* filePath, unsigned char* data)
 
     error = ilGetError();
     if(error != IL_NO_ERROR)
-        return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+        return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
     ILubyte* ilData = ilGetData();
 

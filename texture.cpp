@@ -57,6 +57,8 @@ bool Texture::Apply(Content* content)
 	if(other == nullptr)
 		return false;
 
+    // Don't copy this->data
+
     texture = other->texture;
 
     width = other->width;
@@ -70,10 +72,12 @@ bool Texture::Apply(Content* content)
 
 CONTENT_ERROR_CODES Texture::Load(const char* filePath, ContentManager* contentManager /*= nullptr*/, ContentParameters* contentParameters /*= nullptr*/)
 {
-    // TODO: Error handling
     CONTENT_ERROR_CODES error = ReadData(filePath);
 	if(error != CONTENT_ERROR_CODES::NONE)
-		return error;
+    {
+        data.reset(nullptr);
+        return error;
+    }
 
     ApplyHotReload();
 
@@ -109,7 +113,7 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
 #endif
 
 	if(dllHandle == nullptr)
-		return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+		return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
 	LoadFunction load = (LoadFunction)GetProcAddress(dllHandle, "Load");
 	if(load == nullptr)
@@ -148,7 +152,7 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
 #endif // NDEBUG
 
 	if(library == nullptr)
-		return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+		return CONTENT_ERROR_CODES::COULDNT_OPEN_DEPENDENCY_FILE;
 
     typedef bool (*Dimensions)(const char*, uint32_t&, uint32_t&);
     typedef CONTENT_ERROR_CODES (*Load)(const char*, unsigned char*);
@@ -158,7 +162,10 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
     if(dimensions != nullptr)
     {
         if(!dimensions(filePath, width, height))
-            return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+        {
+            dlclose(library);
+            return CONTENT_ERROR_CODES::COULDNT_OPEN_DEPENDENCY_FILE;
+        }
     }
 
     data.reset(new unsigned char[width * height * 4]);
@@ -167,7 +174,10 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
     if(load != nullptr)
         load(filePath, data.get()); // TODO: Return value
 	else
-		return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+    {
+        dlclose(library);
+        return CONTENT_ERROR_CODES::COULDNT_OPEN_DEPENDENCY_FILE;
+    }
 
     dlclose(library);
 #endif
@@ -278,10 +288,6 @@ bool Texture::CreateDefaultContent(const char* filePath, ContentManager* content
 
 	predivWidth = memoryTexture->predivWidth;
 	predivHeight = memoryTexture->predivHeight;
-
-    // TODO: Is this needed?
-	contentManager->IncreaseRefCount(memoryTexture);
-	contentManager->Unload(memoryTexture);
 
 	return true;
 }

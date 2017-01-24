@@ -47,7 +47,6 @@ public:
 
         if(size % byteSize != 0)
         {
-            //TODO: Better message
             Logger::LogLine(LOG_TYPE::WARNING, "size isn't a multiple of byteSize, check template parameters");
             sstream << "(size isn't a multiple of byteSize)\n";
         }

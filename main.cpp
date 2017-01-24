@@ -223,9 +223,9 @@ int main(int argc, char* argv[])
 
             worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 
-            //glDisable(GL_CULL_FACE);
-            worldModel->Draw();
 
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            worldModel->Draw();
             //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
             //glDepthFunc(GL_GREATER);

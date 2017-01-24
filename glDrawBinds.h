@@ -23,13 +23,14 @@ public:
 
     bool Init();
 
-    void AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath);
+    bool AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath);
     template<typename... T>
-    void AddShaders(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath, T... rest)
+    bool AddShaders(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath, T... rest)
     {
-        AddShader(contentManager, type, shaderPath);
-
-        AddShaders(contentManager, rest...);
+        if(AddShader(contentManager, type, shaderPath))
+            return AddShaders(contentManager, rest...);
+        else
+            return false;
     }
 
     template<typename T>
@@ -138,8 +139,10 @@ private:
     void AddBuffers()
     {}
 
-    void AddShaders(ContentManager& contentManager)
-    { }
+    bool AddShaders(ContentManager& contentManager)
+    {
+        return true;
+    }
 
     void AddBuffer(GLVertexBuffer* vertexBuffer);
     void AddBuffer(GLVertexBuffer* vertexBuffer, GLInputLayout inputLayout);

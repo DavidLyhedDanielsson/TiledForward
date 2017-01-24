@@ -77,7 +77,7 @@ CONTENT_ERROR_CODES GLShader::Load(const char* filePath
     std::string shaderSource = ReadSourceFromFile(filePath);
 
     if(shaderSource.empty())
-        return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+        return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
     return CompileFromSource(shaderSource) ? CONTENT_ERROR_CODES::NONE : CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
 }
@@ -92,7 +92,6 @@ void GLShader::Unload(ContentManager* contentManager)
 
         glDeleteShader(shader);
 
-        shaderPrograms.clear();
         shader = 0;
     }
 }
@@ -102,7 +101,7 @@ CONTENT_ERROR_CODES GLShader::BeginHotReload(const char* filePath, ContentManage
     shaderSource = ReadSourceFromFile(filePath);
 
     if(shaderSource.empty())
-        return CONTENT_ERROR_CODES::COULDNT_OPEN_FILE;
+        return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
     return CONTENT_ERROR_CODES::NONE;
 }

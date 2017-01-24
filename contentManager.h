@@ -57,25 +57,27 @@ public:
 	template<typename T>
 	T* Load(const std::string& path, ContentParameters* contentParameters = nullptr) // TODO: Make two funcions? Maybe three where one has ContentParameters&?
 	{
-		Content* existingContent = ContentAlreadyLoaded(path, contentParameters);
+        std::string actualPath = contentRootDirectory + "/" + path;
+
+		Content* existingContent = ContentAlreadyLoaded(actualPath, contentParameters);
 		if(existingContent != nullptr)
 			return static_cast<T*>(existingContent);
 
 		Content* newContent = new T;
-		if(!Load(newContent, path, contentParameters))
+		if(!Load(newContent, actualPath, contentParameters))
 		{
 			DiskContent* diskContent = dynamic_cast<DiskContent*>(newContent);
 			if(diskContent != nullptr)
 			{
-				if(!diskContent->CreateDefaultContent( path.c_str(), this))
+				if(!diskContent->CreateDefaultContent(actualPath.c_str(), this))
 				{
-					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\", and no default content could be created");
+					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + actualPath + "\", and no default content could be created");
 
 					delete newContent;
 					newContent = nullptr;
 				}
 				else
-					AddToMap(path, newContent);
+					AddToMap(actualPath, newContent);
 			}
 			else
 			{
@@ -84,7 +86,7 @@ public:
 				if(creationParameters != nullptr)
 					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't create content with ID \"" + std::string(creationParameters->uniqueID) + "\"");
 				else
-					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\"");
+					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + actualPath + "\"");
 
 				delete newContent;
 				newContent = nullptr;

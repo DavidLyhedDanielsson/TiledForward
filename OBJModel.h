@@ -39,8 +39,7 @@ protected:
     DiskContent* CreateInstance() const override;
 
 private:
-    std::vector<std::pair<LibOBJ::Material, std::pair<int, int>>> materialOffset;
-    std::map<std::string, Texture*> textureNameToTexture;
+    std::map<Texture*, std::pair<int, int>> drawOffsets;
 
     GLIndexBuffer indexBuffer;
     GLVertexBuffer vertexBuffer;

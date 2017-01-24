@@ -59,7 +59,7 @@ public:
 	{
         std::string actualPath = contentRootDirectory + "/" + path;
 
-		Content* existingContent = ContentAlreadyLoaded(actualPath, contentParameters);
+		Content* existingContent = ContentAlreadyLoaded(path, contentParameters);
 		if(existingContent != nullptr)
 			return static_cast<T*>(existingContent);
 

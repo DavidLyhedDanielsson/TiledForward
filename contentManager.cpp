@@ -384,7 +384,7 @@ void ContentManager::WaitForFileChanges(
 Content* ContentManager::ContentAlreadyLoaded(const std::string path, ContentParameters* contentParameters)
 {
 	if(!path.empty())
-		return Exists(path);
+		return Exists(contentRootDirectory + "/" + path);
 	else
 	{
 		//Check if content with the given unique ID already exists

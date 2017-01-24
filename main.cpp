@@ -19,6 +19,7 @@
 #include "libobj.h"
 #include "console/commandGetSet.h"
 #include "OBJModel.h"
+#include "console/colors.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -231,6 +232,7 @@ int main(int argc, char* argv[])
             //glDepthFunc(GL_GREATER);
 
             glDisable(GL_DEPTH_TEST);
+            glDisable(GL_CULL_FACE);
 
             spriteRenderer.Begin();
 

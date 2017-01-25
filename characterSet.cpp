@@ -448,7 +448,7 @@ unsigned int CharacterSet::GetIndexAtWidth(const char* text, unsigned int width,
 {
 	unsigned int currentWidth = 0;
 
-	//Used for index rounding
+	//Used for blockIndex rounding
 	int lastCharXAdvance = 0;
 
     unsigned int index;

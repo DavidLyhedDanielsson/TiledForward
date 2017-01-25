@@ -805,7 +805,7 @@ int TextBox::GetCharacterAt(unsigned int index) const
 		return 0;
 
 	auto iter = text.begin() + index;
-	//utf8::unchecked::advance(iter, index);
+	//utf8::unchecked::advance(iter, blockIndex);
 
 	return *iter;
 }

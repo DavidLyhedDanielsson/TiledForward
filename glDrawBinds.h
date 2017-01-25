@@ -13,6 +13,7 @@
 #include "glUniform.h"
 #include "glInputLayout.h"
 #include "contentManager.h"
+#include "glUniformBlock.h"
 
 class GLDrawBinds
 {
@@ -102,8 +103,6 @@ public:
         return *uniformBinds[name];
     }
 
-    void CompileProgram();
-
 protected:
 private:
     // Also used for uniforms
@@ -128,6 +127,7 @@ private:
     std::vector<GLInputLayout> inputLayouts;
     std::vector<std::pair<GLEnums::SHADER_TYPE, GLShader*>> shaderBinds;
     std::map<std::string, GLUniformBase*> uniformBinds;
+    std::map<std::string, GLUniformBlock*> uniformBlockBinds;
 
     // Recursive template termination
     void AddShaders()
@@ -165,5 +165,17 @@ private:
     void RelinkShaders();
     GLuint GetShaderProgram() const;
 };
+
+template <>
+inline void GLDrawBinds::AddUniform<GLUniformBlock>(const std::string& name, GLUniformBlock data)
+{
+    throw std::runtime_error("AddUniform needs a pointer to the GLUniformBlock");
+}
+
+template <>
+inline void GLDrawBinds::AddUniform<GLUniformBlock*>(const std::string& name, GLUniformBlock* data)
+{
+    uniformBlockBinds.insert(std::make_pair(name, data));
+}
 
 #endif // GLSHADERRESOURCEBINDS_H__

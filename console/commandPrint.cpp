@@ -28,7 +28,7 @@ Argument CommandPrint::Execute(const ContextPointers* const contextPointers, con
 
 std::string CommandPrint::GetHelp() const
 {
-	return "Prints the given variables";
+	return "Prints the given uniforms";
 }
 
 std::string CommandPrint::GetUsage() const

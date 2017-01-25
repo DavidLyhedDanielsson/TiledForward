@@ -2,15 +2,23 @@
 
 uniform sampler2D tex;
 
+in vec3 WorldPosition;
 in vec3 Normal;
 in vec2 TexCoord;
 
 out vec4 outColor;
 
-const vec3 LIGHT_DIR = normalize(vec3(0.1f, 1.0f, 0.3f));
+//const vec3 LIGHT_DIR = normalize(vec3(0.1f, 1.0f, 0.3f));
+
+layout (std140) uniform LightData
+{
+    vec3 lightPosition;
+    vec3 lightColor;
+};
 
 void main()
 {
-    outColor = vec4(texture(tex, TexCoord).xyz * clamp(dot(Normal, LIGHT_DIR) + 0.3f, 0.0f, 1.0f), 1.0f);//vec4(color, color, color, 1.0f);
-    //outColor = vec4(TexCoord, 1.0f, 1.0f);
+    vec3 lightDir = normalize(WorldPosition - lightPosition);
+
+    outColor = vec4(texture(tex, TexCoord).xyz * clamp(dot(Normal, -lightDir) + 0.3f, 0.0f, 1.0f), 1.0f);
 }

@@ -379,8 +379,25 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
 
     std::set<std::string> usedUniforms;
 
+    for(auto& pair : shaderBinds)
+        pair.second->InitUniformBlocks(shaderProgram); // TODO: Don't do this if already done
+
     for(const Attrib& uniform : activeUniforms)
     {
+        bool insideBlock = false;
+
+        for(const auto& pair : uniformBlockBinds)
+        {
+            if(pair.second->VariableExists(uniform.name))
+            {
+                insideBlock = true;
+                break;
+            }
+        }
+
+        if(insideBlock)
+            continue;
+
         std::string actualName = uniform.name.substr(0, uniform.name.find_first_of("["));
 
         if(uniform.name.find_first_of(".") != uniform.name.npos)
@@ -427,6 +444,9 @@ void GLDrawBinds::Bind()
         for(const auto& pair : uniformBinds)
             if(pair.second->GetLocation() != -1)
                 pair.second->UploadData();
+
+        for(const auto& pair : shaderBinds)
+            pair.second->BindUniformObjects();
     }
 }
 
@@ -444,6 +464,9 @@ void GLDrawBinds::Unbind()
 
         for(const auto& vertexBuffer : vertexBuffers)
             vertexBuffer->Unbind();
+
+        for(const auto& pair : shaderBinds)
+            pair.second->UnbindUniformObjects();
     }
 }
 
@@ -483,7 +506,7 @@ void GLDrawBinds::DrawElements()
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
     {
-        LogWithName(LOG_TYPE::FATAL, "DrawElements called without an index buffer set");
+        LogWithName(LOG_TYPE::FATAL, "DrawElements called without an blockIndex buffer set");
         return;
     }
 #endif // NDEBUG
@@ -496,7 +519,7 @@ void GLDrawBinds::DrawElements(GLsizei count)
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
     {
-        LogWithName(LOG_TYPE::FATAL, "No index buffer set");
+        LogWithName(LOG_TYPE::FATAL, "No blockIndex buffer set");
         return;
     }
 
@@ -520,7 +543,7 @@ void GLDrawBinds::DrawElements(GLsizei count, GLsizei offset)
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
     {
-        LogWithName(LOG_TYPE::FATAL, "DrawElements called without an index buffer set");
+        LogWithName(LOG_TYPE::FATAL, "DrawElements called without an blockIndex buffer set");
         return;
     }
 
@@ -546,7 +569,7 @@ void GLDrawBinds::DrawElementsInstanced(int instances)
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
     {
-        LogWithName(LOG_TYPE::FATAL, "DrawElementsInstanced called without an index buffer set");
+        LogWithName(LOG_TYPE::FATAL, "DrawElementsInstanced called without an blockIndex buffer set");
         return;
     }
 #endif // NDEBUG
@@ -583,7 +606,7 @@ void GLDrawBinds::AddBuffer(GLIndexBuffer* indexBuffer)
 {
 #ifndef NDEBUG
     if(this->indexBuffer != nullptr)
-        Logger::LogLine(LOG_TYPE::WARNING, "Overwriting index buffer");
+        Logger::LogLine(LOG_TYPE::WARNING, "Overwriting blockIndex buffer");
 #endif // NDEBUG
 
     this->indexBuffer = indexBuffer;

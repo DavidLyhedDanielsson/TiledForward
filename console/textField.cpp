@@ -1261,7 +1261,7 @@ void TextField::JumpCursorLeft()
 
 		const std::string& line = std::get<0>(lines[cursorLineIndex]);
 
-		//If the cursor is at index 0 and it moved to a NEW line, then cursorIndex will be at the end
+		//If the cursor is at blockIndex 0 and it moved to a NEW line, then cursorIndex will be at the end
 		//and line[cursorIndex] will read out of bounds
 		if(cursorIndex == line.size())
 			--cursorIndex;

@@ -324,7 +324,7 @@ protected:
 	//Need this to be able to call its methods
 	GUIBackground* completeListBackground;
 
-	//Currently selected index when completeList is in history resp. suggestion mode
+	//Currently selected blockIndex when completeList is in history resp. suggestion mode
 	int historyIndex;
 	int suggestionIndex;
 

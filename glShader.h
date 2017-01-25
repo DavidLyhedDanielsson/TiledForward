@@ -8,6 +8,8 @@
 
 #include "glEnums.h"
 
+class GLUniformBlock;
+
 class GLDrawBinds;
 
 class GLShader
@@ -48,8 +50,13 @@ private:
     std::string shaderSource; //For hot reloading
     std::vector<GLDrawBinds*> shaderPrograms; //For hot reloading
 
+    std::vector<GLUniformBlock*> uniformBuffers;
+
     bool CompileFromSource(const std::string& source);
     std::string ReadSourceFromFile(const std::string& path);
+    void InitUniformBlocks(GLuint shaderProgram);
+    void BindUniformObjects();
+    void UnbindUniformObjects();
 };
 
 #endif // GLSHADER_H__

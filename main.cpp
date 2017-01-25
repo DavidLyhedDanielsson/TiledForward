@@ -20,6 +20,8 @@
 #include "console/commandGetSet.h"
 #include "OBJModel.h"
 #include "console/colors.h"
+#include "glPixelShader.h"
+#include "shaderContentParameters.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -41,6 +43,8 @@ int main(int argc, char* argv[])
 
     IF_WINDOWS(Logger::Init());
     Logger::ClearLog();
+
+    // TODO: Fix rename of index to blockIndex, e.g. "Used for index rounding" -> "Used for blockIndex rounding"
 
     OSWindow window;
     if(window.Create(1280, 720 IF_WINDOWS(, hInstance, nShowCmd)) == OSWindow::NONE)
@@ -71,6 +75,18 @@ int main(int argc, char* argv[])
 
         GUIManager guiManager;
         ContentManager contentManager("content");
+
+        // Load shader to set the uniform block
+        GLUniformBlock uniformBlockTest("LightData");
+        uniformBlockTest.AddVariable<glm::vec3>("lightPosition", { 0.0f, 5.0f, 0.0f });
+        uniformBlockTest.AddVariable<glm::vec3>("lightColor", glm::vec3(COLORS::mediumpurple));
+
+        ShaderContentParameters shaderParameters;
+        shaderParameters.type = GLEnums::SHADER_TYPE::PIXEL;
+        shaderParameters.uniformBlocks.push_back(&uniformBlockTest);
+
+        GLPixelShader* shader = contentManager.Load<GLPixelShader>("pixel.glsl", &shaderParameters);
+
         CharacterSet* characterSet = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
 
         OBJModel* worldModel = contentManager.Load<OBJModel>("sponza.obj");
@@ -149,8 +165,6 @@ int main(int argc, char* argv[])
         guiManager.AddContainer(&console);
 
         //TODO: bind transformBuffer first to make sure default input layout generation works
-
-
 
         Timer timeSinceStart;
         timeSinceStart.Start();

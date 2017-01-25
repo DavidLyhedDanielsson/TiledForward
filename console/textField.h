@@ -160,7 +160,7 @@ public:
 	static std::shared_ptr<GUIBackgroundStyle> GenerateDefaultBackgroundStyle(ContentManager* contentManager);
 
 protected:
-	//<text, whether or not the line at this index and the line at the next index is "together">
+	//<text, whether or not the line at this blockIndex and the line at the next blockIndex is "together">
 	//I also realized now that I could've as well used std::pair. TODO
 	std::vector<std::tuple<std::string, bool>> lines;
 

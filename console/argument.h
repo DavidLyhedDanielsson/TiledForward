@@ -52,7 +52,7 @@ struct Argument
 			if(pair.first.values.size() == 1)
 				return pair.first; //1 + (1,2,3) doens't really make sense, so don't do anything
 			else if(pair.second.values.size() == 1)
-				pair.second = std::move(PadValues(pair.second, pair.first.values.size())); //(1,2,3) + 1 just adds 1 to each index
+				pair.second = std::move(PadValues(pair.second, pair.first.values.size())); //(1,2,3) + 1 just adds 1 to each blockIndex
 		}*/
 
 		Argument returnArgument;

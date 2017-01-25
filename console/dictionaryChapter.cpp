@@ -52,7 +52,7 @@ std::vector<const DictionaryEntry*> DictionaryChapter::Match(const std::string& 
 
 	DictionaryEntry entry = DictionaryEntry(text);
 
-	//Loop over all entries with the same amount of index characters as entry, and upwards
+	//Loop over all entries with the same amount of blockIndex characters as entry, and upwards
 	for(auto lowerIter = entries.lower_bound(entry.GetIndexCharacterSize()),
 			 entriesEnd = entries.end(); lowerIter != entriesEnd; ++lowerIter)
 	{

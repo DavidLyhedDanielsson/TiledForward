@@ -1147,7 +1147,7 @@ void Console::AcceptText(std::string newText)
 	}
 	else
 	{
-		//Local cursor index represents the cursor index of the current active character block
+		//Local cursor blockIndex represents the cursor blockIndex of the current active character block
 		unsigned int globalCursorIndex = input.GetCursorIndex();
 		unsigned int characterBlockCursorIndex = 0;
 		std::string currentText = input.GetActiveCharacterBlockText(characterBlockCursorIndex);

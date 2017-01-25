@@ -99,7 +99,7 @@ protected:
 	// Access:      protected 
 	// Returns:     void
 	// Qualifier:  
-	// Description: Updates the thumb index based on its position
+	// Description: Updates the thumb blockIndex based on its position
 	//************************************
 	void UpdateThumbIndex();
 	//************************************
@@ -108,7 +108,7 @@ protected:
 	// Access:      protected 
 	// Returns:     void
 	// Qualifier:  
-	// Description: Updates the thumb position based on its index
+	// Description: Updates the thumb position based on its blockIndex
 	//************************************
 	void UpdateThumbPosition();
 

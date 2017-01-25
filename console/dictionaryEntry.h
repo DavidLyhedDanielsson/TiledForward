@@ -30,9 +30,9 @@ public:
 
 private:
 	//Name is the whole name and indexCharacters is used for searching.
-	//The index characters of SomeVariableName0 is SVN0.
-	//The index characters of SOMeVARiableName0 is still SVN0
-	//The index characters of Some0Variable1Name2 is S0V1N2
+	//The blockIndex characters of SomeVariableName0 is SVN0.
+	//The blockIndex characters of SOMeVARiableName0 is still SVN0
+	//The blockIndex characters of Some0Variable1Name2 is S0V1N2
 	std::string name;
 	std::vector<unsigned int> indexCharacters;
 };

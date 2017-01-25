@@ -42,7 +42,7 @@ Argument CommandDumpConsole::Execute(const ContextPointers* const contextPointer
 			for(int i = 1, end = static_cast<int>(arguments.size()); i < end; ++i)
 				out << arguments[i].origin + " = " + arguments[i] + "\n";
 
-			returnArgument = "Dumped " + std::to_string(arguments.size() - 1) + " variables to \"" + outPath + "\"";
+			returnArgument = "Dumped " + std::to_string(arguments.size() - 1) + " uniforms to \"" + outPath + "\"";
 		}
 		else
 			returnArgument = "Couldn't open file at \"" + outPath + "\"";

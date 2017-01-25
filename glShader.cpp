@@ -86,6 +86,8 @@ void GLShader::Unload(ContentManager* contentManager)
 {
     if(shader != 0)
     {
+        // If the draw binds are unloaded first glDetachShader will be called from there
+        // and the shader program will be set to 0
         for(auto shaderProgram : shaderPrograms)
             if(shaderProgram->GetShaderProgram() != 0)
                 glDetachShader(shaderProgram->GetShaderProgram(), shader);

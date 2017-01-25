@@ -21,8 +21,11 @@ GLDrawBinds::~GLDrawBinds()
 
     if(shaderProgram != 0)
     {
+        // If the shaders are unloaded first glDetachShader will be called from there
+        // and the shader will be set to 0
         for(const auto& pair : shaderBinds)
-            glDetachShader(shaderProgram, pair.second->GetShader());
+            if(pair.second->GetShader() != 0)
+                glDetachShader(shaderProgram, pair.second->GetShader());
 
         glDeleteProgram(shaderProgram);
         shaderProgram = 0;

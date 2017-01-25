@@ -77,22 +77,12 @@ int main(int argc, char* argv[])
         if(worldModel == nullptr)
             return 3;
 
-        int count = 3;
-        int offset = 0;
         Console console;
         console.Init(&contentManager, Rect(0.0f, 0.0f, 1280.0f, 360.0f), console.GenerateDoomStyle(&contentManager, characterSet), console.GenerateDoomStyleBackgroundStyle(&contentManager), false, false, false, false);
+        console.Autoexec();
 
-        auto countCommand = new CommandGetSet<int>("count", &count);
-        if(!console.AddCommand(countCommand))
-            delete countCommand;
-
-        auto offsetCommand = new CommandGetSet<int>("offset", &offset);
-        if(!console.AddCommand(offsetCommand))
-            delete offsetCommand;
-
-        auto drawOnlyCommand = new CommandGetSet<int>("drawOnly", &worldModel->drawOnlyIndex);
-        if(!console.AddCommand(drawOnlyCommand))
-            delete drawOnlyCommand;
+        bool wireframe = false;
+        console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
 
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)
@@ -224,10 +214,13 @@ int main(int argc, char* argv[])
 
             worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 
+            if(wireframe)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             worldModel->Draw();
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+            if(wireframe)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
             //glDepthFunc(GL_GREATER);
 

@@ -6,10 +6,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
 
-project(obj)
-
-add_library(obj STATIC libobj.cpp libobj.h)
-
 project(opengl)
 
 set(DEBUG_BUILD TRUE)
@@ -20,7 +16,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
     add_definitions(-DNDEBUG)
 endif()
-add_definitions(-DGL_ERROR_CALLBACK -DUSE_LOGGER)
+add_definitions(-DGL_ERROR_CALLBACK -DUSE_LOGGER -DGL_VERTEX_NO_WARNING -DGL_INDEX_NO_WARNING)
 
 include_directories(/usr/include/freetype2/)
 

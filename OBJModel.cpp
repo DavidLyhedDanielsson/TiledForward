@@ -62,6 +62,9 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         aiString textureName;
         aiGetMaterialString(scene->mMaterials[mesh->mMaterialIndex], AI_MATKEY_TEXTURE_DIFFUSE(0), &textureName);
 
+        if(textureName.length == 0)
+            continue; // TODO: Handle this case somehow
+
         Texture* currentTexture = contentManager->Load<Texture>(textureName.data);
         if(currentTexture == nullptr)
             return CONTENT_ERROR_CODES::COULDNT_OPEN_DEPENDENCY_FILE;

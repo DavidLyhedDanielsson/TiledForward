@@ -8,8 +8,6 @@ in vec2 TexCoord;
 
 out vec4 outColor;
 
-//const vec3 LIGHT_DIR = normalize(vec3(0.1f, 1.0f, 0.3f));
-
 layout (std140) uniform LightData
 {
     vec3 lightPosition;

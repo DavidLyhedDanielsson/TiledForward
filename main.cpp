@@ -22,6 +22,7 @@
 #include "console/colors.h"
 #include "glPixelShader.h"
 #include "shaderContentParameters.h"
+#include "console/commandCallMethod.h"
 
 //Cool shit!
 #ifdef _WIN32
@@ -78,14 +79,14 @@ int main(int argc, char* argv[])
 
         // Load shader to set the uniform block
         GLUniformBlock uniformBlockTest("LightData");
-        uniformBlockTest.AddVariable<glm::vec3>("lightPosition", { 0.0f, 5.0f, 0.0f });
+        uniformBlockTest.AddVariable<glm::vec3>("lightPosition", { 0.0f, 50.0f, 0.0f });
         uniformBlockTest.AddVariable<glm::vec3>("lightColor", glm::vec3(COLORS::mediumpurple));
 
         ShaderContentParameters shaderParameters;
         shaderParameters.type = GLEnums::SHADER_TYPE::PIXEL;
         shaderParameters.uniformBlocks.push_back(&uniformBlockTest);
 
-        GLPixelShader* shader = contentManager.Load<GLPixelShader>("pixel.glsl", &shaderParameters);
+        GLPixelShader* shader = contentManager.Load<GLPixelShader>("forward.frag", &shaderParameters);
 
         CharacterSet* characterSet = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
 
@@ -99,6 +100,19 @@ int main(int argc, char* argv[])
 
         bool wireframe = false;
         console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
+        console.AddCommand(new CommandCallMethod("lightPosition"
+                                                 , [&](const std::vector<Argument>&) {
+                    glm::vec3 newPosition = camera.GetPosition();
+
+                    uniformBlockTest["lightPosition"] = newPosition;
+
+                    Argument returnArgument;
+                    newPosition >> returnArgument;
+                    returnArgument.value.insert(0, "Position set to ");
+
+                    return returnArgument;
+                }
+        ));
 
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)

@@ -120,8 +120,8 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, indicies);
 
     if(!drawBinds.AddShaders(*contentManager
-                             , GLEnums::SHADER_TYPE::VERTEX, "vertex.glsl"
-                             , GLEnums::SHADER_TYPE::PIXEL, "pixel.glsl"))
+                             , GLEnums::SHADER_TYPE::VERTEX, "forward.vert"
+                             , GLEnums::SHADER_TYPE::PIXEL, "forward.frag"))
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
     GLInputLayout vertexBufferLayout;

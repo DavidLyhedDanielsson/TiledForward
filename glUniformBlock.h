@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include <GL/glew.h>
+#include <memory>
 
 #include "logger.h"
 
@@ -15,7 +16,9 @@ struct GLUniformBlockVariable;
 struct GLUniformBlockVariableBase
 {
     friend class GLShader;
+    friend class GLUniformBlock;
 
+    GLUniformBlockVariableBase();
     virtual ~GLUniformBlockVariableBase() = default;
 
     template<typename T>
@@ -44,6 +47,8 @@ struct GLUniformBlockVariableBase
 protected:
     int size;
     int offset;
+
+    bool modified;
 };
 
 template<typename T>
@@ -60,12 +65,14 @@ struct GLUniformBlockVariable
 
     void SetValue(T value)
     {
+        modified = true;
+
         this->value = value;
     }
 
     void CopyValue(void* destination)
     {
-        std::memcpy(destination, &value, sizeof(T));
+        std::memcpy((char*)destination + offset, &value, sizeof(T));
     }
 
 private:
@@ -110,6 +117,9 @@ public:
         uniforms.insert(std::make_pair(variable, new GLUniformBlockVariable<T>(value)));
     }
 
+    bool Init(GLuint shaderProgram);
+    void UploadDataIfNeeded();
+
     GLUniformBlockVariableBase& operator[](const std::string& name)
     {
 #ifndef NDEBUG
@@ -146,9 +156,20 @@ public:
     }
 
 private:
+    struct uniquePtrFree
+    {
+        void operator()(void* ptr)
+        {
+            free(ptr);
+        }
+    };
+
     GLuint blockIndex;
     GLuint bufferIndex;
     std::string name;
+
+    GLint size;
+    std::unique_ptr<void, uniquePtrFree> data;
 
     std::map<std::string, GLUniformBlockVariableBase*> uniforms; // Make sure offsets are consecutive
 };

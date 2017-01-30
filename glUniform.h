@@ -109,7 +109,7 @@ public:
     // TODO: Did this not work sometimes when optimizations are on?
     void UploadData()
     {
-        throw std::runtime_error("Unknown data type, update glUniform.cpp");
+        throw std::runtime_error("Unknown data type, update glUniform.h");
     }
 
     GLsizei GetCount() const { return count; }

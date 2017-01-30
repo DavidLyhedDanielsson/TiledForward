@@ -1,6 +1,17 @@
 #version 330
 
 uniform mat4 viewProjectionMatrix;
+uniform mat4 worldMatrix;
+
+const int MAX_MATERIALS = 64;
+
+struct Material
+{
+    vec3 ambientColor;
+    float specularExponent;
+    vec3 diffuseColor;
+    float padding;
+};
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
@@ -12,9 +23,11 @@ out vec2 TexCoord;
 
 void main()
 {
-    gl_Position = viewProjectionMatrix * vec4(position * 0.01f, 1.0f);
+    vec4 tempWorldPosition = worldMatrix * vec4(position, 1.0f);
 
-    WorldPosition = position * 0.01f;
+    gl_Position = viewProjectionMatrix * tempWorldPosition;
+
+    WorldPosition = tempWorldPosition.xyz;
     Normal = normal;
     TexCoord = texCoord;
 }

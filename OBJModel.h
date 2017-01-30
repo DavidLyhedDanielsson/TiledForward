@@ -25,8 +25,6 @@ public:
 
     void Draw();
 
-    int drawOnlyIndex = -1;
-
 protected:
     CONTENT_ERROR_CODES Load(const char* filePath
                              , ContentManager* contentManager
@@ -39,10 +37,21 @@ protected:
     DiskContent* CreateInstance() const override;
 
 private:
+    struct Material
+    {
+        glm::vec3 ambientColor; // Ka
+        float specularExponent; // Ns
+
+        glm::vec3 diffuseColor; // Kd
+        float padding;
+    };
+
     std::map<Texture*, std::pair<int, int>> drawOffsets;
 
     GLIndexBuffer indexBuffer;
     GLVertexBuffer vertexBuffer;
+
+    glm::mat4 worldMatrix;
 };
 
 #endif // OBJMODEL_H__

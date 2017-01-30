@@ -401,7 +401,10 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
         std::string actualName = uniform.name.substr(0, uniform.name.find_first_of("["));
 
         if(uniform.name.find_first_of(".") != uniform.name.npos)
-            throw std::runtime_error("Implement this");
+        {
+            // TODO
+            continue;
+        }
 
         if(uniformBinds.count(actualName) == 0)
             LogWithName(LOG_TYPE::DEBUG, "Uniform \"" + actualName + "\" is never used");

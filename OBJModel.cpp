@@ -1,3 +1,4 @@
+#include <glm/gtc/matrix_transform.hpp>
 #include "OBJModel.h"
 
 #include "assimp/Importer.hpp"
@@ -130,7 +131,10 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     drawBinds.AddBuffers(&indexBuffer
                          , &vertexBuffer, vertexBufferLayout);
 
+    worldMatrix = glm::scale(glm::mat4(), glm::vec3(0.01f, 0.01f, 0.01f)); // TODO
+
     drawBinds.AddUniform("viewProjectionMatrix", glm::mat4x4());
+    drawBinds.AddUniform("worldMatrix", worldMatrix);
 
     if(!drawBinds.Init())
         return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
@@ -172,21 +176,6 @@ void OBJModel::Draw()
         glBindTexture(GL_TEXTURE_2D, pair.first->GetTexture());
         drawBinds.DrawElements(pair.second.second, pair.second.first);
     }
-
-    //int i = 0;
-//
-    //for(const auto& pair : materialOffset)
-    //{
-    //    if(!pair.first.textureName.empty())
-    //        glBindTexture(GL_TEXTURE_2D, textureNameToTexture[pair.first.textureName]->GetTexture());
-    //    else
-    //        glBindTexture(GL_TEXTURE_2D, NULL);
-//
-    //    if((drawOnlyIndex != -1 && i == drawOnlyIndex) || drawOnlyIndex == -1)
-    //        drawBinds.DrawElements(pair.second.second, pair.second.first);
-//
-    //    ++i;
-    //}
 
     drawBinds.Unbind();
 }

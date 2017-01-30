@@ -78,9 +78,9 @@ int main(int argc, char* argv[])
         ContentManager contentManager("content");
 
         // Load shader to set the uniform block
-        GLUniformBlock uniformBlockTest("LightData");
-        uniformBlockTest.AddVariable<glm::vec3>("lightPosition", { 0.0f, 50.0f, 0.0f });
-        uniformBlockTest.AddVariable<glm::vec3>("lightColor", glm::vec3(COLORS::mediumpurple));
+        GLUniformBlock uniformBlockTest("LightData"
+                                        , "lightPosition", glm::vec3(0.0f, 50.0f, 0.0f)
+                                        , "lightColor", glm::vec3(COLORS::mediumpurple));
 
         ShaderContentParameters shaderParameters;
         shaderParameters.type = GLEnums::SHADER_TYPE::PIXEL;

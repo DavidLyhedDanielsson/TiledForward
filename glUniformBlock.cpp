@@ -2,40 +2,19 @@
 
 #include <algorithm>
 
-GLUniformBlockVariableBase::GLUniformBlockVariableBase()
-    : modified(false)
-{ }
-
-GLUniformBlock::GLUniformBlock(const std::string& name)
-        : name(name)
-          , data(nullptr)
-{}
+void GLUniformBlock::Init(const std::string& name, int size)
+{
+    this->name = name;
+    this->size = size;
+    this->data.reset(malloc(size));
+}
 
 GLUniformBlock::~GLUniformBlock()
-{
-    for(const auto& pair : uniforms)
-        delete pair.second;
-
-    uniforms.clear();
-}
+{ }
 
 void GLUniformBlock::UploadDataIfNeeded()
 {
-    bool update = false;
-
-    for(const auto uniform : uniforms)
-    {
-        // Can't break this loop since modified needs to be set to false for all objects
-        if(uniform.second->modified)
-        {
-            update = true;
-            uniform.second->modified = false;
-
-            uniform.second->CopyValue(data.get());
-        }
-    }
-
-    if(update)
+    if(modifiedSinceCopy)
     {
         glBindBuffer(GL_UNIFORM_BUFFER, bufferIndex);
         glBufferSubData(GL_UNIFORM_BUFFER, blockIndex, size, data.get());
@@ -146,16 +125,22 @@ bool GLUniformBlock::Init(GLuint shaderProgram)
     std::unique_ptr<GLint> offsets(new GLint[numberOfUniformsInBlock]);
     glGetActiveUniformsiv(shaderProgram, numberOfUniformsInBlock, indices.get(), GL_UNIFORM_OFFSET, offsets.get());
 
-    glGetActiveUniformBlockiv(shaderProgram, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
+    auto oldSize = size;
+    std::unique_ptr<void, uniquePtrFree> oldData(data.release());
+
+    glGetActiveUniformBlockiv(shaderProgram, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &size); // TODO: Make sure size is correct!
 
     data.reset(malloc(size));
-    std::memset(data.get(), 0, size);
 
     int i = 0;
     for(const auto& name : uniformNames)
     {
-        uniforms[name]->offset = offsets.get()[i];
-        uniforms[name]->CopyValue((GLubyte*)data.get());
+        auto oldOffset = uniforms.at(name).offset;
+        auto newOffset = offsets.get()[i];
+
+        memcpy((char*)data.get() + newOffset, (char*)oldData.get() + oldOffset, uniforms.at(name).GetSize());
+
+        uniforms.at(name).offset = newOffset;
 
         ++i;
     }
@@ -167,4 +152,10 @@ bool GLUniformBlock::Init(GLuint shaderProgram)
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     return true;
+}
+
+void GLUniformBlockVariable::CopyDataToParent(void* data)
+{
+    std::memcpy((char*)parent.data.get() + offset, data, GetSize());
+    parent.modifiedSinceCopy = true;
 }

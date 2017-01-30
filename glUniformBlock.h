@@ -10,33 +10,67 @@
 
 #include "logger.h"
 
-template<typename T>
-struct GLUniformBlockVariable;
+class GLUniformBlock;
 
-struct GLUniformBlockVariableBase
+struct GLUniformBlockVariable
 {
     friend class GLShader;
     friend class GLUniformBlock;
 
-    GLUniformBlockVariableBase();
-    virtual ~GLUniformBlockVariableBase() = default;
-
     template<typename T>
-    void operator=(T value)
+    GLUniformBlockVariable(GLUniformBlock& parent, T* initialValue, int elementCount, int offset)
+            : elementSize(sizeof(T))
+              , elementCount(1)
+              , parent(parent)
+              , offset(offset)
     {
-        GLUniformBlockVariable<T>* thisAsDerived = dynamic_cast<GLUniformBlockVariable<T>*>(this);
+#ifndef NDEBUG
+        verifier.reset(new Verifier<T>());
+#endif // NDEBUG
 
-        if(thisAsDerived != nullptr)
-            thisAsDerived->SetValue(value);
-        else
-            throw std::runtime_error("Couldn't cast type to T");
+        CopyDataToParent(initialValue);
     }
 
-    virtual void CopyValue(void* destination) = 0;
+    template<typename T>
+    GLUniformBlockVariable(GLUniformBlock& parent, T initialValue, int offset)
+            : GLUniformBlockVariable(parent, &initialValue, 1, offset)
+    { }
+
+    ~GLUniformBlockVariable() = default;
+
+    template<typename T>
+    void operator=(T newData)
+    {
+#ifndef NDEBUG
+        verifier->Verify(newData);
+#endif // NDEBUG
+
+        CopyDataToParent(&newData);
+    }
+
+    template<typename T>
+    void operator=(T* newData)
+    {
+#ifndef NDEBUG
+        verifier->Verify(newData);
+#endif // NDEBUG
+
+        CopyDataToParent(newData);
+    }
+
+    int GetElementSize() const
+    {
+        return elementSize;
+    }
+
+    int GetElementCount() const
+    {
+        return elementCount;
+    }
 
     int GetSize() const
     {
-        return size;
+        return elementSize * elementCount;
     }
 
     int GetOffset() const
@@ -45,57 +79,83 @@ struct GLUniformBlockVariableBase
     }
 
 protected:
-    int size;
+    int elementSize;
+    int elementCount;
+
     int offset;
 
-    bool modified;
-};
-
-template<typename T>
-struct GLUniformBlockVariable
-        : public GLUniformBlockVariableBase
-{
-    friend class GLUniformBlock;
-
-    GLUniformBlockVariable(T value)
-            : value(value)
-    {
-        this->size = sizeof(T);
-    }
-
-    void SetValue(T value)
-    {
-        modified = true;
-
-        this->value = value;
-    }
-
-    void CopyValue(void* destination)
-    {
-        std::memcpy((char*)destination + offset, &value, sizeof(T));
-    }
-
 private:
-    T value;
+    GLUniformBlock& parent;
+
+    void CopyDataToParent(void* data);
+
+#ifndef NDEBUG
+    struct VerifierBase
+    {
+        template<typename T>
+        void Verify(T value)
+        {
+            if(dynamic_cast<Verifier<T>*>(this) == nullptr)
+                throw std::runtime_error("Couldn't cast type to T");
+        }
+
+    protected:
+        VerifierBase() = default;
+        VerifierBase(const VerifierBase&) = default;
+        VerifierBase(VerifierBase&&) = default;
+        virtual ~VerifierBase() = default;
+    };
+
+    template<typename T>
+    struct Verifier : public VerifierBase
+    {
+        Verifier() = default;
+    };
+
+    std::shared_ptr<VerifierBase> verifier;
+#endif // NDEBUG
 };
 
 class GLUniformBlock
 {
 public:
     friend class GLShader;
+    friend class GLUniformBlockVariable;
 
-    GLUniformBlock(const std::string& name);
+    template<typename T>
+    GLUniformBlock(const std::string& name, const std::string& variable, T* value, int count)
+    {
+        int currentSize = 0;
+
+        Init(name, currentSize, variable, value, count);
+    };
+
+    template<typename T, typename... Rest>
+    GLUniformBlock(const std::string& name, const std::string& variable, T* value, int count, Rest... rest)
+    {
+        int currentSize = 0;
+
+        Init(name, currentSize, variable, value, count, rest...);
+    };
+
+    template<typename T, typename... Rest>
+    GLUniformBlock(const std::string& name, const std::string& variable, T value, Rest... rest)
+    {
+        int currentSize = 0;
+
+        Init(name, currentSize, variable, &value, 1, rest...);
+    };
     ~GLUniformBlock();
 
     template<typename T>
-    void AddVariable(const std::string& variable, T value)
+    void AddVariable(const std::string& variable, T value, int offset)
     {
 #ifndef NDEBUG
         for(const auto& pair : uniforms)
         {
             if(pair.first == variable)
             {
-                if(pair.second->GetSize() == sizeof(T))
+                if(pair.second.GetSize() == sizeof(T))
                     Logger::LogLine(LOG_TYPE::DEBUG, "Trying to add variable \""
                                                      + variable
                                                      + "\" to uniform block \""
@@ -107,27 +167,57 @@ public:
                                                      + "\" to uniform block \""
                                                      + this->name
                                                      + "\" multiple times with different sizes "
-                                                     + "(old = ", pair.second->GetSize(), ", new = ", sizeof(T));
+                                                     + "(old = ", pair.second.GetSize(), ", new = ", sizeof(T));
 
                 return;
             }
         }
 #endif // NDEBUG
 
-        uniforms.insert(std::make_pair(variable, new GLUniformBlockVariable<T>(value)));
+        uniforms.emplace(variable, GLUniformBlockVariable(*this, value, offset));
+    }
+
+    template<typename T>
+    void AddVariable(const std::string& variable, T* value, int count, int offset)
+    {
+#ifndef NDEBUG
+        for(const auto& pair : uniforms)
+        {
+            if(pair.first == variable)
+            {
+                if(pair.second.GetSize() == sizeof(T))
+                    Logger::LogLine(LOG_TYPE::DEBUG, "Trying to add variable \""
+                                                     + variable
+                                                     + "\" to uniform block \""
+                                                     + this->name
+                                                     + "\" multiple times");
+                else
+                    Logger::LogLine(LOG_TYPE::DEBUG, "Trying to add variable \""
+                                                     + variable
+                                                     + "\" to uniform block \""
+                                                     + this->name
+                                                     + "\" multiple times with different sizes "
+                                                     + "(old = ", pair.second.GetSize(), ", new = ", sizeof(T));
+
+                return;
+            }
+        }
+#endif // NDEBUG
+
+        uniforms.emplace(variable, GLUniformBlockVariable(*this, value, count, offset));
     }
 
     bool Init(GLuint shaderProgram);
     void UploadDataIfNeeded();
 
-    GLUniformBlockVariableBase& operator[](const std::string& name)
+    GLUniformBlockVariable& operator[](const std::string& name)
     {
-#ifndef NDEBUG
+    #ifndef NDEBUG
         if(uniforms.count(name) == 0)
             throw std::runtime_error("Trying to get non-existent variable \"" + name + "\" in block \"" + this->name + "\"");
-#endif // NDEBUG
+    #endif // NDEBUG
 
-        return *uniforms[name];
+        return uniforms.at(name);
     };
 
     bool VariableExists(const std::string& variable) const
@@ -140,7 +230,7 @@ public:
         int totalSize = 0;
 
         for(const auto& pair : uniforms)
-            totalSize += pair.second->GetSize();
+            totalSize += pair.second.GetSize();
 
         return totalSize;
     }
@@ -156,6 +246,44 @@ public:
     }
 
 private:
+    void Init(const std::string& name, int size);
+
+    template<typename T>
+    void Init(const std::string& name, int& currentSize, const std::string& variable, T* value, int count)
+    {
+        int offset = currentSize;
+
+        currentSize += sizeof(T);
+
+        Init(name, currentSize);
+
+        AddVariable(variable, value, 1, offset);
+    };
+
+    template<typename T, typename... Rest>
+    void Init(const std::string& name, int& currentSize, const std::string& variable, T* value, int count, Rest... rest)
+    {
+        int offset = currentSize;
+
+        currentSize += sizeof(T);
+
+        Init(name, currentSize, rest...);
+
+        AddVariable(variable, value, 1, offset);
+    };
+
+    template<typename T>
+    void Init(const std::string& name, int& currentSize, const std::string& variable, T value)
+    {
+        Init(name, currentSize, variable, &value, 1);
+    };
+
+    template<typename T, typename... Rest>
+    void Init(const std::string& name, int& currentSize, const std::string& variable, T value, Rest... rest)
+    {
+        Init(name, currentSize, variable, &value, 1, rest...);
+    };
+
     struct uniquePtrFree
     {
         void operator()(void* ptr)
@@ -170,8 +298,9 @@ private:
 
     GLint size;
     std::unique_ptr<void, uniquePtrFree> data;
+    bool modifiedSinceCopy;
 
-    std::map<std::string, GLUniformBlockVariableBase*> uniforms; // Make sure offsets are consecutive
+    std::map<std::string, GLUniformBlockVariable> uniforms; // Make sure offsets are consecutive
 };
 
 #endif // GLUNIFORMBLOCK_H__

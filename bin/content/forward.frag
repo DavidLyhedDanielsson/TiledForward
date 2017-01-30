@@ -8,15 +8,22 @@ in vec2 TexCoord;
 
 out vec4 outColor;
 
-layout (std140) uniform LightData
+layout (shared) uniform LightData
 {
     vec3 lightPosition;
-    vec3 lightColor;
+    vec3 lightColor[8];
 };
 
 void main()
 {
-    vec3 lightDir = normalize(WorldPosition - lightPosition);
+    vec3 lightDirection = WorldPosition - lightPosition;
+    float lightDistance = length(lightDirection);
+    lightDirection = normalize(lightDirection);
 
-    outColor = vec4(texture(tex, TexCoord).xyz * clamp(dot(Normal, -lightDir) + 0.3f, 0.0f, 1.0f), 1.0f);
+    lightDistance = max(lightDistance, 0.001f); // Prevent division by zero
+    float attenuation = min(1.0f, 1.0f / (0.5f * lightDistance + 0.0f * lightDistance * lightDistance));
+
+    float diffuse = max(dot(-lightDirection, Normal), 0.0f);
+
+    outColor = vec4(texture(tex, TexCoord).xyz * lightColor[1] * attenuation * diffuse, 1.0f);
 }

@@ -77,10 +77,22 @@ int main(int argc, char* argv[])
         GUIManager guiManager;
         ContentManager contentManager("content");
 
+        glm::vec3 lightColors[8]
+                {
+                        glm::vec3(COLORS::mediumvioletred)
+                        , glm::vec3(COLORS::blue)
+                        , glm::vec3(COLORS::burlywood3)
+                        , glm::vec3(COLORS::coldgrey)
+                        , glm::vec3(COLORS::cadmiumyellow)
+                        , glm::vec3(COLORS::white)
+                        , glm::vec3(COLORS::steelblue4)
+                        , glm::vec3(COLORS::khaki)
+                };
+
         // Load shader to set the uniform block
         GLUniformBlock uniformBlockTest("LightData"
-                                        , "lightPosition", glm::vec3(0.0f, 50.0f, 0.0f)
-                                        , "lightColor", glm::vec3(COLORS::mediumpurple));
+                                        , "lightColor", lightColors, 8
+                                        , "lightPosition", glm::vec3(0.0f, 5.0f, 0.0f));
 
         ShaderContentParameters shaderParameters;
         shaderParameters.type = GLEnums::SHADER_TYPE::PIXEL;

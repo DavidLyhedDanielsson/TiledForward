@@ -135,12 +135,15 @@ bool GLUniformBlock::Init(GLuint shaderProgram)
     int i = 0;
     for(const auto& name : uniformNames)
     {
-        auto oldOffset = uniforms.at(name).offset;
+        std::string version(name);
+        const auto actualName = version.substr(0, version.find_first_of("["));
+
+        auto oldOffset = uniforms.at(actualName).offset;
         auto newOffset = offsets.get()[i];
 
-        memcpy((char*)data.get() + newOffset, (char*)oldData.get() + oldOffset, uniforms.at(name).GetSize());
+        memcpy((char*)data.get() + newOffset, (char*)oldData.get() + oldOffset, uniforms.at(actualName).GetSize());
 
-        uniforms.at(name).offset = newOffset;
+        uniforms.at(actualName).offset = newOffset;
 
         ++i;
     }

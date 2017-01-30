@@ -20,7 +20,7 @@ struct GLUniformBlockVariable
     template<typename T>
     GLUniformBlockVariable(GLUniformBlock& parent, T* initialValue, int elementCount, int offset)
             : elementSize(sizeof(T))
-              , elementCount(1)
+              , elementCount(elementCount)
               , parent(parent)
               , offset(offset)
     {
@@ -253,11 +253,11 @@ private:
     {
         int offset = currentSize;
 
-        currentSize += sizeof(T);
+        currentSize += sizeof(T) * count;
 
         Init(name, currentSize);
 
-        AddVariable(variable, value, 1, offset);
+        AddVariable(variable, value, count, offset);
     };
 
     template<typename T, typename... Rest>
@@ -265,11 +265,11 @@ private:
     {
         int offset = currentSize;
 
-        currentSize += sizeof(T);
+        currentSize += sizeof(T) * count;
 
         Init(name, currentSize, rest...);
 
-        AddVariable(variable, value, 1, offset);
+        AddVariable(variable, value, count, offset);
     };
 
     template<typename T>

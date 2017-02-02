@@ -25,6 +25,8 @@ public:
 
     void Draw();
 
+    int materialIndex = 0;
+
 protected:
     CONTENT_ERROR_CODES Load(const char* filePath
                              , ContentManager* contentManager
@@ -43,10 +45,39 @@ private:
         float specularExponent; // Ns
 
         glm::vec3 diffuseColor; // Kd
-        float padding;
+        float opacity;
+
+        Texture* texture;
     };
 
-    std::map<Texture*, std::pair<int, int>> drawOffsets;
+    struct GPUMaterial
+    {
+        glm::vec3 ambientColor; // Ka
+        float specularExponent; // Ns
+
+        glm::vec3 diffuseColor; // Kd
+        float opacity;
+
+        GPUMaterial(const Material& other)
+                : ambientColor(other.ambientColor)
+                  , specularExponent(other.specularExponent)
+                  , diffuseColor(other.diffuseColor)
+                  , opacity(other.opacity)
+        { }
+
+        GPUMaterial()
+        { }
+    };
+
+    struct DrawData
+    {
+        int materialIndex;
+        int indexOffset;
+        int indexCount;
+    };
+
+    std::vector<DrawData> drawData;
+    std::vector<Material> materials;
 
     GLIndexBuffer indexBuffer;
     GLVertexBuffer vertexBuffer;

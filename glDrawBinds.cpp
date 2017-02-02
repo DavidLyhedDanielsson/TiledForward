@@ -379,14 +379,33 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
 
     std::set<std::string> usedUniforms;
 
-    for(auto& pair : shaderBinds)
-        pair.second->InitUniformBlocks(shaderProgram); // TODO: Don't do this if already done
+    GLint activeUniformCount;
+    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCKS, &activeUniformCount);
+
+    GLint maxLength;
+    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxLength);
+
+    //std::vector<std::unique_ptr<GLUniformBuffer>> activeUniformBlocks;
+    for(int i = 0; i < activeUniformCount; ++i)
+    {
+        std::string name(maxLength, '\0');
+
+        GLsizei writtenLength;
+        glGetActiveUniformBlockName(shaderProgram, i, maxLength, &writtenLength, &name[0]);
+
+        name.erase(writtenLength);
+
+        int blockIndex = glGetUniformBlockIndex(shaderProgram, &name[0]);
+
+        uniformBufferBinds.insert(std::make_pair(name, std::unique_ptr<GLUniformBuffer>(new GLUniformBuffer(name, shaderProgram, blockIndex))));
+        uniformBufferBinds.at(name)->Init();
+    }
 
     for(const Attrib& uniform : activeUniforms)
     {
         bool insideBlock = false;
 
-        for(const auto& pair : uniformBlockBinds)
+        for(const auto& pair : uniformBufferBinds)
         {
             if(pair.second->VariableExists(uniform.name))
             {
@@ -448,8 +467,8 @@ void GLDrawBinds::Bind()
             if(pair.second->GetLocation() != -1)
                 pair.second->UploadData();
 
-        for(const auto& pair : shaderBinds)
-            pair.second->BindUniformObjects();
+        for(const auto& pair : uniformBufferBinds)
+            pair.second->Bind();
     }
 }
 
@@ -468,8 +487,8 @@ void GLDrawBinds::Unbind()
         for(const auto& vertexBuffer : vertexBuffers)
             vertexBuffer->Unbind();
 
-        for(const auto& pair : shaderBinds)
-            pair.second->UnbindUniformObjects();
+        for(const auto& pair : uniformBufferBinds)
+            pair.second->Unbind();
     }
 }
 
@@ -706,4 +725,14 @@ void GLDrawBinds::RelinkShaders()
 GLuint GLDrawBinds::GetShaderProgram() const
 {
     return shaderProgram;
+}
+
+GLUniformBuffer* GLDrawBinds::GetUniformBuffer(const std::string& name)
+{
+    if(uniformBufferBinds.count(name) != 0)
+        return uniformBufferBinds.at(name).get();
+
+    LogWithName(LOG_TYPE::DEBUG, "Trying to get non-existent uniform buffer object \"" + name + "\"");
+
+    return nullptr;
 }

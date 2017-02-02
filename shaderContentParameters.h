@@ -19,7 +19,6 @@ struct ShaderContentParameters
     {}
 
     GLEnums::SHADER_TYPE type;
-    std::vector<GLUniformBlock*> uniformBlocks;
 };
 
 #endif //SHADERCONTENTPARAMETERS_H

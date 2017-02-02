@@ -57,27 +57,25 @@ public:
 	template<typename T>
 	T* Load(const std::string& path, ContentParameters* contentParameters = nullptr) // TODO: Make two funcions? Maybe three where one has ContentParameters&?
 	{
-        std::string actualPath = contentRootDirectory + "/" + path;
-
 		Content* existingContent = ContentAlreadyLoaded(path, contentParameters);
 		if(existingContent != nullptr)
 			return static_cast<T*>(existingContent);
 
 		Content* newContent = new T;
-		if(!Load(newContent, actualPath, contentParameters))
+		if(!Load(newContent, path, contentParameters))
 		{
 			DiskContent* diskContent = dynamic_cast<DiskContent*>(newContent);
 			if(diskContent != nullptr)
 			{
-				if(!diskContent->CreateDefaultContent(actualPath.c_str(), this))
+				if(!diskContent->CreateDefaultContent(path.c_str(), this))
 				{
-					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + actualPath + "\", and no default content could be created");
+					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\", and no default content could be created");
 
 					delete newContent;
 					newContent = nullptr;
 				}
 				else
-					AddToMap(actualPath, newContent);
+					AddToMap(contentRootDirectory + "/" + path, newContent);
 			}
 			else
 			{
@@ -86,7 +84,7 @@ public:
 				if(creationParameters != nullptr)
 					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't create content with ID \"" + std::string(creationParameters->uniqueID) + "\"");
 				else
-					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + actualPath + "\"");
+					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\"");
 
 				delete newContent;
 				newContent = nullptr;
@@ -297,6 +295,9 @@ public:
 
 	bool HasContentToHotReload() const;
 	void HotReload();
+
+    bool HasLoaded(const std::string& path) const;
+    bool HasCreated(const std::string& path) const;
 private:
 	std::string contentRootDirectory;
 
@@ -332,7 +333,6 @@ private:
 	void WaitForFileChanges(
 #ifndef _WIN32
 			int fileDescriptor
-
 #endif
 	);
 

@@ -5,7 +5,7 @@
 #include "shaderContentParameters.h"
 
 #include "glDrawBinds.h"
-#include "glUniformBlock.h"
+#include "glUniformBuffer.h"
 
 GLShader::GLShader()
         : shaderType(GLEnums::SHADER_TYPE::UNKNOWN)
@@ -73,8 +73,6 @@ CONTENT_ERROR_CODES GLShader::Load(const char* filePath
     ShaderContentParameters* parameters = TryCastTo<ShaderContentParameters>(contentParameters);
     if(!parameters)
         return CONTENT_ERROR_CODES::CONTENT_PARAMETER_CAST;
-
-    uniformBuffers = parameters->uniformBlocks;
 
     this->shaderType = parameters->type;
     std::string shaderSource = ReadSourceFromFile(filePath);
@@ -185,35 +183,4 @@ std::string GLShader::ReadSourceFromFile(const std::string& path)
     in.read(&shaderSource[0], shaderSource.size());
 
     return shaderSource;
-}
-
-void GLShader::InitUniformBlocks(GLuint shaderProgram) // TODO: Warn about unset blocks
-{
-    for(const auto block : uniformBuffers)
-    {
-        if(!block->Init(shaderProgram))
-            Logger::LogLine(LOG_TYPE::WARNING, "No uniform block named \""
-                                               + block->GetName()
-                                               + "\" in shader \""
-                                               + GetPath()
-                                               + "\"");
-    }
-}
-
-void GLShader::BindUniformObjects()
-{
-    for(auto buffer : uniformBuffers)
-    {
-        buffer->UploadDataIfNeeded();
-
-        glBindBufferBase(GL_UNIFORM_BUFFER, buffer->blockIndex, buffer->bufferIndex);
-    }
-}
-
-void GLShader::UnbindUniformObjects()
-{
-    for(auto buffer : uniformBuffers)
-    {
-        glBindBufferBase(GL_UNIFORM_BUFFER, buffer->blockIndex, 0);
-    }
 }

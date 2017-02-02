@@ -6,6 +6,7 @@
 namespace GLHelpers
 {
     size_t Sizeof(GLEnums::DATA_TYPE type);
+    size_t Sizeof(GLEnums::UNIFORM_TYPE type);
 }
 
 #endif //GLHELPERS_H__

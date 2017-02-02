@@ -403,16 +403,20 @@ Content* ContentManager::ContentAlreadyLoaded(const std::string path, ContentPar
 
 bool ContentManager::Load(Content* newContent, const std::string path, ContentParameters* contentParameters)
 {
-	newContent->SetPath(path.c_str());
-	CONTENT_ERROR_CODES errorCode = newContent->Load(path.c_str(), this, contentParameters);
+    std::string actualPath;
+    if(!path.empty())
+        actualPath = contentRootDirectory + "/" + path;
+
+    newContent->SetPath(actualPath.c_str());
+    CONTENT_ERROR_CODES errorCode = newContent->Load(actualPath.c_str(), this, contentParameters);
+
 	if(errorCode == CONTENT_ERROR_CODES::NONE)
 	{
 		++uniqueID;
-		
 		++newContent->refCount;
 
 		if(!path.empty())
-			AddToMap(path, newContent);
+			AddToMap(contentRootDirectory + "/" + path, newContent);
 		else
 		{
 			ContentCreationParameters* creationParameters = dynamic_cast<ContentCreationParameters*>(contentParameters);
@@ -484,4 +488,14 @@ bool ContentManager::LoadTemporary(Content* newContent, const std::string path, 
         return true;
     else
         return false;
+}
+
+bool ContentManager::HasLoaded(const std::string& path) const
+{
+    return contentMap.find(contentRootDirectory + "/" + path) != contentMap.end();
+}
+
+bool ContentManager::HasCreated(const std::string& path) const
+{
+    return contentMap.find(path) != contentMap.end();
 }

@@ -32,6 +32,7 @@ file(GLOB SOURCE_FILES *.h *.hpp *.cpp console/*)
 add_executable(opengl ${SOURCE_FILES})
 
 target_link_libraries(opengl GLEW GL X11 pthread stdc++fs dl IL freetype assimp)
+add_dependencies(opengl glslCompile)
 
 if(DEBUG_BUILD)
     set(PNG_LIBRARY_NAME png_d)

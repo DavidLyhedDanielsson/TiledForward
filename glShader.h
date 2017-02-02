@@ -5,10 +5,11 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "glEnums.h"
 
-class GLUniformBlock;
+class GLUniformBuffer;
 
 class GLDrawBinds;
 
@@ -41,6 +42,7 @@ protected:
 
     DiskContent* CreateInstance() const override;
 
+
 private:
     GLShader(GLEnums::SHADER_TYPE type);
 
@@ -50,13 +52,10 @@ private:
     std::string shaderSource; //For hot reloading
     std::vector<GLDrawBinds*> shaderPrograms; //For hot reloading
 
-    std::vector<GLUniformBlock*> uniformBuffers;
+    std::vector<std::unique_ptr<GLUniformBuffer>> uniformBuffers;
 
     bool CompileFromSource(const std::string& source);
     std::string ReadSourceFromFile(const std::string& path);
-    void InitUniformBlocks(GLuint shaderProgram);
-    void BindUniformObjects();
-    void UnbindUniformObjects();
 };
 
 #endif // GLSHADER_H__

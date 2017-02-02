@@ -77,28 +77,41 @@ int main(int argc, char* argv[])
         GUIManager guiManager;
         ContentManager contentManager("content");
 
-        glm::vec3 lightColors[8]
-                {
-                        glm::vec3(COLORS::mediumvioletred)
-                        , glm::vec3(COLORS::blue)
-                        , glm::vec3(COLORS::burlywood3)
-                        , glm::vec3(COLORS::coldgrey)
-                        , glm::vec3(COLORS::cadmiumyellow)
-                        , glm::vec3(COLORS::white)
-                        , glm::vec3(COLORS::steelblue4)
-                        , glm::vec3(COLORS::khaki)
-                };
-
+        // TODO: Better solution which doesn't depend on order of loading
         // Load shader to set the uniform block
-        GLUniformBlock uniformBlockTest("LightData"
-                                        , "lightColor", lightColors, 8
-                                        , "lightPosition", glm::vec3(0.0f, 5.0f, 0.0f));
+        /*GLUniformBuffer uniformBlockTest("LightData"
+                                         , "lightColor", glm::vec3(1.0f, 1.0f, 1.0f)
+                                         , "lightPosition", glm::vec3(0.0f, 5.0f, 0.0f));*/
 
-        ShaderContentParameters shaderParameters;
+        struct Material
+        {
+            glm::vec3 a;
+            float b;
+            glm::vec3 c;
+            float d;
+        };
+
+        std::vector<Material> materials;
+        for(int i = 0; i < 64; ++i)
+            materials.push_back({glm::vec3(1.0f), 1.0f, glm::vec3(1.0f), 1.0f});
+
+        /*GLUniformBuffer materialsBuffer("Materials"
+                                        , "materials", &materials[0], (int)materials.size());*/
+
+        /*ShaderContentParameters shaderParameters;
         shaderParameters.type = GLEnums::SHADER_TYPE::PIXEL;
         shaderParameters.uniformBlocks.push_back(&uniformBlockTest);
+        shaderParameters.uniformBlocks.push_back(&materialsBuffer);
 
-        GLPixelShader* shader = contentManager.Load<GLPixelShader>("forward.frag", &shaderParameters);
+        GLPixelShader* shader = contentManager.Load<GLPixelShader>("forward.frag", &shaderParameters);*/
+
+        // Creates "whiteTexture", so should be first
+        SpriteRenderer spriteRenderer;
+        if(!spriteRenderer.Init(contentManager, 1280, 720))
+        {
+            Logger::LogLine(LOG_TYPE::FATAL, "Couldn't initialize sprite renderer");
+            return 1;
+        }
 
         CharacterSet* characterSet = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
 
@@ -112,11 +125,12 @@ int main(int argc, char* argv[])
 
         bool wireframe = false;
         console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
+        console.AddCommand(new CommandGetSet<int>("materialIndex", &worldModel->materialIndex));
         console.AddCommand(new CommandCallMethod("lightPosition"
                                                  , [&](const std::vector<Argument>&) {
                     glm::vec3 newPosition = camera.GetPosition();
 
-                    uniformBlockTest["lightPosition"] = newPosition;
+                    /*uniformBlockTest["lightPosition"] = newPosition;*/
 
                     Argument returnArgument;
                     newPosition >> returnArgument;
@@ -195,18 +209,18 @@ int main(int argc, char* argv[])
         Timer timeSinceStart;
         timeSinceStart.Start();
 
-        SpriteRenderer spriteRenderer;
-        if(!spriteRenderer.Init(contentManager, 1280, 720))
-        {
-            Logger::LogLine(LOG_TYPE::FATAL, "Couldn't initialize sprite renderer");
-            return 1;
-        }
-
         double frameTime = 0.0;
         unsigned long frameCount = 0;
 
         while(window.PollEvents())
         {
+            if(window.IsPaused())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                timer.UpdateDelta();
+                continue;
+            }
+
             timer.UpdateDelta();
 
             frameTime += timer.GetDeltaMillisecondsFraction();

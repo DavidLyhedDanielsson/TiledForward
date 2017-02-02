@@ -32,4 +32,45 @@ namespace GLHelpers
                 return -1;
         }
     }
+
+    size_t Sizeof(GLEnums::UNIFORM_TYPE type)
+    {
+        switch(type)
+        {
+            case GLEnums::UNIFORM_TYPE::FLOAT:
+            case GLEnums::UNIFORM_TYPE::INT:
+            case GLEnums::UNIFORM_TYPE::BOOL:
+                return 4;
+            case GLEnums::UNIFORM_TYPE::FLOAT_VEC2:
+            case GLEnums::UNIFORM_TYPE::INT_VEC2:
+            case GLEnums::UNIFORM_TYPE::BOOL_VEC2:
+                return 8;
+            case GLEnums::UNIFORM_TYPE::FLOAT_VEC3:
+            case GLEnums::UNIFORM_TYPE::INT_VEC3:
+            case GLEnums::UNIFORM_TYPE::BOOL_VEC3:
+                return 12;
+            case GLEnums::UNIFORM_TYPE::FLOAT_VEC4:
+            case GLEnums::UNIFORM_TYPE::INT_VEC4:
+            case GLEnums::UNIFORM_TYPE::BOOL_VEC4:
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT2:
+                return 16;
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT3:
+                return 36;
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT4:
+                return 64;
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT2X3:
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT3X2:
+                return 24;
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT2X4:
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT4X2:
+                return 32;
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT3X4:
+            case GLEnums::UNIFORM_TYPE::FLOAT_MAT4X3:
+                return 48;
+            case GLEnums::UNIFORM_TYPE::SAMPLER_2D:
+            case GLEnums::UNIFORM_TYPE::SAMPLER_CUBE:
+            case GLEnums::UNIFORM_TYPE::UNKNOWN:
+                return -1;
+        }
+    }
 };

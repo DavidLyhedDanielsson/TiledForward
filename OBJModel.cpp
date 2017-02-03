@@ -1,4 +1,5 @@
 #include <glm/gtc/matrix_transform.hpp>
+#include <set>
 #include "OBJModel.h"
 
 #include "assimp/Importer.hpp"
@@ -69,8 +70,8 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         aiGetMaterialFloatArray(material, AI_MATKEY_COLOR_AMBIENT, &newMaterial.ambientColor.x, &channels);
         channels = 3;
         aiGetMaterialFloatArray(material, AI_MATKEY_COLOR_DIFFUSE, &newMaterial.diffuseColor.x, &channels);
-        aiGetMaterialFloat(material, AI_MATKEY_COLOR_TRANSPARENT, &newMaterial.opacity);
-        aiGetMaterialFloat(material, AI_MATKEY_SHININESS_STRENGTH, &newMaterial.specularExponent);
+        aiGetMaterialFloat(material, AI_MATKEY_OPACITY, &newMaterial.opacity);
+        newMaterial.specularExponent = 1.0f;
 
         aiString textureName;
         aiGetMaterialString(material, AI_MATKEY_TEXTURE_DIFFUSE(0), &textureName);
@@ -101,16 +102,25 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         materials.push_back(newMaterial);
     }
 
-    //std::map<Texture*, std::pair<std::vector<LibOBJ::Vertex>, std::vector<GLint>>> vertexIndex;
+    std::vector<LibOBJ::Vertex> vertices;
+    std::vector<GLint> indices;
 
-    std::vector<LibOBJ::Vertex> vertices;// = vertexIndex[currentTexture].first;
-    std::vector<GLint> indicies;// = vertexIndex[currentTexture].second;
+    std::vector<aiMesh*> opaqueMeshes;
+    std::vector<aiMesh*> transparentMeshes;
 
     for(int i = 0; i < scene->mNumMeshes; ++i)
     {
-        DrawData newDrawData;
-
         aiMesh* mesh = scene->mMeshes[i];
+
+        if(materials[mesh->mMaterialIndex].opacity < 1.0f)
+            transparentMeshes.push_back(mesh);
+        else
+            opaqueMeshes.push_back(mesh);
+    }
+    
+    for(aiMesh* mesh : opaqueMeshes)
+    {
+        DrawData newDrawData;
 
         auto indexOffset = vertices.size();
         vertices.reserve(mesh->mNumVertices);
@@ -133,45 +143,69 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
             vertices.push_back(newVertex);
         }
 
-        newDrawData.indexOffset = (int)indicies.size();
+        newDrawData.indexOffset = (int)indices.size();
 
-        indicies.reserve(indicies.size() + mesh->mNumFaces * 3);
+        indices.reserve(indices.size() + mesh->mNumFaces * 3);
         for(int j = 0; j < mesh->mNumFaces; ++j)
             for(int k = 0; k < mesh->mFaces[j].mNumIndices; ++k)
-                //indicies.push_back(mesh->mFaces[j].mIndices[k]);
-                indicies.push_back(indexOffset + mesh->mFaces[j].mIndices[k]);
+                indices.push_back(indexOffset + mesh->mFaces[j].mIndices[k]);
 
-        newDrawData.indexCount = (int)(indicies.size() - newDrawData.indexOffset);
+        newDrawData.indexCount = (int)(indices.size() - newDrawData.indexOffset);
         newDrawData.materialIndex = mesh->mMaterialIndex;
-
-        drawData.push_back(newDrawData);
+        
+        opaqueDrawData.push_back(newDrawData);
     }
 
-//    for(const auto& drawData : vertexIndex)
-//    {
-//        const auto indexOffset = vertices.size();
-//
-//        //drawOffsets.insert(std::make_pair(drawData.first, std::make_pair(indicies.size(), drawData.second.second.size())));
-//
-//        DrawData data;
-//
-//        data.indexOffset = indicies.size();
-//        data.indexCount = drawData.second.second.size();
-//
-//        //data.material.texture = drawData.first;
-//
-//        this->drawData.push_back(data);
-//
-//        for(const auto index : drawData.second.second)
-//            indicies.push_back(index + indexOffset);
-//
-//        vertices.insert(vertices.end()
-//                        , std::make_move_iterator(drawData.second.first.begin())
-//                        , std::make_move_iterator(drawData.second.first.end()));
-//    }
+    const static float SCALE = 0.01f;
+    worldMatrix = glm::scale(glm::mat4(), glm::vec3(SCALE)); // TODO
+
+    for(aiMesh* mesh : transparentMeshes)
+    {
+        DrawData newDrawData;
+
+        auto indexOffset = vertices.size();
+        vertices.reserve(mesh->mNumVertices);
+
+        glm::vec3 minPos = glm::vec3(std::numeric_limits<float>::max());
+        glm::vec3 maxPos = glm::vec3(std::numeric_limits<float>::min());
+
+        for(int j = 0; j < mesh->mNumVertices; ++j)
+        {
+            LibOBJ::Vertex newVertex;
+
+            newVertex.position.x = mesh->mVertices[j].x;
+            newVertex.position.y = mesh->mVertices[j].y;
+            newVertex.position.z = mesh->mVertices[j].z;
+
+            newVertex.normal.x = mesh->mNormals[j].x;
+            newVertex.normal.y = mesh->mNormals[j].y;
+            newVertex.normal.z = mesh->mNormals[j].z;
+
+            newVertex.texCoord.x = mesh->mTextureCoords[0][j].x;
+            newVertex.texCoord.y = mesh->mTextureCoords[0][j].y;
+
+            minPos = glm::min(minPos, newVertex.position * SCALE);
+            maxPos = glm::max(maxPos, newVertex.position * SCALE);
+
+            vertices.push_back(newVertex);
+        }
+
+        newDrawData.centerPosition = minPos + (maxPos - minPos) * 0.5f;
+        newDrawData.indexOffset = (int)indices.size();
+
+        indices.reserve(indices.size() + mesh->mNumFaces * 3);
+        for(int j = 0; j < mesh->mNumFaces; ++j)
+            for(int k = 0; k < mesh->mFaces[j].mNumIndices; ++k)
+                indices.push_back(indexOffset + mesh->mFaces[j].mIndices[k]);
+
+        newDrawData.indexCount = (int)(indices.size() - newDrawData.indexOffset);
+        newDrawData.materialIndex = mesh->mMaterialIndex;
+
+        transparentDrawData.push_back(newDrawData);
+    }
 
     vertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC, vertices);
-    indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, indicies);
+    indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, indices);
 
     if(!drawBinds.AddShaders(*contentManager
                              , GLEnums::SHADER_TYPE::VERTEX, "forward.vert"
@@ -184,8 +218,6 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     drawBinds.AddBuffers(&indexBuffer
                          , &vertexBuffer, vertexBufferLayout);
 
-    worldMatrix = glm::scale(glm::mat4(), glm::vec3(0.01f, 0.01f, 0.01f)); // TODO
-
     drawBinds.AddUniform("viewProjectionMatrix", glm::mat4x4());
     drawBinds.AddUniform("worldMatrix", worldMatrix);
     drawBinds.AddUniform("materialIndex", 0);
@@ -196,13 +228,8 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     std::vector<GPUMaterial> gpuMaterials;
     gpuMaterials.reserve(materials.size());
 
-    int i = 0;
     for(const auto& material : materials)
-    {
-        GPUMaterial gpuMaterial(material);
-
-        gpuMaterials.push_back(gpuMaterial);
-    }
+        gpuMaterials.push_back(GPUMaterial(material));
 
     GLUniformBuffer* materialsBuffer = drawBinds.GetUniformBuffer("Materials");
     materialsBuffer->SetData(&gpuMaterials[0], sizeof(GPUMaterial) * gpuMaterials.size());
@@ -248,18 +275,48 @@ DiskContent* OBJModel::CreateInstance() const
     return new OBJModel;
 }
 
-void OBJModel::Draw()
+void OBJModel::Draw(const glm::vec3 cameraPosition)
 {
     drawBinds.Bind();
 
-    for(const auto& data : drawData)
+    for(const auto& data : opaqueDrawData)
     {
-        drawBinds["materialIndex"] = data.materialIndex;
-        drawBinds["materialIndex"].UploadData();
+        *drawBinds["materialIndex"] = data.materialIndex;
+        drawBinds["materialIndex"]->UploadData();
 
         glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
         drawBinds.DrawElements(data.indexCount, data.indexOffset);
     }
+
+    transparentDrawData[0].distanceToCamera = glm::distance(cameraPosition, transparentDrawData[0].centerPosition);
+
+    for(int i = 1; i < transparentDrawData.size(); ++i)
+    {
+        transparentDrawData[i].distanceToCamera = glm::distance(cameraPosition, transparentDrawData[i].centerPosition);
+
+        for(int j = i; j > 0; --j)
+        {
+            if(transparentDrawData[j].distanceToCamera > transparentDrawData[j - 1].distanceToCamera)
+                std::swap(transparentDrawData[j], transparentDrawData[j - 1]);
+            else
+                break;
+        }
+    }
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    for(const auto& data : transparentDrawData)
+    {
+        *drawBinds["materialIndex"] = data.materialIndex;
+        drawBinds["materialIndex"]->UploadData();
+
+        glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
+        drawBinds.DrawElements(data.indexCount, data.indexOffset);
+    }
+
+    glDisable(GL_BLEND);
 
     drawBinds.Unbind();
 }

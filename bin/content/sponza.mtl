@@ -151,7 +151,7 @@ newmtl floor
 newmtl column_c
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5000
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
@@ -180,7 +180,7 @@ newmtl details
 newmtl column_b
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5000
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
@@ -221,7 +221,7 @@ newmtl flagpole
 newmtl fabric_e
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
@@ -235,7 +235,7 @@ newmtl fabric_e
 newmtl fabric_d
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
@@ -249,7 +249,7 @@ newmtl fabric_d
 newmtl fabric_a
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
@@ -263,7 +263,7 @@ newmtl fabric_a
 newmtl fabric_g
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
@@ -277,7 +277,7 @@ newmtl fabric_g
 newmtl fabric_c
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
@@ -291,7 +291,7 @@ newmtl fabric_c
 newmtl fabric_f
 	Ns 10.0000
 	Ni 1.5000
-	d 1.0000
+	d 0.5
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2

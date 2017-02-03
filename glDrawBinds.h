@@ -88,21 +88,24 @@ public:
 
     GLShader* GetShader(GLEnums::SHADER_TYPE type, int index) const;
     int GetShaderTypeCount(GLEnums::SHADER_TYPE type) const;
-    void DrawElements();
-    void DrawElements(GLsizei count);
-    void DrawElements(GLsizei count, GLsizei offset);
-    void DrawElementsInstanced(int instances);
+    void DrawElements(GLEnums::DRAW_MODE drawMode = GLEnums::DRAW_MODE::TRIANGLES);
+    void DrawElements(GLsizei count, GLEnums::DRAW_MODE drawMode = GLEnums::DRAW_MODE::TRIANGLES);
+    void DrawElements(GLsizei count, GLsizei offset, GLEnums::DRAW_MODE drawMode = GLEnums::DRAW_MODE::TRIANGLES);
+    void DrawElementsInstanced(int instances, GLEnums::DRAW_MODE drawMode = GLEnums::DRAW_MODE::TRIANGLES);
 
     GLUniformBuffer* GetUniformBuffer(const std::string& name);
 
-    GLUniformBase& operator[](const std::string& name)
+    GLUniformBase* operator[](const std::string& name)
     {
 #ifndef NDEBUG
         if(uniformBinds.count(name) == 0)
-            throw std::runtime_error("Trying to get uniform which doesn't exist! Did you forget to call AddUniform?");
+        {
+            Logger::LogLine(LOG_TYPE::DEBUG, "Trying to get uniform \"" + name +  "\" which doesn't exist! Did you forget to call AddUniform?");
+            return nullptr;
+        }
 #endif // NDEBUG
 
-        return *uniformBinds[name];
+        return uniformBinds[name];
     }
 
 protected:

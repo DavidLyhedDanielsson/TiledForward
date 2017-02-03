@@ -523,7 +523,7 @@ int GLDrawBinds::GetShaderTypeCount(GLEnums::SHADER_TYPE type) const
     return count;
 }
 
-void GLDrawBinds::DrawElements()
+void GLDrawBinds::DrawElements(GLEnums::DRAW_MODE drawMode /*= GLEnums::DRAW_MODE::TRIANGLES*/)
 {
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
@@ -533,10 +533,10 @@ void GLDrawBinds::DrawElements()
     }
 #endif // NDEBUG
 
-    glDrawElements(GL_TRIANGLES, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0);
+    glDrawElements((GLenum)drawMode, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0);
 }
 
-void GLDrawBinds::DrawElements(GLsizei count)
+void GLDrawBinds::DrawElements(GLsizei count, GLEnums::DRAW_MODE drawMode /*= GLEnums::DRAW_MODE::TRIANGLES*/)
 {
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
@@ -557,10 +557,10 @@ void GLDrawBinds::DrawElements(GLsizei count)
     }
 #endif // NDEBUG
 
-    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)0);
+    glDrawElements((GLenum)drawMode, count, GL_UNSIGNED_INT, (void*)0);
 }
 
-void GLDrawBinds::DrawElements(GLsizei count, GLsizei offset)
+void GLDrawBinds::DrawElements(GLsizei count, GLsizei offset, GLEnums::DRAW_MODE drawMode /*= GLEnums::DRAW_MODE::TRIANGLES*/)
 {
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
@@ -583,10 +583,10 @@ void GLDrawBinds::DrawElements(GLsizei count, GLsizei offset)
     }
 #endif // NDEBUG
 
-    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(GLuint)));
+    glDrawElements((GLenum)drawMode, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(GLuint)));
 }
 
-void GLDrawBinds::DrawElementsInstanced(int instances)
+void GLDrawBinds::DrawElementsInstanced(int instances, GLEnums::DRAW_MODE drawMode /*= GLEnums::DRAW_MODE::TRIANGLES*/)
 {
 #ifndef NDEBUG
     if(indexBuffer == nullptr)
@@ -596,7 +596,7 @@ void GLDrawBinds::DrawElementsInstanced(int instances)
     }
 #endif // NDEBUG
 
-    glDrawElementsInstanced(GL_TRIANGLES, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0, instances);
+    glDrawElementsInstanced((GLenum)drawMode, indexBuffer->GetIndiciesCount(), GL_UNSIGNED_INT, (void*)0, instances);
 }
 
 void GLDrawBinds::AddBuffer(GLVertexBuffer* vertexBuffer)

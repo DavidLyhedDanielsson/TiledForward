@@ -23,7 +23,7 @@ public:
     // FIXME
     GLDrawBinds drawBinds; // TODO
 
-    void Draw();
+    void Draw(const glm::vec3 cameraPosition);
 
     int materialIndex = 0;
 
@@ -68,15 +68,17 @@ private:
         GPUMaterial()
         { }
     };
-
     struct DrawData
     {
         int materialIndex;
         int indexOffset;
         int indexCount;
+        glm::vec3 centerPosition;
+        float distanceToCamera;
     };
 
-    std::vector<DrawData> drawData;
+    std::vector<DrawData> opaqueDrawData;
+    std::vector<DrawData> transparentDrawData;
     std::vector<Material> materials;
 
     GLIndexBuffer indexBuffer;

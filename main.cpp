@@ -77,34 +77,6 @@ int main(int argc, char* argv[])
         GUIManager guiManager;
         ContentManager contentManager("content");
 
-        // TODO: Better solution which doesn't depend on order of loading
-        // Load shader to set the uniform block
-        /*GLUniformBuffer uniformBlockTest("LightData"
-                                         , "lightColor", glm::vec3(1.0f, 1.0f, 1.0f)
-                                         , "lightPosition", glm::vec3(0.0f, 5.0f, 0.0f));*/
-
-        struct Material
-        {
-            glm::vec3 a;
-            float b;
-            glm::vec3 c;
-            float d;
-        };
-
-        std::vector<Material> materials;
-        for(int i = 0; i < 64; ++i)
-            materials.push_back({glm::vec3(1.0f), 1.0f, glm::vec3(1.0f), 1.0f});
-
-        /*GLUniformBuffer materialsBuffer("Materials"
-                                        , "materials", &materials[0], (int)materials.size());*/
-
-        /*ShaderContentParameters shaderParameters;
-        shaderParameters.type = GLEnums::SHADER_TYPE::PIXEL;
-        shaderParameters.uniformBlocks.push_back(&uniformBlockTest);
-        shaderParameters.uniformBlocks.push_back(&materialsBuffer);
-
-        GLPixelShader* shader = contentManager.Load<GLPixelShader>("forward.frag", &shaderParameters);*/
-
         // Creates "whiteTexture", so should be first
         SpriteRenderer spriteRenderer;
         if(!spriteRenderer.Init(contentManager, 1280, 720))
@@ -130,7 +102,7 @@ int main(int argc, char* argv[])
                                                  , [&](const std::vector<Argument>&) {
                     glm::vec3 newPosition = camera.GetPosition();
 
-                    /*uniformBlockTest["lightPosition"] = newPosition;*/
+                    //uniformBlockTest["lightPosition"] = newPosition;
 
                     Argument returnArgument;
                     newPosition >> returnArgument;
@@ -200,6 +172,15 @@ int main(int argc, char* argv[])
                     Input::LockCursor(-1, -1);
                 });
 
+        Logger::SetCallOnLog(
+                [&](std::string text)
+                {
+                    if(text.back() == '\n')
+                        text.pop_back();
+
+                    console.AddText(text);
+                });
+
         Input::Update();
 
         guiManager.AddContainer(&console);
@@ -211,13 +192,14 @@ int main(int argc, char* argv[])
 
         double frameTime = 0.0;
         unsigned long frameCount = 0;
+        timer.ResetDelta();
 
         while(window.PollEvents())
         {
             if(window.IsPaused())
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                timer.UpdateDelta();
+                timer.ResetDelta();
                 continue;
             }
 
@@ -226,9 +208,9 @@ int main(int argc, char* argv[])
             frameTime += timer.GetDeltaMillisecondsFraction();
             ++frameCount;
 
-            if(frameCount % 100 == 0)
+            if(frameTime > 3000)
             {
-                Logger::LogLine(LOG_TYPE::INFO_NOWRITE, frameTime / (double)frameCount);
+                Logger::LogLine(LOG_TYPE::INFO_NOWRITE, 1.0f / (frameCount / 3.0f) * 1000.0f);
 
                 frameCount = 0;
                 frameTime = 0.0;
@@ -266,12 +248,12 @@ int main(int argc, char* argv[])
             glEnable(GL_DEPTH_TEST);
             glCullFace(GL_BACK);
 
-            worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+            *worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 
             if(wireframe)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-            worldModel->Draw();
+            worldModel->Draw(camera.GetPosition());
 
             if(wireframe)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

@@ -10,7 +10,7 @@ in vec2 TexCoord;
 out vec4 outColor;
 
 const int MAX_MATERIALS = 64;
-const float AMBIENT_STRENGTH = 1.0f;
+const float AMBIENT_STRENGTH = 0.6f;
 
 struct Material
 {
@@ -40,7 +40,7 @@ void main()
     lightDirection = normalize(lightDirection);
 
     lightDistance = max(lightDistance, 0.001f); // Prevent division by zero
-    float attenuation = min(1.0f, 1.0f / (0.5f * lightDistance + 0.5f * lightDistance * lightDistance));
+    float attenuation = min(1.0f, 1.0f / (0.5f * lightDistance + 0.0f * lightDistance * lightDistance));
 
     float diffuse = max(dot(-lightDirection, Normal), 0.0f);
 
@@ -51,5 +51,5 @@ void main()
 
     vec3 textureColor = texture(tex, TexCoord).xyz;
 
-    outColor = vec4(textureColor * ambientColor + textureColor * diffuseColor, 1.0f);
+    outColor = vec4(textureColor * ambientColor + textureColor * diffuseColor, materials[materialIndex].opacity);
 }

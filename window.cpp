@@ -601,7 +601,7 @@ void GLMessageCallback(GLenum source
                        , const GLchar* message
                        , const void* userParam)
 {
-    if(id == 131185 || id == 131204) // Workaround for Nvidias apparently buggy driver
+    if(id == 131185 || id == 131204 || id == 131184) // Workaround for Nvidias apparently buggy driver
         return;
 
     std::string stringMessage = "---------- OpenGL message ----------\n";

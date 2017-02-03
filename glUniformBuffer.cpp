@@ -10,7 +10,9 @@ GLUniformBuffer::GLUniformBuffer(const std::string& name, GLuint shaderProgram, 
           , size(0)
           , shaderProgram(shaderProgram)
           , blockIndex(blockIndex)
-{ }
+{
+
+}
 
 GLUniformBuffer::~GLUniformBuffer()
 { }
@@ -92,6 +94,11 @@ bool GLUniformBuffer::Init()
 
         this->size += GLHelpers::Sizeof((GLEnums::UNIFORM_TYPE)type);
     }
+
+//    for(const auto& uniform : uniformsInBlock)
+//    {
+//        Do this here
+    //}
 
     data.reset(malloc(size));
     memset(data.get(), 0, size);

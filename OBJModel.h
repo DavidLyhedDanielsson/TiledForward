@@ -26,11 +26,18 @@ public:
     // Also fix this
     struct LightData
     {
-        glm::vec3 lightPosition;
-        float lightStrength;
-        glm::vec3 lightColor;
+        glm::vec3 position;
+        float strength;
+        glm::vec3 color;
+        float padding;
+    };
+
+    struct Lights
+    {
+        LightData lights[4];
         float ambientStrength;
-    } lightData;
+        glm::vec3 padding;
+    } lights;
 
     void Draw(const glm::vec3 cameraPosition);
 

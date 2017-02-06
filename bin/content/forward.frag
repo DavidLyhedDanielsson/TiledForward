@@ -24,33 +24,47 @@ layout (std140) uniform Materials
     Material materials[MAX_MATERIALS];
 };
 
-layout (std140) uniform LightData
+struct LightData
 {
-    vec3 lightPosition;
-    float lightStrength;
-    vec3 lightColor;
+    vec3 position;
+    float strength;
+    vec3 color;
+    float padding;
+};
+
+const int MAX_LIGHTS = 4;
+
+layout (std140) uniform Lights
+{
+    LightData lights[MAX_LIGHTS];
     float ambientStrength;
+    vec3 padding;
 };
 
 void main()
 {
-    vec3 lightDirection = WorldPosition - lightPosition;
-    float lightDistance = length(lightDirection);
-    lightDirection = normalize(lightDirection);
-
-    lightDistance = max(lightDistance, 0.001f); // Prevent division by zero
-
-    float linearFactor = 2.0f / lightStrength;
-    float quadraticFactor = 1.0f / (lightStrength * lightStrength);
-
-    float attenuation = min(1.0f, 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance));
-
-    float diffuse = max(dot(-lightDirection, Normal), 0.0f);
-
-    vec3 diffuseColor = materials[materialIndex].diffuseColor * diffuse * attenuation;
-    vec3 ambientColor = materials[materialIndex].ambientColor * ambientStrength;
-
     vec3 textureColor = texture(tex, TexCoord).xyz;
+    vec3 finalColor = textureColor * ambientStrength;
 
-    outColor = vec4(textureColor * ambientColor + textureColor * diffuseColor + lightColor * 0.001f, materials[materialIndex].opacity);
+    for(int i = 0; i < MAX_LIGHTS; ++i)
+    {
+        vec3 lightDirection = WorldPosition - lights[i].position;
+        float lightDistance = length(lightDirection);
+        lightDirection = normalize(lightDirection);
+
+        lightDistance = max(lightDistance, 0.001f); // Prevent division by zero
+
+        float linearFactor = 2.0f / lights[i].strength;
+        float quadraticFactor = 1.0f / (lights[i].strength * lights[i].strength);
+
+        float attenuation = min(1.0f, 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance));
+
+        float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
+
+        vec3 diffuseColor = materials[materialIndex].diffuseColor * diffuse * attenuation;
+
+        finalColor += textureColor * diffuseColor;
+    }
+
+    outColor = vec4(finalColor, materials[materialIndex].opacity);
 }

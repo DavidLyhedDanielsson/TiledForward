@@ -233,13 +233,20 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
 
     drawBinds["Materials"] = gpuMaterials;
 
-    lightData.lightPosition = glm::vec3(0.0f, 5.0f, 0.0f);
-    lightData.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    for(int i = 0; i < 4; ++i)
+    {
+        lights.lights[i].color = glm::vec3(1.0f, 1.0f, 1.0f);
+        lights.lights[i].strength = 10.0f;
+    }
 
-    lightData.lightStrength = 10.0f;
-    lightData.ambientStrength = 0.2f;
+    lights.lights[0].position = glm::vec3(11.0f, 2.5f, 4.0f);
+    lights.lights[1].position = glm::vec3(11.0f, 2.5f, -4.0f);
+    lights.lights[2].position = glm::vec3(-11.0f, 2.5f, -4.0f);
+    lights.lights[3].position = glm::vec3(-11.0f, 2.5f, 4.0f);
 
-    drawBinds["LightData"] = lightData;
+    lights.ambientStrength = 0.2f;
+
+    drawBinds["LightData"] = lights;
 
     return CONTENT_ERROR_CODES::NONE;
 }
@@ -271,7 +278,7 @@ DiskContent* OBJModel::CreateInstance() const
 
 void OBJModel::Draw(const glm::vec3 cameraPosition)
 {
-    drawBinds["LightData"] = lightData;
+    drawBinds["Lights"] = lights;
     drawBinds.Bind();
 
     auto materialIndex = drawBinds["materialIndex"];

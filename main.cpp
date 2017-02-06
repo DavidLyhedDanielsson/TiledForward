@@ -24,25 +24,8 @@
 #include "shaderContentParameters.h"
 #include "console/commandCallMethod.h"
 
-//Cool shit!
-//#ifdef _WIN32
-//#define IF_WINDOWS(...) __VA_ARGS__
-//#else
-//#define IF_WINDOWS(...)
-//#endif
-
-//#ifdef _WIN32
-
-//#include <windows.h>
-
-//int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
-//{
-//#else
 int main(int argc, char* argv[])
 {
-//#endif
-
-    //IF_WINDOWS(Logger::Init());
     Logger::ClearLog();
 
     // TODO: Fix rename of index to blockIndex, e.g. "Used for index rounding" -> "Used for blockIndex rounding"
@@ -50,8 +33,6 @@ int main(int argc, char* argv[])
     OSWindow window;
     if(window.Create(1280, 720) == OSWindow::NONE)
     {
-        //IF_WINDOWS(_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF));
-
         glewExperimental = true;
         if(glewInit() != GLEW_OK)
             return 1;
@@ -70,7 +51,7 @@ int main(int argc, char* argv[])
                                , 720
                                , 100.0f
                                , 0.01f);
-        glDepthRange(1, -1);
+        glDepthRange(1, 0);
 
         std::set<KEY_CODE> keysDown;
 
@@ -99,13 +80,14 @@ int main(int argc, char* argv[])
         console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
 
         console.AddCommand(new CommandCallMethod("light_position"
-                                                 , [&](const std::vector<Argument>&)
+                                                 , [&](const std::vector<Argument>& args)
                 {
+                    if(args.size() != 1)
+                        return Argument("Needs 1 parameter");
+
                     glm::vec3 newPosition = camera.GetPosition();
 
-                    worldModel->lightData.lightPosition = newPosition;
-
-                    worldModel->drawBinds["LightData"] = worldModel->lightData;
+                    worldModel->lights.lights[std::stoi(args.front().value)].position = newPosition;
 
                     Argument returnArgument;
                     newPosition >> returnArgument;
@@ -114,8 +96,25 @@ int main(int argc, char* argv[])
                     return returnArgument;
                 }
         ));
-        console.AddCommand(new CommandGetSet<float>("light_lightStrength", &worldModel->lightData.lightStrength));
-        console.AddCommand(new CommandGetSet<float>("light_ambientStrength", &worldModel->lightData.ambientStrength));
+        console.AddCommand(new CommandCallMethod("light_strength"
+                                                 , [&](const std::vector<Argument>& args)
+                {
+                    if(args.size() != 2)
+                        return Argument("Needs 2 parameter");
+
+                    float newStrength = std::stof(args.back().value);
+
+                    worldModel->lights.lights[std::stoi(args.front().value)].strength = newStrength;
+
+                    Argument returnArgument;
+                    newStrength >> returnArgument;
+                    returnArgument.value.insert(0, "Strength set to ");
+
+                    return returnArgument;
+                }
+        ));
+        //console.AddCommand(new CommandGetSet<float>("light_lightStrength", &worldModel->lightData.lightStrength));
+        console.AddCommand(new CommandGetSet<float>("light_ambientStrength", &worldModel->lights.ambientStrength));
 
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)
@@ -199,6 +198,8 @@ int main(int argc, char* argv[])
         unsigned long frameCount = 0;
         timer.ResetDelta();
 
+        float averageFrameTime = 0.0f;
+
         while(window.PollEvents())
         {
             if(window.IsPaused())
@@ -213,9 +214,9 @@ int main(int argc, char* argv[])
             frameTime += timer.GetDeltaMillisecondsFraction();
             ++frameCount;
 
-            if(frameTime > 3000)
+            if(frameTime >= 1000)
             {
-                Logger::LogLine(LOG_TYPE::INFO_NOWRITE, 1.0f / (frameCount / 3.0f) * 1000.0f);
+                averageFrameTime = 1.0f / frameCount * 1000.0f;
 
                 frameCount = 0;
                 frameTime = 0.0;
@@ -263,12 +264,12 @@ int main(int argc, char* argv[])
             if(wireframe)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-            //glDepthFunc(GL_GREATER);
-
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_CULL_FACE);
 
             spriteRenderer.Begin();
+
+            spriteRenderer.DrawString(characterSet, std::to_string(averageFrameTime), glm::vec2(0.0f, 0.0f));
 
             guiManager.Draw(&spriteRenderer);
 
@@ -281,8 +282,6 @@ int main(int argc, char* argv[])
     }
     else
         Logger::LogLine(LOG_TYPE::FATAL, "Couldn't create window");
-
-    //IF_WINDOWS(Logger::Deinit());
 
     return 0;
 }

@@ -119,6 +119,8 @@ bool GLUniformBuffer::Init()
 
     glGetActiveUniformBlockiv(shaderProgram, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &size);*/
 
+    glGenBuffers(1, &bufferIndex);
+
     glBindBuffer(GL_UNIFORM_BUFFER, bufferIndex);
     glBufferData(GL_UNIFORM_BUFFER, size, data.get(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);

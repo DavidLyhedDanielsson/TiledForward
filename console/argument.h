@@ -231,7 +231,7 @@ struct Argument
 	}
 
 	template<typename T>
-	T ParseType(const std::string& value)
+	T ParseType(const std::string& value) const
 	{
 		std::stringstream sstream;
 		T returnValue;

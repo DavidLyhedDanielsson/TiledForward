@@ -23,9 +23,16 @@ public:
     // FIXME
     GLDrawBinds drawBinds; // TODO
 
-    void Draw(const glm::vec3 cameraPosition);
+    // Also fix this
+    struct LightData
+    {
+        glm::vec3 lightPosition;
+        float lightStrength;
+        glm::vec3 lightColor;
+        float ambientStrength;
+    } lightData;
 
-    int materialIndex = 0;
+    void Draw(const glm::vec3 cameraPosition);
 
 protected:
     CONTENT_ERROR_CODES Load(const char* filePath

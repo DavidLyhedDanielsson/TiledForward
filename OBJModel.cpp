@@ -231,23 +231,13 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     for(const auto& material : materials)
         gpuMaterials.push_back(GPUMaterial(material));
 
-    //GLUniformBuffer* materialsBuffer = drawBinds.GetUniformBuffer("Materials");
-    //materialsBuffer->SetData(&gpuMaterials[0], sizeof(GPUMaterial) * gpuMaterials.size());
-
     drawBinds["Materials"] = gpuMaterials;
-
-    struct LightData
-    {
-        glm::vec3 lightPosition;
-        float padding0;
-        glm::vec3 lightColor;
-        float padding1;
-    } lightData;
 
     lightData.lightPosition = glm::vec3(0.0f, 5.0f, 0.0f);
     lightData.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    //GLUniformBuffer* lightBuffer = drawBinds.GetUniformBuffer("LightData");
-    //lightBuffer->SetData(&lightData, sizeof(LightData));
+
+    lightData.lightStrength = 10.0f;
+    lightData.ambientStrength = 0.2f;
 
     drawBinds["LightData"] = lightData;
 
@@ -281,6 +271,7 @@ DiskContent* OBJModel::CreateInstance() const
 
 void OBJModel::Draw(const glm::vec3 cameraPosition)
 {
+    drawBinds["LightData"] = lightData;
     drawBinds.Bind();
 
     auto materialIndex = drawBinds["materialIndex"];

@@ -25,32 +25,32 @@
 #include "console/commandCallMethod.h"
 
 //Cool shit!
-#ifdef _WIN32
-#define IF_WINDOWS(...) __VA_ARGS__
-#else
-#define IF_WINDOWS(...)
-#endif
+//#ifdef _WIN32
+//#define IF_WINDOWS(...) __VA_ARGS__
+//#else
+//#define IF_WINDOWS(...)
+//#endif
 
-#ifdef _WIN32
+//#ifdef _WIN32
 
-#include <windows.h>
+//#include <windows.h>
 
-int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
-{
-#else
+//int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
+//{
+//#else
 int main(int argc, char* argv[])
 {
-#endif
+//#endif
 
-    IF_WINDOWS(Logger::Init());
+    //IF_WINDOWS(Logger::Init());
     Logger::ClearLog();
 
     // TODO: Fix rename of index to blockIndex, e.g. "Used for index rounding" -> "Used for blockIndex rounding"
 
     OSWindow window;
-    if(window.Create(1280, 720 IF_WINDOWS(, hInstance, nShowCmd)) == OSWindow::NONE)
+    if(window.Create(1280, 720) == OSWindow::NONE)
     {
-        IF_WINDOWS(_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF));
+        //IF_WINDOWS(_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF));
 
         glewExperimental = true;
         if(glewInit() != GLEW_OK)
@@ -97,23 +97,15 @@ int main(int argc, char* argv[])
 
         bool wireframe = false;
         console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
-        console.AddCommand(new CommandGetSet<int>("materialIndex", &worldModel->materialIndex));
-        console.AddCommand(new CommandCallMethod("lightPosition"
-                                                 , [&](const std::vector<Argument>&) {
+
+        console.AddCommand(new CommandCallMethod("light_position"
+                                                 , [&](const std::vector<Argument>&)
+                {
                     glm::vec3 newPosition = camera.GetPosition();
 
-                    struct LightData
-                    {
-                        glm::vec3 lightPosition;
-                        float padding0;
-                        glm::vec3 lightColor;
-                        float padding1;
-                    } lightData;
+                    worldModel->lightData.lightPosition = newPosition;
 
-                    lightData.lightPosition = newPosition;
-                    lightData.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-
-                    worldModel->drawBinds["LightData"] = newPosition;
+                    worldModel->drawBinds["LightData"] = worldModel->lightData;
 
                     Argument returnArgument;
                     newPosition >> returnArgument;
@@ -122,6 +114,8 @@ int main(int argc, char* argv[])
                     return returnArgument;
                 }
         ));
+        console.AddCommand(new CommandGetSet<float>("light_lightStrength", &worldModel->lightData.lightStrength));
+        console.AddCommand(new CommandGetSet<float>("light_ambientStrength", &worldModel->lightData.ambientStrength));
 
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)
@@ -288,7 +282,7 @@ int main(int argc, char* argv[])
     else
         Logger::LogLine(LOG_TYPE::FATAL, "Couldn't create window");
 
-    IF_WINDOWS(Logger::Deinit());
+    //IF_WINDOWS(Logger::Deinit());
 
     return 0;
 }

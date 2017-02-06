@@ -42,6 +42,10 @@ void GLUniformBuffer::Unbind()
 
 bool GLUniformBuffer::Init()
 {
+    //this->size = 0;
+    //this->data.reset(nullptr);
+    //this->modifiedSinceCopy = true;
+
     // Get number of active uniforms and their indicies
     GLint numberOfUniformsInBlock;
     glGetActiveUniformBlockiv(shaderProgram, blockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &numberOfUniformsInBlock);
@@ -53,6 +57,7 @@ bool GLUniformBuffer::Init()
     GLint maxUniformNameLength;
     glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformNameLength);
 
+    // Lots of commented code can be used for array index and stuff!
     std::vector<const GLchar*> uniformNames;
 
     // Add all active uniforms that are inside of this block to uniformsInBlock
@@ -114,13 +119,11 @@ bool GLUniformBuffer::Init()
 
     glGetActiveUniformBlockiv(shaderProgram, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &size);*/
 
-    glGenBuffers(1, &bufferIndex);
-
     glBindBuffer(GL_UNIFORM_BUFFER, bufferIndex);
     glBufferData(GL_UNIFORM_BUFFER, size, data.get(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glUniformBlockBinding(shaderProgram, blockIndex, blockIndex); // TODO: Does this always work?
+    glUniformBlockBinding(shaderProgram, blockIndex, blockIndex); // TODO: Does this always work (blockIndex = blockIndex)? Multiple shaders?
 
     return true;
 }

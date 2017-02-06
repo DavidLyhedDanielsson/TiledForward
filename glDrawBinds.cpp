@@ -382,7 +382,6 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
     GLint maxLength;
     glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxLength);
 
-    //std::vector<std::unique_ptr<GLUniformBuffer>> activeUniformBlocks;
     for(int i = 0; i < activeUniformCount; ++i)
     {
         std::string name(maxLength, '\0');
@@ -394,8 +393,22 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
 
         int blockIndex = glGetUniformBlockIndex(shaderProgram, &name[0]);
 
-        uniformBufferBinds.insert(std::make_pair(name, std::unique_ptr<GLUniformBuffer>(new GLUniformBuffer(name, shaderProgram, blockIndex))));
-        uniformBufferBinds.at(name)->Init();
+        if(uniformBufferBinds.count(name) == 0)
+        {
+            uniformBufferBinds.insert(std::make_pair(name, std::unique_ptr<GLUniformBuffer>(new GLUniformBuffer(name
+                                                                                                                , shaderProgram
+                                                                                                                , blockIndex))));
+            uniformBufferBinds.at(name)->Init();
+        }
+        else
+        {
+            uniformBufferBinds.at(name)->shaderProgram = shaderProgram;
+            uniformBufferBinds.at(name)->blockIndex = blockIndex;
+
+            // TODO: Call Init?
+            glUniformBlockBinding(shaderProgram, blockIndex, blockIndex); // TODO: Does this always work (blockIndex = blockIndex)? Multiple shaders?
+        }
+
     }
 
     for(const Attrib& uniform : activeUniforms)
@@ -715,7 +728,10 @@ void GLDrawBinds::RelinkShaders()
     glLinkProgram(shaderProgram);
 
     glUseProgram(shaderProgram);
+
+    CheckUniforms(GetActiveUniforms());
     BindUniforms();
+
     glUseProgram(0);
 }
 

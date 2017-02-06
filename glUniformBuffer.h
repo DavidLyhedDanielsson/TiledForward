@@ -246,7 +246,8 @@ private:
     {
         void operator()(void* ptr)
         {
-            free(ptr);
+            if(ptr != nullptr)
+                free(ptr);
         }
     };
 

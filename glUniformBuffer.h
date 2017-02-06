@@ -163,7 +163,7 @@ public:
                             , " != "
                             , size
                             , "). The smallest number of bytes will be written");
-            SetData(&data, std::min(sizeof(T), this->size));
+            SetData(&data, std::min(sizeof(T), (size_t)this->size));
 
             return;
         }

@@ -125,7 +125,7 @@ bool GLUniformBuffer::Init()
     return true;
 }
 
-void GLUniformBuffer::SetData(void* data, GLsizei dataSize)
+void GLUniformBuffer::SetData(const void* data, size_t dataSize)
 {
     memcpy(this->data.get(), data, dataSize);
     modifiedSinceCopy = true;

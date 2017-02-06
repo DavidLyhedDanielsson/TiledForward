@@ -15,9 +15,54 @@
 #include "contentManager.h"
 #include "glUniformBuffer.h"
 
+class GLVariable
+{
+public:
+    GLVariable()
+            : parent(nullptr)
+              , uniform(nullptr)
+              , uniformBufferVariable(nullptr)
+              , uniformBuffer(nullptr)
+    {}
+
+    GLVariable(GLDrawBinds* parent, GLUniformBase* uniform)
+            : parent(parent)
+              , uniform(uniform)
+              , uniformBufferVariable(nullptr)
+              , uniformBuffer(nullptr)
+    {}
+
+    GLVariable(GLDrawBinds* parent, GLUniformBufferVariable* uniformBufferVariable)
+            : parent(parent)
+              , uniform(nullptr)
+              , uniformBufferVariable(uniformBufferVariable)
+              , uniformBuffer(nullptr)
+    {}
+
+    GLVariable(GLDrawBinds* parent, GLUniformBuffer* uniformBuffer)
+            : parent(parent)
+              , uniform(nullptr)
+              , uniformBufferVariable(nullptr)
+              , uniformBuffer(uniformBuffer)
+    {}
+
+    template<typename T>
+    void operator=(T value);
+
+    template<typename T>
+    void operator=(const std::vector<T>& values);
+
+private:
+    GLDrawBinds* parent;
+    GLUniformBase* uniform;
+    GLUniformBufferVariable* uniformBufferVariable;
+    GLUniformBuffer* uniformBuffer;
+};
+
 class GLDrawBinds
 {
     friend class GLShader;
+    friend class GLVariable;
 public:
     GLDrawBinds();
     ~GLDrawBinds();
@@ -42,7 +87,8 @@ public:
             LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource drawBinds");
 #endif // NDEBUG
 
-        uniformBinds[name] = new GLUniform<T>(data);
+        uniformBinds.insert(std::make_pair(name, std::unique_ptr<GLUniformBase>(new GLUniform<T>(data))));
+        //uniformBinds[name] = new GLUniform<T>(data);
     }
 
     template<typename T>
@@ -53,7 +99,8 @@ public:
             LogWithName(LOG_TYPE::DEBUG, "Adding uniform \"" + name + "\" multiple time to resource drawBinds");
 #endif // NDEBUG
 
-        uniformBinds[name] = new GLUniformArray<T>(data, count);
+        uniformBinds.insert(std::make_pair(name, std::unique_ptr<GLUniformBase>(new GLUniformArray<T>(data))));
+        //uniformBinds[name] = new GLUniformArray<T>(data, count);
     }
 
     template<typename T, typename... Rest>
@@ -85,6 +132,7 @@ public:
 
     void Bind();
     void Unbind();
+    bool IsBound() const;
 
     GLShader* GetShader(GLEnums::SHADER_TYPE type, int index) const;
     int GetShaderTypeCount(GLEnums::SHADER_TYPE type) const;
@@ -93,21 +141,7 @@ public:
     void DrawElements(GLsizei count, GLsizei offset, GLEnums::DRAW_MODE drawMode = GLEnums::DRAW_MODE::TRIANGLES);
     void DrawElementsInstanced(int instances, GLEnums::DRAW_MODE drawMode = GLEnums::DRAW_MODE::TRIANGLES);
 
-    GLUniformBuffer* GetUniformBuffer(const std::string& name);
-
-    GLUniformBase* operator[](const std::string& name)
-    {
-#ifndef NDEBUG
-        if(uniformBinds.count(name) == 0)
-        {
-            Logger::LogLine(LOG_TYPE::DEBUG, "Trying to get uniform \"" + name +  "\" which doesn't exist! Did you forget to call AddUniform?");
-            return nullptr;
-        }
-#endif // NDEBUG
-
-        return uniformBinds[name];
-    }
-
+    GLVariable operator[](const std::string& name);
 protected:
 private:
     // Also used for uniforms
@@ -131,7 +165,7 @@ private:
     std::vector<GLVertexBuffer*> vertexBuffers;
     std::vector<GLInputLayout> inputLayouts;
     std::vector<std::pair<GLEnums::SHADER_TYPE, GLShader*>> shaderBinds;
-    std::map<std::string, GLUniformBase*> uniformBinds;
+    std::map<std::string, std::unique_ptr<GLUniformBase>> uniformBinds;
     std::map<std::string, std::unique_ptr<GLUniformBuffer>> uniformBufferBinds;
 
     // Recursive template termination
@@ -169,6 +203,50 @@ private:
 
     void RelinkShaders();
     GLuint GetShaderProgram() const;
+
+    template<typename T>
+    void UpdateUniform(GLUniformBase* uniform, T value)
+    {
+        uniform->operator=(value);
+
+        if(IsBound())
+            uniform->UploadData();
+    }
+    template<typename T>
+    void UpdateUniformBufferVariable(GLUniformBufferVariable* variable, T value)
+    {
+        variable->operator=(value);
+    }
+    template<typename T>
+    void UpdateUniformBuffer(GLUniformBuffer* buffer, const std::vector<T>& values)
+    {
+        buffer->SetData(values);
+    }
+    template<typename T>
+    void UpdateUniformBuffer(GLUniformBuffer* buffer, const T& value)
+    {
+        buffer->SetData(value);
+    }
 };
+
+template<typename T>
+void GLVariable::operator=(T value)
+{
+    static_assert(!std::is_pointer<T>::value, "Pointers aren't allowed, use std::vector instead");
+
+    if(uniform)
+        parent->UpdateUniform(uniform, value);
+    else if(uniformBufferVariable) // Both may be nullptr
+        parent->UpdateUniformBufferVariable(uniformBufferVariable, value);
+    else if(uniformBuffer)
+        parent->UpdateUniformBuffer(uniformBuffer, value);
+}
+
+template<typename T>
+void GLVariable::operator=(const std::vector<T>& values)
+{
+    if(uniformBuffer)
+        parent->UpdateUniformBuffer(uniformBuffer, values);
+}
 
 #endif // GLSHADERRESOURCEBINDS_H__

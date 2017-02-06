@@ -102,7 +102,18 @@ int main(int argc, char* argv[])
                                                  , [&](const std::vector<Argument>&) {
                     glm::vec3 newPosition = camera.GetPosition();
 
-                    //uniformBlockTest["lightPosition"] = newPosition;
+                    struct LightData
+                    {
+                        glm::vec3 lightPosition;
+                        float padding0;
+                        glm::vec3 lightColor;
+                        float padding1;
+                    } lightData;
+
+                    lightData.lightPosition = newPosition;
+                    lightData.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+
+                    worldModel->drawBinds["LightData"] = newPosition;
 
                     Argument returnArgument;
                     newPosition >> returnArgument;
@@ -248,7 +259,7 @@ int main(int argc, char* argv[])
             glEnable(GL_DEPTH_TEST);
             glCullFace(GL_BACK);
 
-            *worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+            worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 
             if(wireframe)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

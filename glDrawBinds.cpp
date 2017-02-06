@@ -31,9 +31,6 @@ GLDrawBinds::~GLDrawBinds()
         shaderProgram = 0;
     }
 
-    for(const auto& pair : uniformBinds)
-        delete pair.second;
-
     if(vao != 0)
     {
         glDeleteVertexArrays(1, &vao);
@@ -727,12 +724,20 @@ GLuint GLDrawBinds::GetShaderProgram() const
     return shaderProgram;
 }
 
-GLUniformBuffer* GLDrawBinds::GetUniformBuffer(const std::string& name)
+bool GLDrawBinds::IsBound() const
 {
-    if(uniformBufferBinds.count(name) != 0)
-        return uniformBufferBinds.at(name).get();
+    return bound;
+}
 
-    LogWithName(LOG_TYPE::DEBUG, "Trying to get non-existent uniform buffer object \"" + name + "\"");
+GLVariable GLDrawBinds::operator[](const std::string& name)
+{
+    if(uniformBinds.count(name) != 0)
+        return GLVariable(this, uniformBinds[name].get());
+    else if(uniformBufferBinds.count(name) != 0)
+        return GLVariable(this, uniformBufferBinds[name].get());
 
-    return nullptr;
+    Logger::LogLine(LOG_TYPE::DEBUG, "Trying to get uniform \""
+                                         + name
+                                         + "\" which doesn't exist! Did you forget to call AddUniform?");
+    return GLVariable();
 }

@@ -231,8 +231,10 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     for(const auto& material : materials)
         gpuMaterials.push_back(GPUMaterial(material));
 
-    GLUniformBuffer* materialsBuffer = drawBinds.GetUniformBuffer("Materials");
-    materialsBuffer->SetData(&gpuMaterials[0], sizeof(GPUMaterial) * gpuMaterials.size());
+    //GLUniformBuffer* materialsBuffer = drawBinds.GetUniformBuffer("Materials");
+    //materialsBuffer->SetData(&gpuMaterials[0], sizeof(GPUMaterial) * gpuMaterials.size());
+
+    drawBinds["Materials"] = gpuMaterials;
 
     struct LightData
     {
@@ -244,8 +246,10 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
 
     lightData.lightPosition = glm::vec3(0.0f, 5.0f, 0.0f);
     lightData.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    GLUniformBuffer* lightBuffer = drawBinds.GetUniformBuffer("LightData");
-    lightBuffer->SetData(&lightData, sizeof(LightData));
+    //GLUniformBuffer* lightBuffer = drawBinds.GetUniformBuffer("LightData");
+    //lightBuffer->SetData(&lightData, sizeof(LightData));
+
+    drawBinds["LightData"] = lightData;
 
     return CONTENT_ERROR_CODES::NONE;
 }
@@ -279,17 +283,20 @@ void OBJModel::Draw(const glm::vec3 cameraPosition)
 {
     drawBinds.Bind();
 
+    auto materialIndex = drawBinds["materialIndex"];
+
     for(const auto& data : opaqueDrawData)
     {
-        *drawBinds["materialIndex"] = data.materialIndex;
-        drawBinds["materialIndex"]->UploadData();
+        materialIndex = data.materialIndex;
 
         glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
         drawBinds.DrawElements(data.indexCount, data.indexOffset);
     }
 
+    // glm::distance might be overkill, distance squared?
     transparentDrawData[0].distanceToCamera = glm::distance(cameraPosition, transparentDrawData[0].centerPosition);
 
+    // Insertion sort is fine for near-sorted amounts of data
     for(int i = 1; i < transparentDrawData.size(); ++i)
     {
         transparentDrawData[i].distanceToCamera = glm::distance(cameraPosition, transparentDrawData[i].centerPosition);
@@ -309,8 +316,7 @@ void OBJModel::Draw(const glm::vec3 cameraPosition)
 
     for(const auto& data : transparentDrawData)
     {
-        *drawBinds["materialIndex"] = data.materialIndex;
-        drawBinds["materialIndex"]->UploadData();
+        materialIndex = data.materialIndex;
 
         glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
         drawBinds.DrawElements(data.indexCount, data.indexOffset);

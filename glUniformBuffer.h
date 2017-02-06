@@ -17,6 +17,8 @@ struct GLUniformBufferVariable
 {
     friend class GLShader;
     friend class GLUniformBuffer;
+    friend class GLDrawBind;
+    friend class GLVariable;
 
     template<typename T>
     GLUniformBufferVariable(GLUniformBuffer& parent, T* initialValue, int elementCount, int offset)
@@ -122,6 +124,7 @@ class GLUniformBuffer
 public:
     friend class GLShader;
     friend class GLUniformBufferVariable;
+    friend class GLDrawBinds;
 
     GLUniformBuffer(const std::string& name, GLuint shaderProgram, GLuint blockIndex);
     ~GLUniformBuffer();
@@ -130,7 +133,47 @@ public:
     void Bind();
     void Unbind();
 
-    void SetData(void* data, GLsizei dataSize);
+    template<typename T>
+    void SetData(const std::vector<T>& data)
+    {
+#ifndef NDEBUG
+        if(sizeof(T) > data.size() > size)
+        {
+            Logger::LogLine(LOG_TYPE::DEBUG, "Trying to write too much data to uniform buffer, data will be clipped");
+            SetData(&data[0], this->size);
+
+            return;
+        }
+
+        if(sizeof(T) % 16 != 0)
+            Logger::LogLine(LOG_TYPE::DEBUG, "Uniform buffer element size isn't multiple of 16, has padding been added?");
+#endif // NDEBUG
+
+        SetData(&data[0], data.size() * sizeof(T));
+    }
+
+    template<typename T>
+    void SetData(const T& data)
+    {
+#ifndef NDEBUG
+        if(sizeof(T) != size)
+        {
+            Logger::LogLine(LOG_TYPE::DEBUG, "Trying to write wrong type into uniform buffer, sizeof(T) != size ("
+                            , sizeof(T)
+                            , " != "
+                            , size
+                            , "). The smallest number of bytes will be written");
+            SetData(&data, std::min(sizeof(T), this->size));
+
+            return;
+        }
+
+        if(sizeof(T) % 16 != 0)
+            Logger::LogLine(LOG_TYPE::DEBUG, "Uniform buffer element size isn't multiple of 16, has padding been added?");
+#endif // NDEBUG
+
+        SetData(&data, sizeof(T));
+    }
 
     GLUniformBufferVariable& operator[](const std::string& name)
     {
@@ -217,6 +260,8 @@ private:
     bool modifiedSinceCopy;
 
     std::map<std::string, GLUniformBufferVariable> uniforms; // Make sure offsets are consecutive
+
+    void SetData(const void* data, size_t dataSize);
 };
 
 #endif // GLUNIFORMBLOCK_H__

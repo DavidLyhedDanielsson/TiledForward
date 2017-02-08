@@ -46,6 +46,8 @@ bool GLDrawBinds::Init()
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
+    GLBufferLock lock(indexBuffer);
+
     if(!CreateShaderProgram())
     {
         glBindVertexArray(0);
@@ -59,9 +61,9 @@ bool GLDrawBinds::Init()
 
     for(const auto& pair : uniformBinds)
         pair.second->UploadData();
-    glUseProgram(0);
 
     glBindVertexArray(0);
+    glUseProgram(0);
 
     return true;
 }
@@ -268,10 +270,8 @@ bool GLDrawBinds::CreateShaderProgram()
                                       , stride
                                       , offset);
 
-                // TODO: Apparently this is needed even when only one instance is drawn
-                // FIXME: Yeah
-                //if(location >= 2)
-                //    glVertexAttribDivisor(location, 1);
+                if(current.second.vertexAttribDivisor != -1)
+                    glVertexAttribDivisor(location, current.second.vertexAttribDivisor);
             }
         }
     }
@@ -467,11 +467,11 @@ void GLDrawBinds::Bind()
         glBindVertexArray(vao);
         glUseProgram(shaderProgram);
 
-        if(indexBuffer != nullptr)
-            indexBuffer->Bind();
+        //if(indexBuffer != nullptr)
+        //    indexBuffer->Bind();
 
-        for(const auto& vertexBuffer : vertexBuffers)
-            vertexBuffer->Bind();
+        //for(const auto& vertexBuffer : vertexBuffers)
+        //    vertexBuffer->Bind();
 
         for(const auto& pair : uniformBinds)
             if(pair.second->GetLocation() != -1)
@@ -491,11 +491,11 @@ void GLDrawBinds::Unbind()
         glBindVertexArray(0);
         glUseProgram(0);
 
-        if(indexBuffer != nullptr)
-            indexBuffer->Unbind();
+        //if(indexBuffer != nullptr)
+        //    indexBuffer->Unbind();
 
-        for(const auto& vertexBuffer : vertexBuffers)
-            vertexBuffer->Unbind();
+        //for(const auto& vertexBuffer : vertexBuffers)
+        //    vertexBuffer->Unbind();
 
         for(const auto& pair : uniformBufferBinds)
             pair.second->Unbind();

@@ -180,7 +180,7 @@ newmtl details
 newmtl column_b
 	Ns 10.0000
 	Ni 1.5000
-	d 0.5000
+	d 0.7500
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2

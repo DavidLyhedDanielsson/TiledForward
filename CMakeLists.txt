@@ -11,7 +11,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BINARY_DIR})
 
 add_custom_target(
         glslCompile ALL
-        glslangValidator ${CONTENT_DIR}/forward.vert ${CONTENT_DIR}/forward.frag
+        glslangValidator
+        ${CONTENT_DIR}/forward.vert
+        ${CONTENT_DIR}/forward.frag
+        ${CONTENT_DIR}/instance.vert
+        ${CONTENT_DIR}/instance.frag
 )
 
 project(opengl)

@@ -32,39 +32,44 @@ struct LightData
     float padding;
 };
 
-const int MAX_LIGHTS = 4;
+const int MAX_LIGHTS = 64;
 
 layout (std140) uniform Lights
 {
     LightData lights[MAX_LIGHTS];
     float ambientStrength;
-    vec3 padding;
+    int lightCount;
+    vec2 padding;
 };
 
 void main()
 {
     vec3 textureColor = texture(tex, TexCoord).xyz;
-    vec3 finalColor = textureColor * ambientStrength;
 
-    for(int i = 0; i < MAX_LIGHTS; ++i)
+    vec3 finalColor = vec3(0.0f);
+
+    for(int i = 0; i < lightCount; ++i)
     {
         vec3 lightDirection = WorldPosition - lights[i].position;
         float lightDistance = length(lightDirection);
-        lightDirection = normalize(lightDirection);
 
-        lightDistance = max(lightDistance, 0.001f); // Prevent division by zero
+        if(lightDistance > lights[i].strength)
+            continue;
+
+        lightDirection = normalize(lightDirection);
 
         float linearFactor = 2.0f / lights[i].strength;
         float quadraticFactor = 1.0f / (lights[i].strength * lights[i].strength);
 
-        float attenuation = min(1.0f, 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance));
+        float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
+        attenuation *= max((lights[i].strength - lightDistance) / lights[i].strength, 0.0f);
 
         float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
-
-        vec3 diffuseColor = materials[materialIndex].diffuseColor * diffuse * attenuation;
-
-        finalColor += textureColor * diffuseColor;
+        finalColor += lights[i].color * diffuse * attenuation;
     }
 
-    outColor = vec4(finalColor, materials[materialIndex].opacity);
+    finalColor += ambientStrength;
+    finalColor *= materials[materialIndex].diffuseColor;
+
+    outColor = vec4(textureColor * finalColor, materials[materialIndex].opacity);
 }

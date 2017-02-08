@@ -23,23 +23,8 @@ public:
     // FIXME
     GLDrawBinds drawBinds; // TODO
 
-    // Also fix this
-    struct LightData
-    {
-        glm::vec3 position;
-        float strength;
-        glm::vec3 color;
-        float padding;
-    };
-
-    struct Lights
-    {
-        LightData lights[4];
-        float ambientStrength;
-        glm::vec3 padding;
-    } lights;
-
-    void Draw(const glm::vec3 cameraPosition);
+    void DrawOpaque(const glm::vec3 cameraPosition);
+    void DrawTransparent(const glm::vec3 cameraPosition);
 
 protected:
     CONTENT_ERROR_CODES Load(const char* filePath

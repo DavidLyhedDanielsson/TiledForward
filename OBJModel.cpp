@@ -233,21 +233,6 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
 
     drawBinds["Materials"] = gpuMaterials;
 
-    for(int i = 0; i < 4; ++i)
-    {
-        lights.lights[i].color = glm::vec3(1.0f, 1.0f, 1.0f);
-        lights.lights[i].strength = 10.0f;
-    }
-
-    lights.lights[0].position = glm::vec3(11.0f, 2.5f, 4.0f);
-    lights.lights[1].position = glm::vec3(11.0f, 2.5f, -4.0f);
-    lights.lights[2].position = glm::vec3(-11.0f, 2.5f, -4.0f);
-    lights.lights[3].position = glm::vec3(-11.0f, 2.5f, 4.0f);
-
-    lights.ambientStrength = 0.2f;
-
-    drawBinds["LightData"] = lights;
-
     return CONTENT_ERROR_CODES::NONE;
 }
 
@@ -276,9 +261,8 @@ DiskContent* OBJModel::CreateInstance() const
     return new OBJModel;
 }
 
-void OBJModel::Draw(const glm::vec3 cameraPosition)
+void OBJModel::DrawOpaque(const glm::vec3 cameraPosition)
 {
-    drawBinds["Lights"] = lights;
     drawBinds.Bind();
 
     auto materialIndex = drawBinds["materialIndex"];
@@ -290,6 +274,15 @@ void OBJModel::Draw(const glm::vec3 cameraPosition)
         glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
         drawBinds.DrawElements(data.indexCount, data.indexOffset);
     }
+
+    drawBinds.Unbind();
+}
+
+void OBJModel::DrawTransparent(const glm::vec3 cameraPosition)
+{
+    drawBinds.Bind();
+
+    auto materialIndex = drawBinds["materialIndex"];
 
     // glm::distance might be overkill, distance squared?
     transparentDrawData[0].distanceToCamera = glm::distance(cameraPosition, transparentDrawData[0].centerPosition);
@@ -308,10 +301,6 @@ void OBJModel::Draw(const glm::vec3 cameraPosition)
         }
     }
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-
     for(const auto& data : transparentDrawData)
     {
         materialIndex = data.materialIndex;
@@ -319,8 +308,6 @@ void OBJModel::Draw(const glm::vec3 cameraPosition)
         glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
         drawBinds.DrawElements(data.indexCount, data.indexOffset);
     }
-
-    glDisable(GL_BLEND);
 
     drawBinds.Unbind();
 }

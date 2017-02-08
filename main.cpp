@@ -23,6 +23,7 @@
 #include "glPixelShader.h"
 #include "shaderContentParameters.h"
 #include "console/commandCallMethod.h"
+#include "primitiveDrawer.h"
 
 int main(int argc, char* argv[])
 {
@@ -58,6 +59,9 @@ int main(int argc, char* argv[])
         GUIManager guiManager;
         ContentManager contentManager("content");
 
+        PrimitiveDrawer primitiveDrawer;
+        primitiveDrawer.Init(contentManager);
+
         // Creates "whiteTexture", so should be first
         SpriteRenderer spriteRenderer;
         if(!spriteRenderer.Init(contentManager, 1280, 720))
@@ -79,6 +83,52 @@ int main(int argc, char* argv[])
         bool wireframe = false;
         console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
 
+        struct LightData
+        {
+            glm::vec3 position;
+            float strength;
+            glm::vec3 color;
+            float padding;
+        };
+
+        struct Lights
+        {
+            LightData lights[64];
+            float ambientStrength;
+            int lightCount;
+            glm::vec2 padding;
+        } lightsBuffer;
+
+        int lightCount = 64;
+
+        lightsBuffer.lightCount = lightCount;
+        lightsBuffer.ambientStrength = 0.0f;
+
+        const float LIGHT_MAX_STRENGTH = 10.0f;
+        const float LIGHT_MAX_LIFETIME = 2000.0f;
+
+        for(int i = 0; i < lightCount; ++i)
+        {
+            LightData newLight;
+
+            float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 11.0f;
+            float yPos = (rand() / (float)RAND_MAX) * 10.0f + 1.0f;
+            float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 7.0f;
+
+            newLight.position = glm::vec3(xPos, yPos, zPos);
+            newLight.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
+            newLight.padding = rand() / (float)RAND_MAX * LIGHT_MAX_LIFETIME;
+
+            if(newLight.padding <= LIGHT_MAX_LIFETIME * 0.5f)
+                newLight.strength = (newLight.padding / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+            else
+                newLight.strength = ((LIGHT_MAX_LIFETIME * 0.5f - (newLight.padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+
+            lightsBuffer.lights[i] = newLight;
+        }
+
+        worldModel->drawBinds["Lights"] = lightsBuffer;
+
         console.AddCommand(new CommandCallMethod("light_position"
                                                  , [&](const std::vector<Argument>& args)
                 {
@@ -87,7 +137,7 @@ int main(int argc, char* argv[])
 
                     glm::vec3 newPosition = camera.GetPosition();
 
-                    worldModel->lights.lights[std::stoi(args.front().value)].position = newPosition;
+                    lightsBuffer.lights[std::stoi(args.front().value)].position = newPosition;
 
                     Argument returnArgument;
                     newPosition >> returnArgument;
@@ -104,7 +154,7 @@ int main(int argc, char* argv[])
 
                     float newStrength = std::stof(args.back().value);
 
-                    worldModel->lights.lights[std::stoi(args.front().value)].strength = newStrength;
+                    lightsBuffer.lights[std::stoi(args.front().value)].strength = newStrength;
 
                     Argument returnArgument;
                     newStrength >> returnArgument;
@@ -114,7 +164,7 @@ int main(int argc, char* argv[])
                 }
         ));
         //console.AddCommand(new CommandGetSet<float>("light_lightStrength", &worldModel->lightData.lightStrength));
-        console.AddCommand(new CommandGetSet<float>("light_ambientStrength", &worldModel->lights.ambientStrength));
+        console.AddCommand(new CommandGetSet<float>("light_ambientStrength", &lightsBuffer.ambientStrength));
 
         Input::RegisterKeyCallback(
                 [&](const KeyState& keyState)
@@ -253,13 +303,58 @@ int main(int argc, char* argv[])
             glEnable(GL_CULL_FACE);
             glEnable(GL_DEPTH_TEST);
             glCullFace(GL_BACK);
+            glDepthMask(GL_TRUE);
+            glDisable(GL_BLEND);
 
+            for(int i = 0; i < lightCount; ++i)
+            {
+                lightsBuffer.lights[i].padding += timer.GetDeltaMillisecondsFraction();
+
+                float newStrength;
+                if(lightsBuffer.lights[i].padding <= LIGHT_MAX_LIFETIME * 0.5f)
+                    newStrength = (lightsBuffer.lights[i].padding / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+                else
+                    newStrength = ((LIGHT_MAX_LIFETIME * 0.5f - (lightsBuffer.lights[i].padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+
+
+                lightsBuffer.lights[i].strength = newStrength;
+
+                if(lightsBuffer.lights[i].padding >= LIGHT_MAX_LIFETIME)
+                {
+                    lightsBuffer.lights[i].padding = 0.0f;
+
+                    float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 11.0f;
+                    float yPos = (rand() / (float)RAND_MAX) * 10.0f + 1.0f;
+                    float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 7.0f;
+
+                    lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
+                    lightsBuffer.lights[i].strength = 0.0f;
+                    lightsBuffer.lights[i].color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
+                }
+
+                primitiveDrawer.DrawSphere(lightsBuffer.lights[i].position, 0.1f, lightsBuffer.lights[i].color);
+            }
+
+            primitiveDrawer.sphereBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
             worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+            worldModel->drawBinds["Lights"] = lightsBuffer;
 
             if(wireframe)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-            worldModel->Draw(camera.GetPosition());
+            worldModel->DrawOpaque(camera.GetPosition());
+
+            primitiveDrawer.End();
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glBlendEquation(GL_FUNC_ADD);
+            glDepthMask(GL_FALSE);
+
+
+            worldModel->DrawTransparent(camera.GetPosition());
+
+            glDepthMask(GL_TRUE);
 
             if(wireframe)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

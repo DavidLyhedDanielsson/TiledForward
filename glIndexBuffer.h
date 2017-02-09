@@ -11,7 +11,7 @@ public:
     ~GLIndexBuffer();
 
     template<typename... T>
-    bool Init(GLEnums::BUFFER_USAGE usage, void* initialData, GLsizei elementCount)
+    void Init(GLEnums::BUFFER_USAGE usage, void* initialData, GLsizei elementCount)
     {
 #ifndef GL_INDEX_NO_WARNING
         Logger::LogLine(LOG_TYPE::WARNING
@@ -20,7 +20,7 @@ public:
 
         indexCount = elementCount;
 
-        return GLBufferBase::Init<T...>(GLEnums::BUFFER_TYPE::INDEX, usage, initialData, elementCount);
+        GLBufferBase::Init<T...>(GLEnums::BUFFER_TYPE::INDEX, usage, initialData, elementCount);
     }
 
     /**
@@ -34,12 +34,12 @@ public:
      * @param memcpyData Should the data be copied, or can a pointer to the first element inside \p indicies be used?
      * @return Whether or not initialization succeeded
      */
-    bool Init(GLEnums::BUFFER_USAGE usage, const std::vector<GLint>& indicies)
+    void Init(GLEnums::BUFFER_USAGE usage, const std::vector<GLint>& indicies)
     {
         indexCount = (GLsizei)indicies.size();
 
         // GLBufferBase::Init never modifies the data
-        return GLBufferBase::Init<GLint>(GLEnums::BUFFER_TYPE::INDEX, usage, const_cast<GLint*>(&indicies[0]), indicies.size());
+        GLBufferBase::Init<GLint>(GLEnums::BUFFER_TYPE::INDEX, usage, const_cast<GLint*>(&indicies[0]), indicies.size());
     }
 
     void Update(const std::vector<GLuint>& indicies);

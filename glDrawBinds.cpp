@@ -12,6 +12,7 @@ GLDrawBinds::GLDrawBinds()
           , shaderProgram(0)
           , vao(0)
           , indexBuffer(nullptr)
+          , currentBindingPoint(0)
 {
 }
 
@@ -376,40 +377,8 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
 
     std::set<std::string> usedUniforms;
 
-    GLint activeUniformCount;
-    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCKS, &activeUniformCount);
-
-    GLint maxLength;
-    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxLength);
-
-    for(int i = 0; i < activeUniformCount; ++i)
-    {
-        std::string name(maxLength, '\0');
-
-        GLsizei writtenLength;
-        glGetActiveUniformBlockName(shaderProgram, i, maxLength, &writtenLength, &name[0]);
-
-        name.erase(writtenLength);
-
-        int blockIndex = glGetUniformBlockIndex(shaderProgram, &name[0]);
-
-        if(uniformBufferBinds.count(name) == 0)
-        {
-            uniformBufferBinds.insert(std::make_pair(name, std::unique_ptr<GLUniformBuffer>(new GLUniformBuffer(name
-                                                                                                                , shaderProgram
-                                                                                                                , blockIndex))));
-            uniformBufferBinds.at(name)->Init();
-        }
-        else
-        {
-            uniformBufferBinds.at(name)->shaderProgram = shaderProgram;
-            uniformBufferBinds.at(name)->blockIndex = blockIndex;
-
-            // TODO: Call Init?
-            glUniformBlockBinding(shaderProgram, blockIndex, blockIndex); // TODO: Does this always work (blockIndex = blockIndex)? Multiple shaders?
-        }
-
-    }
+    GetActiveStorageBlocks();
+    GetActiveUniformBlocks();
 
     for(const Attrib& uniform : activeUniforms)
     {
@@ -458,6 +427,84 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
     return returnValue;
 }
 
+void GLDrawBinds::GetActiveStorageBlocks()
+{
+    GLint count;
+    glGetProgramInterfaceiv(shaderProgram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count);
+
+    GLint maxNameLength;
+    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxNameLength);
+
+    for(int i = 0; i < count; ++i)
+    {
+        std::string name(maxNameLength, '\0');
+
+        GLsizei writtenLength;
+        glGetProgramResourceName(shaderProgram, GL_SHADER_STORAGE_BLOCK, i, maxNameLength, &writtenLength, &name[0]);
+
+        name.erase(writtenLength);
+
+        int blockIndex = glGetProgramResourceIndex(shaderProgram, GL_SHADER_STORAGE_BLOCK, &name[0]);
+
+        if(storageBufferBinds.count(name) == 0)
+        {
+            storageBufferBinds.insert(make_pair(name, std::unique_ptr<GLShaderStorageBuffer>(new GLShaderStorageBuffer(name
+                                                                                                                       , shaderProgram
+                                                                                                                       , blockIndex
+                                                                                                                       , currentBindingPoint))));
+            storageBufferBinds.at(name)->Init();
+            currentBindingPoint++;
+        }
+        else
+        {
+            //storageBufferBinds.at(name)->shaderProgram = shaderProgram;
+            //storageBufferBinds.at(name)->blockIndex = blockIndex;
+
+            // TODO: Call Init?
+            //glUniformBlockBinding(shaderProgram, blockIndex, uniformBufferBinds.at(name)->bindingPoint);
+        }
+    }
+}
+
+void GLDrawBinds::GetActiveUniformBlocks()
+{
+    GLint count;
+    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCKS, &count);
+
+    GLint maxNameLength;
+    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxNameLength);
+
+    for(int i = 0; i < count; ++i)
+    {
+        std::string name(maxNameLength, '\0');
+
+        GLsizei writtenLength;
+        glGetActiveUniformBlockName(shaderProgram, i, maxNameLength, &writtenLength, &name[0]);
+
+        name.erase(writtenLength);
+
+        int blockIndex = glGetProgramResourceIndex(shaderProgram, GL_UNIFORM_BLOCK, &name[0]);
+
+        if(uniformBufferBinds.count(name) == 0)
+        {
+            uniformBufferBinds.insert(make_pair(name, std::unique_ptr<GLUniformBuffer>(new GLUniformBuffer(name
+                                                                                                           , shaderProgram
+                                                                                                           , blockIndex
+                                                                                                           , currentBindingPoint))));
+            uniformBufferBinds.at(name)->Init();
+            currentBindingPoint++;
+        }
+        else
+        {
+            //uniformBufferBinds.at(name)->shaderProgram = shaderProgram;
+            //uniformBufferBinds.at(name)->blockIndex = blockIndex;
+
+            // TODO: Call Init?
+            //glUniformBlockBinding(shaderProgram, blockIndex, uniformBufferBinds.at(name)->bindingPoint);
+        }
+    }
+}
+
 void GLDrawBinds::Bind()
 {
     if(!bound)
@@ -479,6 +526,9 @@ void GLDrawBinds::Bind()
 
         for(const auto& pair : uniformBufferBinds)
             pair.second->Bind();
+
+        for(const auto& pair : storageBufferBinds)
+            pair.second->Bind();
     }
 }
 
@@ -498,6 +548,9 @@ void GLDrawBinds::Unbind()
         //    vertexBuffer->Unbind();
 
         for(const auto& pair : uniformBufferBinds)
+            pair.second->Unbind();
+
+        for(const auto& pair : storageBufferBinds)
             pair.second->Unbind();
     }
 }
@@ -751,6 +804,9 @@ GLVariable GLDrawBinds::operator[](const std::string& name)
         return GLVariable(this, uniformBinds[name].get());
     else if(uniformBufferBinds.count(name) != 0)
         return GLVariable(this, uniformBufferBinds[name].get());
+    else if(storageBufferBinds.count(name) != 0)
+        return GLVariable(this, storageBufferBinds[name].get());
+
 
     Logger::LogLine(LOG_TYPE::DEBUG, "Trying to get uniform \""
                                          + name

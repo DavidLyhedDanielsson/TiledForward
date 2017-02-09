@@ -160,15 +160,15 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
     for(LibOBJ::Vertex& vertex : vertices)
         vertex.normal = glm::normalize(vertex.position);
 
-    sphereVertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC, vertices);
-    sphereIndexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, indices);
+    sphereVertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
+    sphereIndexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC_DRAW, indices);
 
     GLInputLayout vertexInputLayout;
     vertexInputLayout.SetInputLayout<glm::vec3, glm::vec3, glm::vec2>();
 
     std::vector<InstanceData> instanceData;
 
-    sphereInstanceBuffer.Init<InstanceData, glm::mat4, glm::vec4>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_SPHERES);
+    sphereInstanceBuffer.Init<InstanceData, glm::mat4, glm::vec4>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, MAX_SPHERES);
 
     GLInputLayout instanceInputLayout;
     instanceInputLayout.SetInputLayout<glm::vec4, glm::mat4>(3);

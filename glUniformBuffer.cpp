@@ -5,14 +5,13 @@
 #include <algorithm>
 #include <set>
 
-GLUniformBuffer::GLUniformBuffer(const std::string& name, GLuint shaderProgram, GLuint blockIndex)
+GLUniformBuffer::GLUniformBuffer(const std::string& name, GLuint shaderProgram, GLuint blockIndex, GLuint bindingPoint)
         : name(name)
           , size(0)
           , shaderProgram(shaderProgram)
           , blockIndex(blockIndex)
-{
-
-}
+          , bindingPoint(bindingPoint)
+{ }
 
 GLUniformBuffer::~GLUniformBuffer()
 { }
@@ -32,12 +31,12 @@ void GLUniformBuffer::Bind()
         modifiedSinceCopy = false;
     }
 
-    glBindBufferBase(GL_UNIFORM_BUFFER, blockIndex, bufferIndex);
+    glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, bufferIndex);
 }
 
 void GLUniformBuffer::Unbind()
 {
-    glBindBufferBase(GL_UNIFORM_BUFFER, blockIndex, 0);
+    glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, 0);
 }
 
 bool GLUniformBuffer::Init()
@@ -125,7 +124,7 @@ bool GLUniformBuffer::Init()
     glBufferData(GL_UNIFORM_BUFFER, size, data.get(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glUniformBlockBinding(shaderProgram, blockIndex, blockIndex); // TODO: Does this always work (blockIndex = blockIndex)? Multiple shaders?
+    glUniformBlockBinding(shaderProgram, blockIndex, bindingPoint);
 
     return true;
 }

@@ -14,6 +14,7 @@
 #include "glInputLayout.h"
 #include "contentManager.h"
 #include "glUniformBuffer.h"
+#include "glShaderStorageBuffer.h"
 
 class GLVariable
 {
@@ -21,29 +22,40 @@ public:
     GLVariable()
             : parent(nullptr)
               , uniform(nullptr)
-              , uniformBufferVariable(nullptr)
+              //, uniformBufferVariable(nullptr)
               , uniformBuffer(nullptr)
+              , storageBuffer(nullptr)
     {}
 
     GLVariable(GLDrawBinds* parent, GLUniformBase* uniform)
             : parent(parent)
               , uniform(uniform)
-              , uniformBufferVariable(nullptr)
+              //, uniformBufferVariable(nullptr)
               , uniformBuffer(nullptr)
+              , storageBuffer(nullptr)
     {}
 
-    GLVariable(GLDrawBinds* parent, GLUniformBufferVariable* uniformBufferVariable)
+    /*GLVariable(GLDrawBinds* parent, GLUniformBufferVariable* uniformBufferVariable)
             : parent(parent)
               , uniform(nullptr)
               , uniformBufferVariable(uniformBufferVariable)
               , uniformBuffer(nullptr)
-    {}
+    {}*/
 
     GLVariable(GLDrawBinds* parent, GLUniformBuffer* uniformBuffer)
             : parent(parent)
               , uniform(nullptr)
-              , uniformBufferVariable(nullptr)
+              //, uniformBufferVariable(nullptr)
               , uniformBuffer(uniformBuffer)
+              , storageBuffer(nullptr)
+    {}
+
+    GLVariable(GLDrawBinds* parent, GLShaderStorageBuffer* storageBuffer)
+            : parent(parent)
+              , uniform(nullptr)
+            //, uniformBufferVariable(nullptr)
+              , uniformBuffer(nullptr)
+              , storageBuffer(storageBuffer)
     {}
 
     template<typename T>
@@ -55,8 +67,9 @@ public:
 private:
     GLDrawBinds* parent;
     GLUniformBase* uniform;
-    GLUniformBufferVariable* uniformBufferVariable;
+    //GLUniformBufferVariable* uniformBufferVariable;
     GLUniformBuffer* uniformBuffer;
+    GLShaderStorageBuffer* storageBuffer;
 };
 
 class GLDrawBinds
@@ -161,12 +174,15 @@ private:
     GLuint shaderProgram;
     GLuint vao;
 
+    GLuint currentBindingPoint;
+
     GLIndexBuffer* indexBuffer;
     std::vector<GLVertexBuffer*> vertexBuffers;
     std::vector<GLInputLayout> inputLayouts;
     std::vector<std::pair<GLEnums::SHADER_TYPE, GLShader*>> shaderBinds;
     std::map<std::string, std::unique_ptr<GLUniformBase>> uniformBinds;
     std::map<std::string, std::unique_ptr<GLUniformBuffer>> uniformBufferBinds;
+    std::map<std::string, std::unique_ptr<GLShaderStorageBuffer>> storageBufferBinds;
 
     // Recursive template termination
     void AddShaders()
@@ -227,6 +243,14 @@ private:
     {
         buffer->SetData(value);
     }
+    template<typename T>
+    void UpdateStorageBuffer(GLShaderStorageBuffer* buffer, const T& value)
+    {
+        buffer->SetData(&value, sizeof(T));
+    }
+
+    void GetActiveStorageBlocks();
+    void GetActiveUniformBlocks();
 };
 
 template<typename T>
@@ -236,10 +260,12 @@ void GLVariable::operator=(T value)
 
     if(uniform)
         parent->UpdateUniform(uniform, value);
-    else if(uniformBufferVariable) // Both may be nullptr
-        parent->UpdateUniformBufferVariable(uniformBufferVariable, value);
+    //else if(uniformBufferVariable) // Both may be nullptr
+    //    parent->UpdateUniformBufferVariable(uniformBufferVariable, value);
     else if(uniformBuffer)
         parent->UpdateUniformBuffer(uniformBuffer, value);
+    else if(storageBuffer)
+        parent->UpdateStorageBuffer(storageBuffer, value);
 }
 
 template<typename T>

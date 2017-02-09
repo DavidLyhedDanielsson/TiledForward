@@ -204,8 +204,8 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         transparentDrawData.push_back(newDrawData);
     }
 
-    vertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC, vertices);
-    indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC, indices);
+    vertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
+    indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC_DRAW, indices);
 
     if(!drawBinds.AddShaders(*contentManager
                              , GLEnums::SHADER_TYPE::VERTEX, "forward.vert"

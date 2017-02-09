@@ -126,7 +126,7 @@ public:
     friend class GLUniformBufferVariable;
     friend class GLDrawBinds;
 
-    GLUniformBuffer(const std::string& name, GLuint shaderProgram, GLuint blockIndex);
+    GLUniformBuffer(const std::string& name, GLuint shaderProgram, GLuint resourceIndex, GLuint blockIndex);
     ~GLUniformBuffer();
 
     bool Init();
@@ -254,6 +254,7 @@ private:
     GLuint shaderProgram;
     GLuint blockIndex;
     GLuint bufferIndex;
+    GLuint bindingPoint;
     std::string name;
 
     GLint size;

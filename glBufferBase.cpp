@@ -14,12 +14,12 @@ GLBufferBase::~GLBufferBase()
 {
 }
 
-bool GLBufferBase::Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize)
+void GLBufferBase::Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize)
 {
     InitInternal(bufferType, usage, data, dataSize);
 }
 
-bool GLBufferBase::InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize)
+void GLBufferBase::InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize)
 {
     this->bindType = (GLuint)bufferType;
     this->usage = (GLuint)usage;
@@ -28,8 +28,6 @@ bool GLBufferBase::InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER
     glGenBuffers(1, &buffer);
     GLBufferLock lock(this);
     glBufferData(bindType, dataSize, data, this->usage);
-
-    return false;
 }
 
 void GLBufferBase::Bind()

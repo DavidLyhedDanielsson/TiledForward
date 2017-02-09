@@ -1,4 +1,4 @@
-#version 330
+#version 450
 
 uniform sampler2D tex;
 uniform int materialIndex;
@@ -32,23 +32,19 @@ struct LightData
     float padding;
 };
 
-const int MAX_LIGHTS = 64;
-
-layout (std140) uniform Lights
+layout (std140) buffer Lights
 {
-    LightData lights[MAX_LIGHTS];
+    vec3 padding;
     float ambientStrength;
-    int lightCount;
-    vec2 padding;
+    LightData lights[];
 };
-
 void main()
 {
     vec3 textureColor = texture(tex, TexCoord).xyz;
 
     vec3 finalColor = vec3(0.0f);
 
-    for(int i = 0; i < lightCount; ++i)
+    for(int i = 0; i < lights.length(); ++i)
     {
         vec3 lightDirection = WorldPosition - lights[i].position;
         float lightDistance = length(lightDirection);

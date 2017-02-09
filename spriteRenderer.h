@@ -227,6 +227,7 @@ private:
 	//PixelShader* pixelShader;
 	glm::mat4x4 viewProjectionMatrix;
 
+	// TODO: Stream buffers
 	GLVertexBuffer vertexBuffer;
 	GLIndexBuffer indexBuffer;
 

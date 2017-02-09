@@ -19,12 +19,12 @@ public:
     GLBufferBase& operator=(GLBufferBase&& rhs) = delete;
 
     // None of these should ever modify the data
-    bool Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize);
+    void Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize);
     template<typename... T>
-    bool Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* initialData, size_t elementCount)
+    void Init(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* initialData, size_t elementCount)
     {
         size_t byteSize = GetByteSize<T...>();
-        return InitInternal(bufferType, usage, initialData, byteSize * elementCount);
+        InitInternal(bufferType, usage, initialData, byteSize * elementCount);
     }
 
     void Bind();
@@ -103,7 +103,7 @@ protected:
 private:
     bool isBound;
 
-    bool InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize);
+    void InitInternal(GLEnums::BUFFER_TYPE bufferType, GLEnums::BUFFER_USAGE usage, void* data, size_t dataSize);
 
     /**@{*/
     /**

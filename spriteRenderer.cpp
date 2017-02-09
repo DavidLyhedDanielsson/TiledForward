@@ -46,8 +46,8 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 	////////////////////////////////////////////////////////////
 	//Create buffers
 	////////////////////////////////////////////////////////////
-    vertexBuffer.Init<glm::vec2, glm::vec2, glm::vec4>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_VERTEX_BUFFER_INSERTS);
-    indexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM, nullptr, MAX_INDEX_BUFFER_INSERTS);
+    vertexBuffer.Init<glm::vec2, glm::vec2, glm::vec4>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, MAX_VERTEX_BUFFER_INSERTS);
+    indexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, MAX_INDEX_BUFFER_INSERTS);
 
 	//////////////////////////////////////////////////////////////////////////
 	//Shaders

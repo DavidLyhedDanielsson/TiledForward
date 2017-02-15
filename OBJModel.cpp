@@ -204,9 +204,11 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         transparentDrawData.push_back(newDrawData);
     }
 
+    // Set up buffers
     vertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
     indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC_DRAW, indices);
 
+    // Normal draw binds
     if(!drawBinds.AddShaders(*contentManager
                              , GLEnums::SHADER_TYPE::VERTEX, "forward.vert"
                              , GLEnums::SHADER_TYPE::PIXEL, "forward.frag"))
@@ -232,6 +234,23 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         gpuMaterials.push_back(GPUMaterial(material));
 
     drawBinds["Materials"] = gpuMaterials;
+
+    // Z-prepass draw binds
+    if(!zPrepassBinds.AddShaders(*contentManager
+                             , GLEnums::SHADER_TYPE::VERTEX, "zPrepass.vert"))
+        return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
+
+    GLInputLayout zPrepassVertexBufferLayout;
+    zPrepassVertexBufferLayout.AddInputLayout("position", 3, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(LibOBJ::Vertex), 0, -1);
+
+    zPrepassBinds.AddBuffers(&indexBuffer
+                             , &vertexBuffer, zPrepassVertexBufferLayout);
+
+    zPrepassBinds.AddUniform("viewProjectionMatrix", glm::mat4x4());
+    zPrepassBinds.AddUniform("worldMatrix", worldMatrix);
+
+    if(!zPrepassBinds.Init())
+        return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
 
     return CONTENT_ERROR_CODES::NONE;
 }
@@ -259,6 +278,16 @@ bool OBJModel::Apply(Content* content)
 DiskContent* OBJModel::CreateInstance() const
 {
     return new OBJModel;
+}
+
+void OBJModel::DrawZPrepass(const glm::vec3 cameraPosition)
+{
+    zPrepassBinds.Bind();
+
+    for(const auto& data : opaqueDrawData)
+        zPrepassBinds.DrawElements(data.indexCount, data.indexOffset);
+
+    zPrepassBinds.Unbind();
 }
 
 void OBJModel::DrawOpaque(const glm::vec3 cameraPosition)

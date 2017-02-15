@@ -1,4 +1,4 @@
-#version 450
+#version 450 core
 
 uniform sampler2D tex;
 uniform int materialIndex;
@@ -38,6 +38,7 @@ layout (std140) buffer Lights
     float ambientStrength;
     LightData lights[];
 };
+
 void main()
 {
     vec3 textureColor = texture(tex, TexCoord).xyz;

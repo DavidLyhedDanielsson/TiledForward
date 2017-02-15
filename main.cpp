@@ -43,7 +43,7 @@ private:
         float padding;
     };
 
-    const static int lightCount = 16;
+    const static int LIGHT_COUNT = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     const float LIGHT_MAX_STRENGTH = 10.0f;
@@ -53,7 +53,7 @@ private:
     {
         glm::vec3 padding;
         float ambientStrength;
-        LightData lights[lightCount];
+        LightData lights[LIGHT_COUNT];
     } lightsBuffer;
 
     OSWindow window;
@@ -75,14 +75,30 @@ private:
 
     bool wireframe;
 
+    GLuint frameBufferDepthOnly;
+    //GLuint depthRenderBuffer;
+    //GLuint backRenderBuffer;
+    GLuint depthBufferTexture;
+    GLuint backBufferTexture;
+
     float averageFrameTime;
+
+    float lastMinFrameTime;
+    float lastMaxFrameTime;
+
     float minFrameTime;
     float maxFrameTime;
+
+    GLDrawBinds tiles;
+
+    GLuint queries[2];
 
     int InitContent();
     void InitConsole();
     void InitInput();
     void InitLights();
+    bool InitFrameBuffers();
+    void InitQuieries();
 
     void Update(Timer& deltaTimer);
     void Render(Timer& deltaTimer);
@@ -114,23 +130,27 @@ int Main::Run()
         if(glewInit() != GLEW_OK)
             return 1;
 
+        if(!InitFrameBuffers())
+            return 2;
         InitInput();
         InitContent();
         InitConsole();
 
         // Use a reversed depth buffer
-        glDepthRange(1, 0);
+        glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+        glDepthRange(1.0, 0.0);
         camera.InitFovVertical({0.0f, 0.0f, -5.0f}
                                , {0.0f, 0.0f, 0.0f}
                                , glm::half_pi<float>()
                                , 1280
                                , 720
-                               , 100.0f
-                               , 0.01f);
+                               , 0.01f
+                               , 100.0f);
 
         primitiveDrawer.Init(contentManager);
 
         InitLights();
+        InitQuieries();
 
         double frameTime = 0.0;
         unsigned long frameCount = 0;
@@ -138,10 +158,15 @@ int Main::Run()
         minFrameTime = std::numeric_limits<float>::max();
         maxFrameTime = std::numeric_limits<float>::min();
 
+        const static int FRAME_CAP = 60;
+
         Timer deltaTimer;
         deltaTimer.ResetDelta();
         while(window.PollEvents())
         {
+            Timer frameCapTimer;
+            frameCapTimer.Start();
+
             if(window.IsPaused())
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -165,12 +190,20 @@ int Main::Run()
                 frameCount = 0;
                 frameTime = 0.0;
 
+                lastMinFrameTime = minFrameTime;
+                lastMaxFrameTime = maxFrameTime;
+
                 minFrameTime = std::numeric_limits<float>::max();
                 maxFrameTime = std::numeric_limits<float>::min();
             }
 
             Update(deltaTimer);
             Render(deltaTimer);
+
+            frameCapTimer.Stop();
+            auto time = frameCapTimer.GetTimeNanoseconds();
+            if(time < 1.0 / FRAME_CAP * 1.6e9)
+                std::this_thread::sleep_for(std::chrono::nanoseconds((int)(1.0 / FRAME_CAP * 1.6e9) - time));
 
             Input::Update();
         }
@@ -242,14 +275,14 @@ void Main::InitConsole()
 
     guiManager.AddContainer(&console);
 
-    Logger::SetCallOnLog(
+    /*Logger::SetCallOnLog(
             [&](std::string text)
             {
                 if(text.back() == '\n')
                     text.pop_back();
 
                 console.AddText(text);
-            });
+            });*/
 }
 
 void Main::InitInput()
@@ -324,7 +357,7 @@ void Main::InitLights()
     lightsBuffer.padding = glm::vec3(1.0f, 1.2f, 1.23f);
     lightsBuffer.ambientStrength = LIGHT_DEFAULT_AMBIENT;
 
-    for(int i = 0; i < lightCount; ++i)
+    for(int i = 0; i < LIGHT_COUNT; ++i)
     {
         LightData newLight;
 
@@ -375,7 +408,7 @@ void Main::Update(Timer& deltaTimer)
 
     contentManager.HotReload();
 
-    for(int i = 0; i < lightCount; ++i)
+    for(int i = 0; i < LIGHT_COUNT; ++i)
     {
         lightsBuffer.lights[i].padding += deltaTimer.GetDeltaMillisecondsFraction();
 
@@ -411,20 +444,72 @@ void Main::Render(Timer& deltaTimer)
     worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
     worldModel->drawBinds["Lights"] = lightsBuffer;
 
+    //tiles["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+    //tiles["Lights"] = lightsBuffer;
+
+    // Set states
     glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearDepth(0.0f);
+
+    glDisable(GL_BLEND);
+
     glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
     glCullFace(GL_BACK);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_GREATER);
+
+    // Bind custom framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+    // Do z-prepass
+    //tiles.Bind();
+    worldModel->DrawOpaque(camera.GetPosition());
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    glDepthMask(GL_FALSE);
+
+    worldModel->DrawTransparent(camera.GetPosition());
+
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
+
+
+    /*tiles.Bind();
+
+    glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
+    //glUniform1i(0, 0);
+
+    glBindImageTexture(1, backBufferTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+    glUniform1i(1, 1);
+
+    glDispatchCompute((GLuint)std::ceil(1280 / 32.0f), (GLuint)std::ceil(720 / 32.0f), 1);
+    tiles.Unbind();*/
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT , GL_NEAREST);
+
+    //tiles.Unbind();
+
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, depthRenderBuffer);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+    // Bind default framebuffer
+    /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDepthFunc(GL_LESS);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     worldModel->DrawOpaque(camera.GetPosition());
-
-    primitiveDrawer.End();
+    //primitiveDrawer.End();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -438,18 +523,67 @@ void Main::Render(Timer& deltaTimer)
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, depthRenderBuffer);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+    //glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
 
     spriteRenderer.Begin();
 
-    std::string frameString = std::to_string(averageFrameTime) + " [" + std::to_string(minFrameTime) + ";" + std::to_string(maxFrameTime) + " ]";
-    spriteRenderer.DrawString(characterSet, frameString, glm::vec2(0.0f, 0.0f));
-    spriteRenderer.DrawString(characterSet, std::to_string(currentFrameTime), glm::vec2(0.0f, 16.0f));
+    std::string frameString = std::to_string(averageFrameTime) + " [" + std::to_string(lastMinFrameTime) + ";" + std::to_string(lastMaxFrameTime) + " ]";
+    spriteRenderer.DrawString(characterSet, frameString, glm::vec2(0.0f, 720 - 48));
+    spriteRenderer.DrawString(characterSet, std::to_string(currentFrameTime), glm::vec2(0.0f, 720 - 24));
 
     guiManager.Draw(&spriteRenderer);
 
-    spriteRenderer.End();
+    spriteRenderer.End();*/
 
     window.SwapBuffers();
+}
+
+bool Main::InitFrameBuffers()
+{
+    //tiles.AddUniform("viewProjectionMatrix", glm::mat4());
+    //tiles.AddUniform("worldMatrix", glm::scale(glm::mat4(), glm::vec3(0.01f)));
+    tiles.AddShaders(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "tiles.comp");
+    tiles.Init();
+
+    // Depth buffer
+    glGenTextures(1, &depthBufferTexture);
+    glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, 1280, 720, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, 1280, 720);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Back buffer
+    glGenTextures(1, &backBufferTexture);
+    glBindTexture(GL_TEXTURE_2D, backBufferTexture);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1280, 720);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &frameBufferDepthOnly);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBufferTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, backBufferTexture, 0);
+
+    GLenum error = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if(error != GL_FRAMEBUFFER_COMPLETE)
+        Logger::LogLine(LOG_TYPE::FATAL, "Framebuffer not complete");
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return error == GL_FRAMEBUFFER_COMPLETE;
+}
+
+void Main::InitQuieries()
+{
+    glGenQueries(2, queries);
 }

@@ -41,18 +41,21 @@ GLDrawBinds::~GLDrawBinds()
 
 bool GLDrawBinds::Init()
 {
-    if(!CheckRequirements())
-        return false;
+    if(CheckRequirements())
+    {
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    GLBufferLock lock(indexBuffer);
+        indexBuffer->Bind();
+    }
 
     if(!CreateShaderProgram())
     {
-        glBindVertexArray(0);
-        glDeleteVertexArrays(1, &vao);
+        if(vao != 0)
+        {
+            glBindVertexArray(0);
+            glDeleteVertexArrays(1, &vao);
+        }
 
         return false;
     }
@@ -63,8 +66,13 @@ bool GLDrawBinds::Init()
     for(const auto& pair : uniformBinds)
         pair.second->UploadData();
 
-    glBindVertexArray(0);
-    glUseProgram(0);
+    if(vao != 0)
+    {
+        glBindVertexArray(0);
+        glUseProgram(0);
+
+        indexBuffer->Unbind();
+    }
 
     return true;
 }
@@ -189,90 +197,93 @@ bool GLDrawBinds::CreateShaderProgram()
 
     std::vector<Attrib> attributes = GetActiveAttribs();
 
-    if(inputLayouts.size() == 0)
+    if(!vertexBuffers.empty())
     {
-        // Create default input layouts
-
-        if(vertexBuffers.size() != 1)
+        if(inputLayouts.size() == 0)
         {
-            LogWithName(LOG_TYPE::FATAL, "Multiple vertex buffers bound to drawBinds, automatic attrib enabling won't work");
-            return false;
-        }
+            // Create default input layouts
 
-#ifndef NDEBUG
-        int numberOfFloats = 0;
-        for(const auto& attrib : attributes)
-            numberOfFloats += GetNumberOfFloats(attrib.type);
-
-        if(numberOfFloats * sizeof(float) != vertexBuffers[0]->GetStride())
-            LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes, is this intended?");
-#endif // NDEBUG
-
-        GLBufferLock bufferLock(vertexBuffers[0]);
-
-        for(int i = 0; i < attributes.size(); ++i)
-        {
-            GLuint location = (GLuint)glGetAttribLocation(shaderProgram, attributes[i].name.c_str());
-
-            glEnableVertexAttribArray(location);
-            glVertexAttribPointer(location
-                                  , attributes[i].size * GetNumberOfFloats(attributes[i].type)
-                                  , GL_FLOAT
-                                  , GL_FALSE
-                                  , vertexBuffers[0]->GetStride()
-                                  , (void*)vertexBuffers[0]->GetOffsets()[location]);
-        }
-    }
-    else
-    {
-        // User has defined input layouts
-#ifndef NDEBUG
-
-        int numberOfFloats = 0;
-        for(const auto& attrib : attributes)
-            numberOfFloats += GetNumberOfFloats(attrib.type);
-
-        if(vertexBuffers[0]->GetStride() != numberOfFloats * sizeof(float)) // TODO: Multiple buffers
-            LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes (" + std::to_string(vertexBuffers[0]->GetStride()) + " != " + std::to_string(numberOfFloats * sizeof(float)) + ") is this intended?");
-
-        // TODO: Count size of input layouts?
-#endif // NDEBUG
-
-        for(int i = 0; i < inputLayouts.size(); ++i)
-        {
-            const GLInputLayout& inputLayout = inputLayouts[i];
-
-            // TODO: Make sure every attribute has a layout
-            for(int j = 0; j < inputLayout.namedInputLayouts.size(); ++j)
+            if(vertexBuffers.size() != 1)
             {
-                const std::pair<std::string, InputLayout>& current = inputLayout.namedInputLayouts[j];
+                LogWithName(LOG_TYPE::FATAL, "Multiple vertex buffers bound to drawBinds, automatic attrib enabling won't work");
+                return false;
+            }
 
-                GLuint location = (GLuint)(std::isdigit(current.first[0]) ? std::stoi(current.first) : glGetAttribLocation(shaderProgram, current.first.c_str()));
+#ifndef NDEBUG
+            int numberOfFloats = 0;
+            for(const auto& attrib : attributes)
+                numberOfFloats += GetNumberOfFloats(attrib.type);
 
-                if(location == -1)
-                {
-                    LogWithName(LOG_TYPE::DEBUG, "Attribute " + current.first + " not found in shader (is it optimized away?)");
-                    continue;
-                }
+            if(numberOfFloats * sizeof(float) != vertexBuffers[0]->GetStride())
+                LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes, is this intended?");
+#endif // NDEBUG
 
-                GLint size = current.second.size == -1 ? attributes[j].size * GetNumberOfFloats(attributes[j].type) : current.second.size;
-                GLenum type = current.second.type == GLEnums::DATA_TYPE::UNKNOWN ? GL_FLOAT : (GLenum)current.second.type;
-                GLboolean normalized = current.second.normalized;
-                GLsizei stride = current.second.stride == -1 ? vertexBuffers[inputLayout.vertexBuffer]->GetStride() : current.second.stride;
-                void* offset = (void*)(current.second.offset == -1 ? vertexBuffers[inputLayout.vertexBuffer]->GetOffsets()[location] : current.second.offset);
+            GLBufferLock bufferLock(vertexBuffers[0]);
 
-                GLBufferLock bufferLock(vertexBuffers[inputLayout.vertexBuffer]);
+            for(int i = 0; i < attributes.size(); ++i)
+            {
+                GLuint location = (GLuint)glGetAttribLocation(shaderProgram, attributes[i].name.c_str());
 
                 glEnableVertexAttribArray(location);
                 glVertexAttribPointer(location
-                                      , size
-                                      , type
-                                      , normalized
-                                      , stride
-                                      , offset);
+                                      , attributes[i].size * GetNumberOfFloats(attributes[i].type)
+                                      , GL_FLOAT
+                                      , GL_FALSE
+                                      , vertexBuffers[0]->GetStride()
+                                      , (void*)vertexBuffers[0]->GetOffsets()[location]);
+            }
+        }
+        else
+        {
+            // User has defined input layouts
+#ifndef NDEBUG
 
-                if(current.second.vertexAttribDivisor != -1)
-                    glVertexAttribDivisor(location, current.second.vertexAttribDivisor);
+            int numberOfFloats = 0;
+            for(const auto& attrib : attributes)
+                numberOfFloats += GetNumberOfFloats(attrib.type);
+
+            if(vertexBuffers[0]->GetStride() != numberOfFloats * sizeof(float)) // TODO: Multiple buffers
+                LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes (" + std::to_string(vertexBuffers[0]->GetStride()) + " != " + std::to_string(numberOfFloats * sizeof(float)) + ") is this intended?");
+
+            // TODO: Count size of input layouts?
+#endif // NDEBUG
+
+            for(int i = 0; i < inputLayouts.size(); ++i)
+            {
+                const GLInputLayout& inputLayout = inputLayouts[i];
+
+                // TODO: Make sure every attribute has a layout
+                for(int j = 0; j < inputLayout.namedInputLayouts.size(); ++j)
+                {
+                    const std::pair<std::string, InputLayout>& current = inputLayout.namedInputLayouts[j];
+
+                    GLuint location = (GLuint)(std::isdigit(current.first[0]) ? std::stoi(current.first) : glGetAttribLocation(shaderProgram, current.first.c_str()));
+
+                    if(location == -1)
+                    {
+                        LogWithName(LOG_TYPE::DEBUG, "Attribute " + current.first + " not found in shader (is it optimized away?)");
+                        continue;
+                    }
+
+                    GLint size = current.second.size == -1 ? attributes[j].size * GetNumberOfFloats(attributes[j].type) : current.second.size;
+                    GLenum type = current.second.type == GLEnums::DATA_TYPE::UNKNOWN ? GL_FLOAT : (GLenum)current.second.type;
+                    GLboolean normalized = current.second.normalized;
+                    GLsizei stride = current.second.stride == -1 ? vertexBuffers[inputLayout.vertexBuffer]->GetStride() : current.second.stride;
+                    void* offset = (void*)(current.second.offset == -1 ? vertexBuffers[inputLayout.vertexBuffer]->GetOffsets()[location] : current.second.offset);
+
+                    GLBufferLock bufferLock(vertexBuffers[inputLayout.vertexBuffer]);
+
+                    glEnableVertexAttribArray(location);
+                    glVertexAttribPointer(location
+                                          , size
+                                          , type
+                                          , normalized
+                                          , stride
+                                          , offset);
+
+                    if(current.second.vertexAttribDivisor != -1)
+                        glVertexAttribDivisor(location, current.second.vertexAttribDivisor);
+                }
             }
         }
     }
@@ -307,12 +318,6 @@ void GLDrawBinds::BindUniforms()
 
 bool GLDrawBinds::CheckRequirements() const
 {
-    if(shaderBinds.size() == 0)
-    {
-        LogWithName(LOG_TYPE::FATAL, "No shaders added to drawBinds");
-        return false;
-    }
-
     bool vertexBound = false;
     bool tessControlBound = false;
     bool tessEvaluationBound = false;
@@ -368,7 +373,7 @@ bool GLDrawBinds::CheckRequirements() const
             LogWithName(LOG_TYPE::WARNING, "No pixel shader to match vertex shader, is this intended?");
     }
 
-    return true;
+    return !computeBound;
 }
 
 bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUniforms)
@@ -433,7 +438,7 @@ void GLDrawBinds::GetActiveStorageBlocks()
     glGetProgramInterfaceiv(shaderProgram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count);
 
     GLint maxNameLength;
-    glGetProgramiv(shaderProgram, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxNameLength);
+    glGetProgramInterfaceiv(shaderProgram, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &maxNameLength);
 
     for(int i = 0; i < count; ++i)
     {
@@ -445,6 +450,12 @@ void GLDrawBinds::GetActiveStorageBlocks()
         name.erase(writtenLength);
 
         int blockIndex = glGetProgramResourceIndex(shaderProgram, GL_SHADER_STORAGE_BLOCK, &name[0]);
+
+        if(blockIndex == -1)
+        {
+            Logger::LogLine(LOG_TYPE::WARNING, "Shader storage block \"" + name + "\" used in shader but not bound to draw binds");
+            continue;
+        }
 
         if(storageBufferBinds.count(name) == 0)
         {

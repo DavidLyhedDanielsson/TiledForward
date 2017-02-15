@@ -26,7 +26,7 @@ void GLBuffer::Update(const void* data, size_t size)
 
     GLBufferLock lock(this);
 
-    void* mappedBuffer = glMapBuffer(bindType, GL_WRITE_ONLY);
+    void* mappedBuffer = glMapBuffer(bindType, GL_WRITE_ONLY | GL_MAP_INVALIDATE_BUFFER_BIT);
     memcpy(mappedBuffer, data, size);
     glUnmapBuffer(bindType);
 }

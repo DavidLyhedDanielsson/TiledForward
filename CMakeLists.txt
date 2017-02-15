@@ -16,6 +16,8 @@ add_custom_target(
         ${CONTENT_DIR}/forward.frag
         ${CONTENT_DIR}/instance.vert
         ${CONTENT_DIR}/instance.frag
+        ${CONTENT_DIR}/zPrepass.vert
+        ${CONTENT_DIR}/tiles.comp
 )
 
 project(opengl)

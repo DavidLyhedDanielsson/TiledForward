@@ -281,3 +281,8 @@ std::vector<glm::vec4> PerspectiveCamera::GetFrustumCorners() const
 
 	return corners;
 }
+
+float PerspectiveCamera::GetFOVVertical() const
+{
+	return fovVertical;
+}

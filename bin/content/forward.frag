@@ -55,14 +55,16 @@ void main()
 
         lightDirection = normalize(lightDirection);
 
-        float linearFactor = 2.0f / lights[i].strength;
+        /*float linearFactor = 2.0f / lights[i].strength;
         float quadraticFactor = 1.0f / (lights[i].strength * lights[i].strength);
 
         float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
         attenuation *= max((lights[i].strength - lightDistance) / lights[i].strength, 0.0f);
 
+        finalColor += lights[i].color * diffuse * attenuation;*/
+
         float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
-        finalColor += lights[i].color * diffuse * attenuation;
+        finalColor += lights[i].color * diffuse;
     }
 
     finalColor += ambientStrength;

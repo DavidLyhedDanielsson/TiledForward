@@ -184,7 +184,7 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
 
     sphereBinds.AddShaders(contentManager
                          , GLEnums::SHADER_TYPE::VERTEX, "instance.vert"
-                         , GLEnums::SHADER_TYPE::PIXEL, "instance.frag");
+                         , GLEnums::SHADER_TYPE::FRAGMENT, "instance.frag");
 
     sphereBinds.AddUniform("viewProjectionMatrix", glm::mat4());
 

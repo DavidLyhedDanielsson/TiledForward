@@ -2,6 +2,7 @@
 #include <thread>
 #include <set>
 #include <glm/gtc/matrix_transform.hpp>
+#include <X11/Xlib.h>
 
 #include "window.h"
 #include "timer.h"
@@ -25,6 +26,8 @@
 #include "console/commandCallMethod.h"
 #include "primitiveDrawer.h"
 
+#include <glm/gtx/component_wise.hpp>
+
 class Main
 {
 public:
@@ -46,8 +49,17 @@ private:
     const static int LIGHT_COUNT = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
-    const float LIGHT_MAX_STRENGTH = 10.0f;
-    const float LIGHT_MAX_LIFETIME = 2000.0f;
+    const float LIGHT_MIN_STRENGTH = 2.5f;
+    const float LIGHT_MAX_STRENGTH = 2.5f;
+    const float LIGHT_MAX_LIFETIME = 5000.0f;
+
+    /*const float LIGHT_RANGE_X = 12.0f;
+    const float LIGHT_MAX_Z = 8.0f;
+    const float LIGHT_RANGE_Z = 8.0f;*/
+
+    const float LIGHT_RANGE_X = 0.0f;
+    const float LIGHT_MAX_Z = 0.0f;
+    const float LIGHT_RANGE_Z = 0.0f;
 
     struct Lights
     {
@@ -72,8 +84,12 @@ private:
     OBJModel* worldModel;
 
     PerspectiveCamera camera;
+    PerspectiveCamera snapshotCamera;
 
+    // Debug
     bool wireframe;
+    bool drawTiles;
+    glm::ivec2 tileToDraw;
 
     GLuint frameBufferDepthOnly;
     //GLuint depthRenderBuffer;
@@ -102,6 +118,7 @@ private:
 
     void Update(Timer& deltaTimer);
     void Render(Timer& deltaTimer);
+    void DrawTiles();
 };
 
 int main(int argc, char* argv[])
@@ -113,6 +130,8 @@ int main(int argc, char* argv[])
 Main::Main()
         : contentManager("content")
         , wireframe(false)
+        , drawTiles(false)
+        , tileToDraw(-1)
         , averageFrameTime(0.0f)
 { }
 
@@ -146,6 +165,7 @@ int Main::Run()
                                , 720
                                , 0.01f
                                , 100.0f);
+        snapshotCamera = camera;
 
         primitiveDrawer.Init(contentManager);
 
@@ -202,8 +222,8 @@ int Main::Run()
 
             frameCapTimer.Stop();
             auto time = frameCapTimer.GetTimeNanoseconds();
-            if(time < 1.0 / FRAME_CAP * 1.6e9)
-                std::this_thread::sleep_for(std::chrono::nanoseconds((int)(1.0 / FRAME_CAP * 1.6e9) - time));
+            if(time < 1.0 / FRAME_CAP * 1e9)
+                std::this_thread::sleep_for(std::chrono::nanoseconds((int)(1.0 / FRAME_CAP * 1e9) - time));
 
             Input::Update();
         }
@@ -272,6 +292,18 @@ void Main::InitConsole()
     ));
     //console.AddCommand(new CommandGetSet<float>("light_lightStrength", &worldModel->lightData.lightStrength));
     console.AddCommand(new CommandGetSet<float>("light_ambientStrength", &lightsBuffer.ambientStrength));
+
+    console.AddCommand(new CommandCallMethod("snapshot", [&](const std::vector<Argument>& args)
+            {
+                snapshotCamera = camera;
+
+                return "Camera Set";
+            }
+    ));
+
+    console.AddCommand(new CommandGetSet<bool>("drawTiles", &drawTiles));
+    console.AddCommand(new CommandGetSet<glm::ivec2>("tileToDraw", &tileToDraw));
+
 
     guiManager.AddContainer(&console);
 
@@ -361,18 +393,18 @@ void Main::InitLights()
     {
         LightData newLight;
 
-        float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 12.0f;
-        float yPos = (rand() / (float)RAND_MAX) * 8.0f + 1.0f;
-        float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 8.0f;
+        float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
+        float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Z + 1.0f;
+        float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
         newLight.position = glm::vec3(xPos, yPos, zPos);
         newLight.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
         newLight.padding = rand() / (float)RAND_MAX * LIGHT_MAX_LIFETIME;
 
         if(newLight.padding <= LIGHT_MAX_LIFETIME * 0.5f)
-            newLight.strength = (newLight.padding / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+            newLight.strength = (newLight.padding / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
         else
-            newLight.strength = ((LIGHT_MAX_LIFETIME * 0.5f - (newLight.padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+            newLight.strength = ((LIGHT_MAX_LIFETIME * 0.5f - (newLight.padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
 
         lightsBuffer.lights[i] = newLight;
     }
@@ -414,9 +446,9 @@ void Main::Update(Timer& deltaTimer)
 
         float newStrength;
         if(lightsBuffer.lights[i].padding <= LIGHT_MAX_LIFETIME * 0.5f)
-            newStrength = (lightsBuffer.lights[i].padding / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+            newStrength = (lightsBuffer.lights[i].padding / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
         else
-            newStrength = ((LIGHT_MAX_LIFETIME * 0.5f - (lightsBuffer.lights[i].padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * LIGHT_MAX_STRENGTH;
+            newStrength = ((LIGHT_MAX_LIFETIME * 0.5f - (lightsBuffer.lights[i].padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
 
 
         lightsBuffer.lights[i].strength = newStrength;
@@ -425,18 +457,40 @@ void Main::Update(Timer& deltaTimer)
         {
             lightsBuffer.lights[i].padding = 0.0f;
 
-            float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 12.0f;
-            float yPos = (rand() / (float)RAND_MAX) * 8.0f + 1.0f;
-            float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * 8.0f;
+            float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
+            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Z + 1.0f;
+            float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
             lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
             lightsBuffer.lights[i].strength = 0.0f;
             lightsBuffer.lights[i].color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
         }
 
-        primitiveDrawer.DrawSphere(lightsBuffer.lights[i].position, 0.1f, lightsBuffer.lights[i].color);
+        primitiveDrawer.DrawSphere(lightsBuffer.lights[i].position, lightsBuffer.lights[i].strength, lightsBuffer.lights[i].color);
     }
 }
+
+struct LineVertex
+{
+    glm::vec3 position;
+    glm::vec3 color;
+
+    LineVertex()
+            : position(0.0f)
+              , color(1.0f)
+    {}
+    LineVertex(glm::vec3 position)
+            : position(position)
+              , color(1.0f)
+    {}
+    LineVertex(glm::vec3 position, glm::vec3 color)
+            : position(position)
+              , color(color)
+    {}
+};
+GLVertexBuffer lineVertexBuffer;
+GLIndexBuffer lineIndexBuffer;
+GLDrawBinds lineDrawBinds;
 
 void Main::Render(Timer& deltaTimer)
 {
@@ -444,8 +498,13 @@ void Main::Render(Timer& deltaTimer)
     worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
     worldModel->drawBinds["Lights"] = lightsBuffer;
 
-    //tiles["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-    //tiles["Lights"] = lightsBuffer;
+    lineDrawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+
+    tiles["viewMatrix"] = camera.GetViewMatrix();
+    tiles["projectionMatrix"] = camera.GetProjectionMatrix();
+    tiles["projectionInverseMatrix"] = glm::inverse(camera.GetProjectionMatrix());
+    tiles["viewInverseMatrix"] = glm::inverse(camera.GetViewMatrix());
+    tiles["Lights"] = lightsBuffer;
 
     // Set states
     glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
@@ -479,21 +538,21 @@ void Main::Render(Timer& deltaTimer)
     glDisable(GL_BLEND);
 
 
-    /*tiles.Bind();
+    tiles.Bind();
 
-    glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
+    //glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
     //glUniform1i(0, 0);
 
     glBindImageTexture(1, backBufferTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
     glUniform1i(1, 1);
 
     glDispatchCompute((GLuint)std::ceil(1280 / 32.0f), (GLuint)std::ceil(720 / 32.0f), 1);
-    tiles.Unbind();*/
+    tiles.Unbind();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT , GL_NEAREST);
+    glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     //tiles.Unbind();
 
@@ -526,7 +585,137 @@ void Main::Render(Timer& deltaTimer)
     //glBindFramebuffer(GL_READ_FRAMEBUFFER, depthRenderBuffer);
     //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-    //glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    //glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);*/
+
+    //glDisable(GL_DEPTH_TEST);
+    //glDisable(GL_CULL_FACE);
+
+    std::vector<LineVertex> linePositions;
+    std::vector<GLuint> lineIndices;
+
+    const int TOP_LEFT = 0;
+    const int TOP_RIGHT = 1;
+    const int BOTTOM_RIGHT = 2;
+    const int BOTTOM_LEFT = 3;
+
+    //primitiveDrawer.DrawSphere(glm::vec3(0.0f), 0.1f, glm::vec3(1.0f));
+    primitiveDrawer.End();
+
+    if(drawTiles)
+        DrawTiles();
+
+    //if(!drawTiles)
+    //{
+        const static glm::ivec2 offsets[4] =
+                {
+                        glm::ivec2(0, 0)
+                        , glm::ivec2(1, 0)
+                        , glm::ivec2(1, 1)
+                        , glm::ivec2(0, 1)
+                };
+
+        auto startX = tileToDraw.x == -1 ? 0 : tileToDraw.x;
+        auto endX = tileToDraw.x == -1 ? 40 : tileToDraw.x + 1;
+
+        auto startY = tileToDraw.y == -1 ? 0 : tileToDraw.y;
+        auto endY = tileToDraw.y == -1 ? 23 : tileToDraw.y + 1;
+
+        for(int y = startY; y < endY; ++y)
+        {
+            for(int x = startX; x < endX; ++x)
+            {
+                const glm::ivec2 gl_WorkGroupID(x, y);
+                const glm::ivec2 gl_WorkGroupSize(32, 32);
+
+                const glm::vec2 SCREEN_SIZE(1280.0f, 720.0f);
+
+                glm::vec3 viewPositions[4];
+
+                glm::mat4 projectionInverseMatrix = glm::inverse(snapshotCamera.GetProjectionMatrix());
+                glm::mat4 viewInverseMatrix = glm::inverse(snapshotCamera.GetViewMatrix());
+
+                for(int i = 0; i < 4; ++i)
+                {
+                    glm::vec3 ndcPosition = glm::vec3(glm::vec2((gl_WorkGroupID + offsets[i]) * gl_WorkGroupSize)
+                                                      / SCREEN_SIZE, 1.0f);
+                    ndcPosition.x *= 2.0f;
+                    ndcPosition.x -= 1.0f;
+                    ndcPosition.y *= -2.0f;
+                    ndcPosition.y += 1.0f;
+
+                    glm::vec4 unprojectedPosition = projectionInverseMatrix * glm::vec4(ndcPosition, 1.0f);
+                    unprojectedPosition /= unprojectedPosition.w;
+
+                    viewPositions[i] = glm::vec3(unprojectedPosition);
+                }
+
+                auto CreatePlane = [](glm::vec3 far0, glm::vec3 far1) -> glm::vec4
+                {
+                    glm::vec3 planeABC;
+                    planeABC = normalize(cross(far0, far1));
+                    float dist = dot(far0, planeABC);
+
+                    return glm::vec4(planeABC, dist);
+                };
+
+                const int PLANE_TOP = 0;
+                const int PLANE_BOTTOM = 1;
+                const int PLANE_LEFT = 2;
+                const int PLANE_RIGHT = 3;
+
+                glm::vec4 planes[4];
+                planes[PLANE_TOP] = CreatePlane(viewPositions[TOP_LEFT], viewPositions[TOP_RIGHT]);
+                planes[PLANE_BOTTOM] = CreatePlane(viewPositions[BOTTOM_RIGHT], viewPositions[BOTTOM_LEFT]);
+                planes[PLANE_RIGHT] = CreatePlane(viewPositions[TOP_RIGHT], viewPositions[BOTTOM_RIGHT]);
+                planes[PLANE_LEFT] = CreatePlane(viewPositions[BOTTOM_LEFT], viewPositions[TOP_LEFT]);
+
+                glm::vec3 zeroPos = glm::vec3(snapshotCamera.GetViewMatrix() * glm::vec4(lightsBuffer.lights[0].position, 1.0f));
+
+                bool inside = true;
+                for(int i = 0; i < 4; ++i)
+                {
+                    float dist = glm::dot(zeroPos, glm::vec3(planes[i])) + planes[i].w;
+                    if(dist > lightsBuffer.lights[0].strength)
+                        inside = false;
+                }
+
+                if(inside)
+                {
+
+                    if(zeroPos.z < 0)
+                        inside = false;
+                }
+
+                glm::vec3 colors[4];
+                colors[PLANE_TOP] = glm::vec3(0.0f, 1.0f, 0.0f);
+                colors[PLANE_BOTTOM] = glm::vec3(0.0f, 0.0f, 1.0f);
+                colors[PLANE_LEFT] = glm::vec3(1.0f, 1.0f, 0.0f);
+                colors[PLANE_RIGHT] = glm::vec3(1.0f, 0.0f, 0.0f);
+
+                if(inside)
+                for(int i = 0; i < 4; ++i)
+                {
+                    glm::vec3 eye(viewInverseMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    glm::vec3 target(viewInverseMatrix * glm::vec4(glm::vec3(viewPositions[i]), 1.0f));
+
+                    glm::vec3 color = inside ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+
+                    linePositions.push_back(LineVertex(eye, color));
+                    linePositions.push_back(LineVertex(target, color));
+
+                    lineIndices.push_back(lineIndices.size());
+                    lineIndices.push_back(lineIndices.size());
+                }
+            }
+        }
+    //}
+
+    lineVertexBuffer.Update(linePositions.data(), linePositions.size() * sizeof(linePositions[0]));
+    lineIndexBuffer.Update(lineIndices);
+
+    lineDrawBinds.Bind();
+    lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
+    lineDrawBinds.Unbind();
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
@@ -539,40 +728,53 @@ void Main::Render(Timer& deltaTimer)
 
     guiManager.Draw(&spriteRenderer);
 
-    spriteRenderer.End();*/
+    spriteRenderer.End();
 
     window.SwapBuffers();
 }
 
 bool Main::InitFrameBuffers()
 {
-    //tiles.AddUniform("viewProjectionMatrix", glm::mat4());
-    //tiles.AddUniform("worldMatrix", glm::scale(glm::mat4(), glm::vec3(0.01f)));
+    lineVertexBuffer.Init<glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, 8192);
+    lineIndexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, 8192 * 2);
+
+    lineDrawBinds.AddBuffers(&lineVertexBuffer, &lineIndexBuffer);
+    lineDrawBinds.AddShaders(contentManager
+                             , GLEnums::SHADER_TYPE::VERTEX, "line.vert"
+                             , GLEnums::SHADER_TYPE::FRAGMENT, "line.frag");
+    lineDrawBinds.AddUniform("viewProjectionMatrix", glm::mat4());
+    lineDrawBinds.Init();
+
+    tiles.AddUniform("viewMatrix", glm::mat4());
+    tiles.AddUniform("projectionMatrix", glm::mat4());
+    tiles.AddUniform("projectionInverseMatrix", glm::mat4());
+    tiles.AddUniform("viewInverseMatrix", glm::mat4());
+    tiles.AddUniform("worldMatrix", glm::scale(glm::mat4(), glm::vec3(0.01f)));
     tiles.AddShaders(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "tiles.comp");
     tiles.Init();
 
     // Depth buffer
     glGenTextures(1, &depthBufferTexture);
-    glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, 1280, 720, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, 1280, 720);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 8, GL_DEPTH_COMPONENT32, 1280, 720, GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 
     // Back buffer
     glGenTextures(1, &backBufferTexture);
-    glBindTexture(GL_TEXTURE_2D, backBufferTexture);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, backBufferTexture);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1280, 720);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 8 , GL_RGBA8, 1280, 720, GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 
     glGenFramebuffers(1, &frameBufferDepthOnly);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBufferTexture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, backBufferTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, backBufferTexture, 0);
 
     GLenum error = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if(error != GL_FRAMEBUFFER_COMPLETE)
@@ -580,10 +782,81 @@ bool Main::InitFrameBuffers()
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    auto err = glGetError();
+
     return error == GL_FRAMEBUFFER_COMPLETE;
 }
 
 void Main::InitQuieries()
 {
     glGenQueries(2, queries);
+}
+
+void Main::DrawTiles()
+{
+    std::vector<LineVertex> linePositions;
+    std::vector<GLuint> lineIndices;
+
+    const static glm::ivec2 offsets[4] =
+            {
+                    glm::ivec2(0, 0)
+                    , glm::ivec2(1, 0)
+                    , glm::ivec2(1, 1)
+                    , glm::ivec2(0, 1)
+            };
+
+    auto startX = tileToDraw.x == -1 ? 0 : tileToDraw.x;
+    auto endX = tileToDraw.x == -1 ? 40 : tileToDraw.x + 1;
+
+    auto startY = tileToDraw.y == -1 ? 0 : tileToDraw.y;
+    auto endY = tileToDraw.y == -1 ? 23 : tileToDraw.y + 1;
+
+    for(int y = startY; y < endY; ++y)
+    {
+        for(int x = startX; x < endX; ++x)
+        {
+            const glm::ivec2 gl_WorkGroupID(x, y);
+            const glm::ivec2 gl_WorkGroupSize(32, 32);
+
+            const glm::vec2 SCREEN_SIZE(1280.0f, 720.0f);
+
+            glm::vec3 viewPositions[4];
+
+            glm::mat4 projectionInverseMatrix = glm::inverse(snapshotCamera.GetProjectionMatrix());
+            glm::mat4 viewInverseMatrix = glm::inverse(snapshotCamera.GetViewMatrix());
+
+            for(int i = 0; i < 4; ++i)
+            {
+                glm::vec3 ndcPosition = glm::vec3(glm::vec2((gl_WorkGroupID + offsets[i]) * gl_WorkGroupSize) / SCREEN_SIZE, 1.0f);
+                ndcPosition.x *= 2.0f;
+                ndcPosition.x -= 1.0f;
+                ndcPosition.y *= -2.0f;
+                ndcPosition.y += 1.0f;
+
+                glm::vec4 unprojectedPosition = projectionInverseMatrix * glm::vec4(ndcPosition, 1.0f);
+                unprojectedPosition /= unprojectedPosition.w;
+
+                viewPositions[i] = glm::vec3(unprojectedPosition);
+            }
+
+            for(int i = 0; i < 4; ++i)
+            {
+                glm::vec3 eye(viewInverseMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                glm::vec3 target(viewInverseMatrix * glm::vec4(viewPositions[i], 1.0f));
+
+                linePositions.push_back(LineVertex(eye));
+                linePositions.push_back(LineVertex(target));
+
+                lineIndices.push_back(lineIndices.size());
+                lineIndices.push_back(lineIndices.size());
+            }
+        }
+    }
+
+    lineVertexBuffer.Update(linePositions.data(), linePositions.size() * sizeof(linePositions[0]));
+    lineIndexBuffer.Update(lineIndices);
+
+    lineDrawBinds.Bind();
+    lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
+    lineDrawBinds.Unbind();
 }

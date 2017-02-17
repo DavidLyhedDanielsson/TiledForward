@@ -211,7 +211,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     // Normal draw binds
     if(!drawBinds.AddShaders(*contentManager
                              , GLEnums::SHADER_TYPE::VERTEX, "forward.vert"
-                             , GLEnums::SHADER_TYPE::PIXEL, "forward.frag"))
+                             , GLEnums::SHADER_TYPE::FRAGMENT, "forward.frag"))
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
     GLInputLayout vertexBufferLayout;

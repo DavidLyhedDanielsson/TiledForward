@@ -159,6 +159,8 @@ public:
 	float GetYaw() const;
 
 	std::vector<glm::vec4> GetFrustumCorners() const;
+
+	float GetFOVVertical() const;
 protected:
 	float aspectRatio;
 	float fovVertical;

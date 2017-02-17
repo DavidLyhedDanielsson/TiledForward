@@ -589,6 +589,37 @@ inline bool operator>>(const glm::vec2& lhs, Argument& rhs)
 	return true;
 }
 
+inline bool operator>>(const Argument& lhs, glm::ivec2& rhs)
+{
+	std::vector<std::string> values = SplitAtComma(lhs.value);
+
+	if(values.size() < 2)
+	{
+		//Pad with 0
+		int i = 0;
+		for(int end = std::min(static_cast<int>(values.size()), 2); i < end; ++i)
+			*(&rhs.x + i) = std::stoi(values[i]);
+
+		for(; i < 2; ++i)
+			*(&rhs.x + i) = 0;
+	}
+	else
+	{
+		rhs.x = std::stoi(values[0]);
+		rhs.y = std::stoi(values[1]);
+	}
+
+	return true;
+}
+
+inline bool operator>>(const glm::ivec2& lhs, Argument& rhs)
+{
+	rhs.type = Argument::TYPE::UNKNOWN;
+	rhs.value = std::to_string(lhs.x) + ", " + std::to_string(lhs.y);
+
+	return true;
+}
+
 inline bool operator>>(const Argument& lhs, glm::vec3& rhs)
 {
 	std::vector<std::string> values = SplitAtComma(lhs.value);

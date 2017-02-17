@@ -54,7 +54,7 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 	//////////////////////////////////////////////////////////////////////////
     drawBinds.AddShaders(contentManager
                      , GLEnums::SHADER_TYPE::VERTEX, "spriteVertex.glsl"
-                     , GLEnums::SHADER_TYPE::PIXEL, "spritePixel.glsl");
+                     , GLEnums::SHADER_TYPE::FRAGMENT, "spritePixel.glsl");
 
     drawBinds.AddBuffers(&vertexBuffer, &indexBuffer);
 

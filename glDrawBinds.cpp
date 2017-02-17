@@ -225,12 +225,21 @@ bool GLDrawBinds::CreateShaderProgram()
                 GLuint location = (GLuint)glGetAttribLocation(shaderProgram, attributes[i].name.c_str());
 
                 glEnableVertexAttribArray(location);
-                glVertexAttribPointer(location
-                                      , attributes[i].size * GetNumberOfFloats(attributes[i].type)
-                                      , GL_FLOAT
-                                      , GL_FALSE
-                                      , vertexBuffers[0]->GetStride()
-                                      , (void*)vertexBuffers[0]->GetOffsets()[location]);
+
+                if(vertexBuffers[0]->GetOffsets().empty())
+                    glVertexAttribPointer(location
+                                          , attributes[i].size * GetNumberOfFloats(attributes[i].type)
+                                          , GL_FLOAT
+                                          , GL_FALSE
+                                          , 0
+                                          , 0);
+                else
+                    glVertexAttribPointer(location
+                                          , attributes[i].size * GetNumberOfFloats(attributes[i].type)
+                                          , GL_FLOAT
+                                          , GL_FALSE
+                                          , vertexBuffers[0]->GetStride()
+                                          , (void*)vertexBuffers[0]->GetOffsets()[location]);
             }
         }
         else
@@ -341,7 +350,7 @@ bool GLDrawBinds::CheckRequirements() const
             case GLEnums::SHADER_TYPE::GEOMETRY:
                 geometryBound = true;
                 break;
-            case GLEnums::SHADER_TYPE::PIXEL:
+            case GLEnums::SHADER_TYPE::FRAGMENT:
                 pixelBound = true;
                 break;
             case GLEnums::SHADER_TYPE::COMPUTE:
@@ -748,7 +757,7 @@ std::string GLDrawBinds::ToString() const
 
                 (geometryShader += pair.second->GetPath()) += ", ";
                 break;
-            case GLEnums::SHADER_TYPE::PIXEL:
+            case GLEnums::SHADER_TYPE::FRAGMENT:
                 if(pixelShader.empty())
                     pixelShader = "Pixel shaders: ";
 
@@ -818,9 +827,13 @@ GLVariable GLDrawBinds::operator[](const std::string& name)
     else if(storageBufferBinds.count(name) != 0)
         return GLVariable(this, storageBufferBinds[name].get());
 
-
-    Logger::LogLine(LOG_TYPE::DEBUG, "Trying to get uniform \""
+    if(alreadyWarned.count(name) == 0)
+    {
+        Logger::LogLine(LOG_TYPE::DEBUG, "Trying to get uniform \""
                                          + name
-                                         + "\" which doesn't exist! Did you forget to call AddUniform?");
+                + "\" which doesn't exist! Did you forget to call AddUniform?");
+
+        alreadyWarned.insert(name);
+    }
     return GLVariable();
 }

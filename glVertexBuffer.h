@@ -60,7 +60,13 @@ public:
 protected:
     template<typename First>
     void AddOffsets(std::vector<size_t>& offsets)
-    { }
+    {
+        //Only one element => no offsets needed?
+        /*if(offsets.size() == 0)
+            offsets.push_back(0);
+
+        offsets.push_back(offsets.back() + sizeof(First));*/
+    }
 
     template<typename First, typename Second, typename... Rest>
     void AddOffsets(std::vector<size_t>& offsets)

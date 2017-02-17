@@ -1,9 +1,12 @@
 #version 450 core
 
 layout(location = 0) uniform sampler2D inImage;
-layout(location = 1, rgba8) uniform image2D outImage;
+layout(location = 1, rgba8) uniform image2DMS outImage;
 
-/*uniform mat4 viewProjectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 projectionInverseMatrix;
+uniform mat4 viewInverseMatrix;
 
 struct LightData
 {
@@ -22,46 +25,97 @@ layout (std140) buffer Lights
 
 shared int lightCount;
 
-bool PointInWorkGroup(uvec2 workGroup, uvec2 workGroupSize, vec2 point)
+const vec2 SCREEN_SIZE = vec2(1280.0f, 720.0f);
+
+const int PLANE_TOP = 0;
+const int PLANE_BOTTOM = 1;
+const int PLANE_LEFT = 2;
+const int PLANE_RIGHT = 3;
+
+vec4 CreatePlane(vec3 far0, vec3 far1)
 {
-    return point.x >= workGroup.x * workGroupSize.x
-            && point.x < (workGroup.x + 1) * workGroupSize.x
-            && point.y >= workGroup.y * workGroupSize.y
-            && point.y < (workGroup.y + 1) * workGroupSize.y;
-}*/
+    vec3 planeABC;
+    planeABC = normalize(cross(far0, far1));
+    float dist = dot(far0, planeABC);
+
+    return vec4(planeABC, dist);
+}
 
 layout(local_size_x = 32, local_size_y = 32) in;
 void main()
 {
-    //vec4 inBuffer = imageLoad(inImage, ivec2(gl_GlobalInvocationID));
-    //vec2 texCoords = vec2(gl_GlobalInvocationID.x / 1280.0f, gl_GlobalInvocationID.y / 720.0f);
-    //vec4 inBuffer = texture(inImage, texCoords);
-
-    //if(inBuffer.x > 0.9999f)
-    //    imageStore(outImage, ivec2(gl_GlobalInvocationID), vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    //imageStore(outImage, ivec2(gl_GlobalInvocationID), vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    /*if(gl_LocalInvocationIndex == 0)
+    if(gl_LocalInvocationIndex == 0)
         lightCount = 0;
 
     barrier();
 
     for(uint i = gl_LocalInvocationIndex; i < lights.length(); i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
+    //for(uint i = 0; i < lights.length(); i++)
     {
-        vec4 currentLightPosition = viewProjectionMatrix * vec4(lights[i].position, 1.0f);
-        currentLightPosition /= currentLightPosition.w;
+        LightData light = lights[i];
 
-        if(currentLightPosition.z < -1.0f || currentLightPosition.z > 1.0f)
-            continue;
+        const int TOP_LEFT = 3;
+        const int TOP_RIGHT = 2;
+        const int BOTTOM_RIGHT = 1;
+        const int BOTTOM_LEFT = 0;
 
-        vec2 texCoords = (currentLightPosition.xy + 1.0f) * 0.5f;
-        ivec2 imageCoords = ivec2(texCoords.x * 1280, texCoords.y * 720);
+        const ivec2 offsets[4] =
+        {
+            ivec2(0, 0)
+            , ivec2(1, 0)
+            , ivec2(1, 1)
+            , ivec2(0, 1)
+        };
 
-        if(PointInWorkGroup(gl_WorkGroupID.xy, gl_WorkGroupSize.xy, imageCoords))
+        vec3 viewPositions[4];
+
+        for(int j = 0; j < 4; ++j)
+        {
+            vec3 ndcPosition = vec3(vec2((gl_WorkGroupID.xy + offsets[j]) * gl_WorkGroupSize.xy)
+                                              / SCREEN_SIZE, 1.0f);
+            ndcPosition.x *= 2.0f;
+            ndcPosition.x -= 1.0f;
+            ndcPosition.y *= 2.0f;
+            ndcPosition.y -= 1.0f;
+
+            vec4 unprojectedPosition = projectionInverseMatrix * vec4(ndcPosition, 1.0f);
+            unprojectedPosition /= unprojectedPosition.w;
+
+            viewPositions[j] = vec3(unprojectedPosition);
+        }
+
+        vec4 planes[4];
+        planes[PLANE_TOP] = CreatePlane(viewPositions[TOP_LEFT], viewPositions[TOP_RIGHT]);
+        planes[PLANE_BOTTOM] = CreatePlane(viewPositions[BOTTOM_RIGHT], viewPositions[BOTTOM_LEFT]);
+        planes[PLANE_RIGHT] = CreatePlane(viewPositions[TOP_RIGHT], viewPositions[BOTTOM_RIGHT]);
+        planes[PLANE_LEFT] = CreatePlane(viewPositions[BOTTOM_LEFT], viewPositions[TOP_LEFT]);
+
+        vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
+
+        bool inside = true;
+        for(int j = 0; j < 4; ++j)
+        {
+            float dist = dot(zeroPos, vec3(planes[j])) + planes[j].w;
+            if(dist > light.strength)
+                inside = false;
+        }
+
+        if(inside)
+        {
+            if(zeroPos.z < 0)
+                inside = false;
+        }
+
+        if(inside)
             atomicAdd(lightCount, 1);
     }
 
     barrier();
 
+    //for(int j = 0; j < 8; ++j)
+    //            imageStore(outImage, ivec2(gl_GlobalInvocationID), j, vec4(1.0f));
+
     if(lightCount > 0)
-        imageStore(outImage, ivec2(gl_GlobalInvocationID), vec4(lightCount / 4.0f, lightCount / 4.0f, lightCount / 4.0f, 1.0f));*/
+        for(int i = 0; i < 8; ++i)
+            imageStore(outImage, ivec2(gl_GlobalInvocationID), i, vec4(1.0f));
 }

@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <set>
 
 #include "glEnums.h"
 #include "glShader.h"
@@ -183,6 +184,8 @@ private:
     std::map<std::string, std::unique_ptr<GLUniformBase>> uniformBinds;
     std::map<std::string, std::unique_ptr<GLUniformBuffer>> uniformBufferBinds;
     std::map<std::string, std::unique_ptr<GLShaderStorageBuffer>> storageBufferBinds;
+
+    std::set<std::string> alreadyWarned;
 
     // Recursive template termination
     void AddShaders()

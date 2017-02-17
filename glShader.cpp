@@ -36,7 +36,7 @@ bool GLShader::CreateDefaultContent(const char* filePath, ContentManager* conten
     switch(shaderType)
     {
         case GLEnums::SHADER_TYPE::VERTEX:
-        case GLEnums::SHADER_TYPE::PIXEL:
+        case GLEnums::SHADER_TYPE::FRAGMENT:
             shaderSource = "void main() { }";
             break;
         case GLEnums::SHADER_TYPE::TESS_CONTROL: // TODO: Implement these

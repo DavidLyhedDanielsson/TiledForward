@@ -67,6 +67,9 @@ OSWindow::CREATE_WINDOW_ERROR OSWindow::Create(unsigned int width, unsigned int 
 #endif // _WIN32
 
 #ifdef GL_ERROR_CALLBACK
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
     if(glDebugMessageCallback)
     {
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
@@ -308,6 +311,12 @@ static bool ctxErrorOccurred = false;
 static int ctxErrorHandler(Display* display, XErrorEvent* event)
 {
     ctxErrorOccurred = true;
+
+    char buffer[2048];
+    XGetErrorText(display, event->error_code, buffer, 2048);
+
+    Logger::LogLine(LOG_TYPE::FATAL, std::string(buffer));
+
     return 0;
 }
 
@@ -340,7 +349,7 @@ OSWindow::CREATE_WINDOW_ERROR OSWindow::CreateXWindow()
 
     XStoreName(display, window, "OpenGL Window");
 
-    context = CreateContext(fbConfig, nullptr);
+    context = CreateContext(fbConfig);
     if(ctxErrorOccurred || context == nullptr)
     {
         CleanUp();
@@ -349,7 +358,7 @@ OSWindow::CREATE_WINDOW_ERROR OSWindow::CreateXWindow()
 
     glXMakeCurrent(display, window, context);
 
-    if(glewInit() != GLEW_OK)
+    if(gl3wInit() != 0)
     {
         CleanUp();
         return WELL_SHIT;
@@ -394,7 +403,7 @@ void OSWindow::CreateXWindow(Window& window, Colormap& colormap, GLXFBConfig fbC
     XSetWindowAttributes windowAttributes;
     colormap = XCreateColormap(display, RootWindow(display, visualInfo->screen), visualInfo->visual, AllocNone);
     windowAttributes.border_pixel = 0;
-    windowAttributes.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask;
+    windowAttributes.event_mask = ExposureMask | StructureNotifyMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask;
     windowAttributes.colormap = colormap;
     windowAttributes.background_pixmap = None;
 
@@ -414,15 +423,17 @@ void OSWindow::CreateXWindow(Window& window, Colormap& colormap, GLXFBConfig fbC
     XFree(visualInfo);
 }
 
-GLXContext OSWindow::CreateContext(GLXFBConfig fbConfig, GLXContext to_be_shared_context)
+GLXContext OSWindow::CreateContext(GLXFBConfig fbConfig)
 {
     int (* oldHandler)(Display*, XErrorEvent*) = XSetErrorHandler(&ctxErrorHandler);
 
     int contextAttributes[] =
             {
-                    GLX_CONTEXT_MAJOR_VERSION_ARB, 3
-                    , GLX_CONTEXT_MINOR_VERSION_ARB, 0
+                    GLX_CONTEXT_MAJOR_VERSION_ARB, 4
+                    , GLX_CONTEXT_MINOR_VERSION_ARB, 5
+#ifndef NDEBUG
                     , GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB
+#endif // NDEBUG
                     , None
             };
 
@@ -430,7 +441,7 @@ GLXContext OSWindow::CreateContext(GLXFBConfig fbConfig, GLXContext to_be_shared
     glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB(
             (const GLubyte*)"glXCreateContextAttribsARB");
 
-    GLXContext context = glXCreateContextAttribsARB(display, fbConfig, to_be_shared_context, True, contextAttributes);
+    GLXContext context = glXCreateContextAttribsARB(display, fbConfig, nullptr, True, contextAttributes);
     XSync(display, False);
 
     if(ctxErrorOccurred)
@@ -497,6 +508,11 @@ void OSWindow::RegisterFocusLossCallback(std::function<void()> callback)
 void OSWindow::RegisterFocusGainCallback(std::function<void()> callback)
 {
     focusGainCallback = callback;
+}
+
+void OSWindow::RegisterWindowSizeChangeCallback(std::function<void(int, int)> callback)
+{
+    windowSizeChangeCallback = callback;
 }
 
 void OSWindow::CleanUp()
@@ -578,12 +594,28 @@ bool OSWindow::PollEvents()
                     focusGainCallback();
 
                 paused = false;
+
+                if(width != resizedWidth
+                        || height != resizedHeight)
+                {
+                    if(windowSizeChangeCallback != nullptr)
+                    {
+                        windowSizeChangeCallback(resizedWidth, resizedHeight);
+
+                        width = resizedWidth;
+                        height = resizedHeight;
+                    }
+                }
                 break;
             case FocusOut:
                 if(focusLossCallback != nullptr)
                     focusLossCallback();
 
                 paused = true;
+                break;
+            case ConfigureNotify:
+                resizedWidth = (unsigned int)event.xconfigure.width;
+                resizedHeight = (unsigned int)event.xconfigure.height;
                 break;
             default:
                 break;

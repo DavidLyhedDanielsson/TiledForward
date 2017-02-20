@@ -4,7 +4,7 @@
 #include "content.h"
 #include "glEnums.h"
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 struct TextureCreationParameters
 	: public ContentCreationParameters

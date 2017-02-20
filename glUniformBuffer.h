@@ -5,7 +5,7 @@
 #include <cstring>
 #include <map>
 #include <vector>
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <memory>
 
 #include "logger.h"

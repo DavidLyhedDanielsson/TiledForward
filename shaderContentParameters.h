@@ -19,6 +19,8 @@ struct ShaderContentParameters
     {}
 
     GLEnums::SHADER_TYPE type;
+
+    std::vector<std::pair<std::string, std::string>> variables;
 };
 
 #endif //SHADERCONTENTPARAMETERS_H

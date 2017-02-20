@@ -49,8 +49,8 @@ private:
     const static int LIGHT_COUNT = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
-    const float LIGHT_MIN_STRENGTH = 2.5f;
-    const float LIGHT_MAX_STRENGTH = 2.5f;
+    const float LIGHT_MIN_STRENGTH = 5.0f;
+    const float LIGHT_MAX_STRENGTH = 5.0f;
     const float LIGHT_MAX_LIFETIME = 5000.0f;
 
     /*const float LIGHT_RANGE_X = 12.0f;
@@ -60,6 +60,15 @@ private:
     const float LIGHT_RANGE_X = 0.0f;
     const float LIGHT_MAX_Z = 0.0f;
     const float LIGHT_RANGE_Z = 0.0f;
+
+    const static int DEFAULT_SCREEN_WIDTH = 1280;
+    const static int DEFAULT_SCREEN_HEIGHT = 720;
+
+    int screenWidth = DEFAULT_SCREEN_WIDTH;
+    int screenHeight = DEFAULT_SCREEN_HEIGHT;
+
+    int WORK_GROUP_WIDTH = 16;
+    int WORK_GROUP_HEIGHT = 16;
 
     struct Lights
     {
@@ -109,6 +118,8 @@ private:
 
     GLuint queries[2];
 
+    int msaaCount;
+
     int InitContent();
     void InitConsole();
     void InitInput();
@@ -119,6 +130,7 @@ private:
     void Update(Timer& deltaTimer);
     void Render(Timer& deltaTimer);
     void DrawTiles();
+    bool ResizeFramebuffer(int width, int height, bool recreateBuffers);
 };
 
 int main(int argc, char* argv[])
@@ -129,10 +141,13 @@ int main(int argc, char* argv[])
 
 Main::Main()
         : contentManager("content")
-        , wireframe(false)
-        , drawTiles(false)
-        , tileToDraw(-1)
-        , averageFrameTime(0.0f)
+          , wireframe(false)
+          , drawTiles(false)
+          , tileToDraw(-1)
+          , averageFrameTime(0.0f)
+          , msaaCount(2)
+          , depthBufferTexture(0)
+          , backBufferTexture(0)
 { }
 
 float currentFrameTime = 0.0f;
@@ -143,12 +158,8 @@ int Main::Run()
 
     // TODO: Fix rename of index to blockIndex, e.g. "Used for index rounding" -> "Used for blockIndex rounding"
 
-    if(window.Create(1280, 720) == OSWindow::NONE)
+    if(window.Create((unsigned int)screenWidth, (unsigned int)screenHeight) == OSWindow::NONE)
     {
-        glewExperimental = true;
-        if(glewInit() != GLEW_OK)
-            return 1;
-
         if(!InitFrameBuffers())
             return 2;
         InitInput();
@@ -161,8 +172,8 @@ int Main::Run()
         camera.InitFovVertical({0.0f, 0.0f, -5.0f}
                                , {0.0f, 0.0f, 0.0f}
                                , glm::half_pi<float>()
-                               , 1280
-                               , 720
+                               , screenWidth
+                               , screenHeight
                                , 0.01f
                                , 100.0f);
         snapshotCamera = camera;
@@ -237,7 +248,7 @@ int Main::Run()
 int Main::InitContent()
 {
     // Creates "whiteTexture", so should be first
-    if(!spriteRenderer.Init(contentManager, 1280, 720))
+    if(!spriteRenderer.Init(contentManager, screenWidth, screenHeight))
     {
         Logger::LogLine(LOG_TYPE::FATAL, "Couldn't initialize sprite renderer");
         return 1;
@@ -252,7 +263,14 @@ int Main::InitContent()
 
 void Main::InitConsole()
 {
-    console.Init(&contentManager, Rect(0.0f, 0.0f, 1280.0f, 360.0f), console.GenerateDoomStyle(&contentManager, characterSet), console.GenerateDoomStyleBackgroundStyle(&contentManager), false, false, false, false);
+    console.Init(&contentManager
+                 , Rect(0.0f, 0.0f, screenWidth, screenHeight / 2.0f)
+                 , console.GenerateDoomStyle(&contentManager, characterSet)
+                 , console.GenerateDoomStyleBackgroundStyle(&contentManager)
+                 , false
+                 , false
+                 , false
+                 , false);
     console.Autoexec();
     console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
 
@@ -304,17 +322,30 @@ void Main::InitConsole()
     console.AddCommand(new CommandGetSet<bool>("drawTiles", &drawTiles));
     console.AddCommand(new CommandGetSet<glm::ivec2>("tileToDraw", &tileToDraw));
 
+    console.AddCommand(new CommandCallMethod("msaaCount"
+                                             , [&](const std::vector<Argument>& args)
+            {
+                if(args.size() != 1)
+                    return Argument("Needs 1 parameter");
+
+                msaaCount = std::stoi(args.front().value);
+
+                ResizeFramebuffer(screenWidth, screenHeight, true);
+
+                return Argument("msaaCount set to " + std::to_string(msaaCount));
+            }
+    ));
 
     guiManager.AddContainer(&console);
 
-    /*Logger::SetCallOnLog(
+    Logger::SetCallOnLog(
             [&](std::string text)
             {
                 if(text.back() == '\n')
                     text.pop_back();
 
                 console.AddText(text);
-            });*/
+            });
 }
 
 void Main::InitInput()
@@ -333,7 +364,7 @@ void Main::InitInput()
                     {
                         if(console.GetActive())
                         {
-                            Input::LockCursor(1280 / 2, 720 / 2);
+                            Input::LockCursor(screenWidth / 2, screenHeight / 2);
                             console.Deactivate();
                         }
                         else
@@ -372,13 +403,28 @@ void Main::InitInput()
             [&]()
             {
                 if(!console.GetActive())
-                    Input::LockCursor(1280 / 2, 720 / 2);
+                    Input::LockCursor(screenWidth / 2, screenHeight / 2);
             });
 
     window.RegisterFocusLossCallback(
             [&]()
             {
                 Input::LockCursor(-1, -1);
+            });
+
+    window.RegisterWindowSizeChangeCallback(
+            [&](int width, int height)
+            {
+                screenWidth = width;
+                screenHeight = height;
+
+                spriteRenderer.SetScreenSize(screenWidth, screenHeight);
+                console.SetSize(screenWidth, screenHeight / 2);
+                camera.SetPerspectiveVertical(camera.GetFOVVertical(), screenWidth, screenHeight, camera.GetNearPlane(), camera.GetFarPlane());
+
+                ResizeFramebuffer(width, screenHeight, msaaCount);
+
+                glViewport(0, 0, screenWidth, screenHeight);
             });
 
     Input::Update();
@@ -523,36 +569,33 @@ void Main::Render(Timer& deltaTimer)
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    // Do z-prepass
-    //tiles.Bind();
+    //primitiveDrawer.sphereBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+    //worldModel->DrawZPrepass(camera.GetPosition());
+
     worldModel->DrawOpaque(camera.GetPosition());
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    glDepthMask(GL_FALSE);
-
-    worldModel->DrawTransparent(camera.GetPosition());
-
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-
 
     tiles.Bind();
 
     //glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
     //glUniform1i(0, 0);
 
-    glBindImageTexture(1, backBufferTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-    glUniform1i(1, 1);
+    //glActiveTexture(GL_TEXTURE0);
+    glBindImageTexture(0, backBufferTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
+    //glUniform1i(0, 0);
 
-    glDispatchCompute((GLuint)std::ceil(1280 / 32.0f), (GLuint)std::ceil(720 / 32.0f), 1);
+    //glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
+    //glUniform1i(1, 1);
+
+    glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
     tiles.Unbind();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+    //glActiveTexture(GL_TEXTURE0);
 
     //tiles.Unbind();
 
@@ -590,7 +633,7 @@ void Main::Render(Timer& deltaTimer)
     //glDisable(GL_DEPTH_TEST);
     //glDisable(GL_CULL_FACE);
 
-    std::vector<LineVertex> linePositions;
+    /*std::vector<LineVertex> linePositions;
     std::vector<GLuint> lineIndices;
 
     const int TOP_LEFT = 0;
@@ -600,9 +643,6 @@ void Main::Render(Timer& deltaTimer)
 
     //primitiveDrawer.DrawSphere(glm::vec3(0.0f), 0.1f, glm::vec3(1.0f));
     primitiveDrawer.End();
-
-    if(drawTiles)
-        DrawTiles();
 
     //if(!drawTiles)
     //{
@@ -715,7 +755,10 @@ void Main::Render(Timer& deltaTimer)
 
     lineDrawBinds.Bind();
     lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
-    lineDrawBinds.Unbind();
+    lineDrawBinds.Unbind();*/
+
+    if(drawTiles)
+        DrawTiles();
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
@@ -723,8 +766,8 @@ void Main::Render(Timer& deltaTimer)
     spriteRenderer.Begin();
 
     std::string frameString = std::to_string(averageFrameTime) + " [" + std::to_string(lastMinFrameTime) + ";" + std::to_string(lastMaxFrameTime) + " ]";
-    spriteRenderer.DrawString(characterSet, frameString, glm::vec2(0.0f, 720 - 48));
-    spriteRenderer.DrawString(characterSet, std::to_string(currentFrameTime), glm::vec2(0.0f, 720 - 24));
+    spriteRenderer.DrawString(characterSet, frameString, glm::vec2(0.0f, screenHeight - 48));
+    spriteRenderer.DrawString(characterSet, std::to_string(currentFrameTime), glm::vec2(0.0f, screenHeight - 24));
 
     guiManager.Draw(&spriteRenderer);
 
@@ -735,8 +778,10 @@ void Main::Render(Timer& deltaTimer)
 
 bool Main::InitFrameBuffers()
 {
-    lineVertexBuffer.Init<glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, 8192);
-    lineIndexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, 8192 * 2);
+    const static int MAX_LINES = 1024 * 8;
+
+    lineVertexBuffer.Init<glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, sizeof(LineVertex) * MAX_LINES * 2);
+    lineIndexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, sizeof(LineVertex) * MAX_LINES * 2 * 2);
 
     lineDrawBinds.AddBuffers(&lineVertexBuffer, &lineIndexBuffer);
     lineDrawBinds.AddShaders(contentManager
@@ -750,31 +795,21 @@ bool Main::InitFrameBuffers()
     tiles.AddUniform("projectionInverseMatrix", glm::mat4());
     tiles.AddUniform("viewInverseMatrix", glm::mat4());
     tiles.AddUniform("worldMatrix", glm::scale(glm::mat4(), glm::vec3(0.01f)));
-    tiles.AddShaders(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "tiles.comp");
+
+    ShaderContentParameters parameters;
+    parameters.type = GLEnums::SHADER_TYPE::COMPUTE;
+    parameters.variables.push_back(std::make_pair("WORK_GROUP_WIDTH", std::to_string(WORK_GROUP_WIDTH)));
+    parameters.variables.push_back(std::make_pair("WORK_GROUP_HEIGHT", std::to_string(WORK_GROUP_HEIGHT)));
+    tiles.AddShaders(contentManager, parameters, "tiles.comp");
     tiles.Init();
 
-    // Depth buffer
-    glGenTextures(1, &depthBufferTexture);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, 1280, 720, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 8, GL_DEPTH_COMPONENT32, 1280, 720, GL_TRUE);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-
-    // Back buffer
-    glGenTextures(1, &backBufferTexture);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, backBufferTexture);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 8 , GL_RGBA8, 1280, 720, GL_TRUE);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+    glm::ivec2 screenSize(screenWidth, screenHeight);
+    tiles["ScreenSize"] = screenSize;
 
     glGenFramebuffers(1, &frameBufferDepthOnly);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, backBufferTexture, 0);
+
+    ResizeFramebuffer(screenWidth, screenHeight, true);
 
     GLenum error = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if(error != GL_FRAMEBUFFER_COMPLETE)
@@ -782,9 +817,89 @@ bool Main::InitFrameBuffers()
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    auto err = glGetError();
-
     return error == GL_FRAMEBUFFER_COMPLETE;
+}
+
+bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
+{
+    if(recreateBuffers)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE, 0, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE, 0, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, 0, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, 0, 0);
+
+        glDeleteTextures(1, &depthBufferTexture);
+        glDeleteTextures(1, &backBufferTexture);
+
+        depthBufferTexture = 0;
+        backBufferTexture = 0;
+
+        glGenTextures(1, &depthBufferTexture);
+        glGenTextures(1, &backBufferTexture);
+    }
+
+    if(msaaCount < 0)
+    {
+        Logger::LogLine(LOG_TYPE::DEBUG, "msaaCount < 0, automatically set to 0");
+        msaaCount = 0;
+    }
+    else
+    {
+        GLint maxColor = 0;
+        glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &maxColor);
+
+        GLint maxDepth = 0;
+        glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &maxDepth);
+
+        if(msaaCount > maxColor
+                || msaaCount > maxDepth)
+        {
+            Logger::LogLine(LOG_TYPE::DEBUG, "msaaCount of ", msaaCount, " not supported. ", std::min(maxColor, maxDepth), " will be used");
+
+            msaaCount = std::min(maxColor, maxDepth);
+        }
+    }
+
+    if(msaaCount != 0)
+    {
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaaCount, GL_DEPTH_COMPONENT32, width, height, GL_TRUE);
+
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, backBufferTexture);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaaCount, GL_RGBA8, width, height, GL_TRUE);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+
+        if(recreateBuffers)
+        {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, backBufferTexture, 0);
+        }
+    }
+    else
+    {
+        glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
+
+        glBindTexture(GL_TEXTURE_2D, backBufferTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        if(recreateBuffers)
+        {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBufferTexture, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, backBufferTexture, 0);
+        }
+    }
+
+    if(recreateBuffers)
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    tiles["ScreenSize"] = glm::ivec2(width, height);
+
+    return true;
 }
 
 void Main::InitQuieries()
@@ -806,19 +921,18 @@ void Main::DrawTiles()
             };
 
     auto startX = tileToDraw.x == -1 ? 0 : tileToDraw.x;
-    auto endX = tileToDraw.x == -1 ? 40 : tileToDraw.x + 1;
+    auto endX = tileToDraw.x == -1 ? (int)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH) : tileToDraw.x + 1;
 
     auto startY = tileToDraw.y == -1 ? 0 : tileToDraw.y;
-    auto endY = tileToDraw.y == -1 ? 23 : tileToDraw.y + 1;
-
+    auto endY = tileToDraw.y == -1 ? (int)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT) : tileToDraw.y + 1;
     for(int y = startY; y < endY; ++y)
     {
         for(int x = startX; x < endX; ++x)
         {
             const glm::ivec2 gl_WorkGroupID(x, y);
-            const glm::ivec2 gl_WorkGroupSize(32, 32);
+            const glm::ivec2 gl_WorkGroupSize(WORK_GROUP_WIDTH, WORK_GROUP_HEIGHT);
 
-            const glm::vec2 SCREEN_SIZE(1280.0f, 720.0f);
+            const glm::vec2 SCREEN_SIZE(screenWidth, screenHeight);
 
             glm::vec3 viewPositions[4];
 

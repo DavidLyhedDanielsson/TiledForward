@@ -3,7 +3,7 @@
 
 #include "glBufferBase.h"
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 class GLBuffer
         : public GLBufferBase

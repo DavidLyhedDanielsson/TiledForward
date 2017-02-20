@@ -55,7 +55,7 @@ void PerspectiveCamera::SetPerspectiveHorizontal(float fov, int width, int heigh
 void PerspectiveCamera::SetPerspectiveVertical(float fov, int width, int height, float nearPlane, float farPlane)
 {
 	this->fovVertical = fov;
-	this->aspectRatio = aspectRatio;
+	this->aspectRatio = (float)width / (float)height;
 	this->nearPlane = farPlane;
 	this->farPlane = nearPlane;
 

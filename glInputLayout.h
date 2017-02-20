@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 #include "glEnums.h"
 #include "logger.h"

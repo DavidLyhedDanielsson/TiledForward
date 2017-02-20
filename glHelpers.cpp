@@ -22,10 +22,6 @@ namespace GLHelpers
                 return sizeof(GLuint);
             case GLEnums::DATA_TYPE::FLOAT:
                 return sizeof(GLfloat);
-            case GLEnums::DATA_TYPE::BYTES_2:
-            case GLEnums::DATA_TYPE::BYTES_3:
-            case GLEnums::DATA_TYPE::BYTES_4:
-                throw std::runtime_error("Not implemented");
             case GLEnums::DATA_TYPE::DOUBLE:
                 return sizeof(GLdouble);
             case GLEnums::DATA_TYPE::UNKNOWN:

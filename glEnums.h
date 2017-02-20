@@ -1,7 +1,7 @@
 #ifndef GLENUMS_H__
 #define GLENUMS_H__
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 namespace GLEnums
 {
@@ -46,9 +46,6 @@ namespace GLEnums
         , INT = GL_INT
         , UNSIGNED_INT = GL_UNSIGNED_INT
         , FLOAT = GL_FLOAT
-        , BYTES_2 = GL_2_BYTES
-        , BYTES_3 = GL_3_BYTES
-        , BYTES_4 = GL_4_BYTES
         , DOUBLE = GL_DOUBLE
         , UNKNOWN
     };

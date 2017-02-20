@@ -4,14 +4,14 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <GL/glx.h>
 #endif
 
 #ifdef USE_DX
 #include <d3d11.h>
 #else
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <GL/gl.h>
 #endif
 
@@ -90,17 +90,22 @@ public:
     void SwapBuffers();
 
     void RegisterFocusLossCallback(std::function<void()> callback);
-    void RegisterFocusGainCallback(std::function<void()> callback);
+	void RegisterFocusGainCallback(std::function<void()> callback);
+	void RegisterWindowSizeChangeCallback(std::function<void(int, int)> callback);
 
 protected:
 	unsigned int width;
 	unsigned int height;
 
+    unsigned int resizedWidth;
+    unsigned int resizedHeight;
+
 private:
 	bool paused;
 
     std::function<void()> focusLossCallback;
-    std::function<void()> focusGainCallback;
+	std::function<void()> focusGainCallback;
+	std::function<void(int, int)> windowSizeChangeCallback;
 
 #ifdef _WIN32
 	bool CreateWindowsWindow(int nCmdShow);
@@ -116,7 +121,7 @@ private:
 
     void CreateXWindow(Window& window, Colormap& colormap, GLXFBConfig fbConfig);
 
-    GLXContext CreateContext(GLXFBConfig fbConfig, GLXContext to_be_shared_context);
+    GLXContext CreateContext(GLXFBConfig fbConfig);
 #endif // _WIN32
 
 	GraphicsSettings* graphicsSettings;

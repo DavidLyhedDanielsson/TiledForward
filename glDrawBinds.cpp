@@ -77,7 +77,9 @@ bool GLDrawBinds::Init()
     return true;
 }
 
-bool GLDrawBinds::AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath)
+bool GLDrawBinds::AddShader(ContentManager& contentManager
+                            , GLEnums::SHADER_TYPE type
+                            , const std::string& shaderPath)
 {
     ShaderContentParameters parameters(type);
 
@@ -88,6 +90,19 @@ bool GLDrawBinds::AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE
     shaderBinds.push_back(std::make_pair(type, newShader));
 
     return true;
+}
+
+bool GLDrawBinds::AddShader(ContentManager& contentManager
+                            , ShaderContentParameters& parameters
+                            , const std::string& shaderPath)
+{
+    GLShader* newShader = contentManager.Load<GLShader>(shaderPath, &parameters);
+    if(newShader == nullptr)
+        return false;
+
+    shaderBinds.push_back(std::make_pair(parameters.type, newShader));
+
+    return false;
 }
 
 std::vector<GLDrawBinds::Attrib> GLDrawBinds::GetActiveAttribs() const
@@ -831,7 +846,7 @@ GLVariable GLDrawBinds::operator[](const std::string& name)
     {
         Logger::LogLine(LOG_TYPE::DEBUG, "Trying to get uniform \""
                                          + name
-                + "\" which doesn't exist! Did you forget to call AddUniform?");
+                                         + "\" which doesn't exist! Did you forget to call AddUniform?");
 
         alreadyWarned.insert(name);
     }

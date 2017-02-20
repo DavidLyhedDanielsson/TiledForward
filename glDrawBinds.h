@@ -16,6 +16,7 @@
 #include "contentManager.h"
 #include "glUniformBuffer.h"
 #include "glShaderStorageBuffer.h"
+#include "shaderContentParameters.h"
 
 class GLVariable
 {
@@ -83,11 +84,25 @@ public:
 
     bool Init();
 
-    bool AddShader(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath);
+    bool AddShader(ContentManager& contentManager
+                   , GLEnums::SHADER_TYPE type
+                   , const std::string& shaderPath);
+    bool AddShader(ContentManager& contentManager
+                   , ShaderContentParameters& parameters
+                   , const std::string& shaderPath);
     template<typename... T>
     bool AddShaders(ContentManager& contentManager, GLEnums::SHADER_TYPE type, const std::string& shaderPath, T... rest)
     {
         if(AddShader(contentManager, type, shaderPath))
+            return AddShaders(contentManager, rest...);
+        else
+            return false;
+    }
+
+    template<typename... T>
+    bool AddShaders(ContentManager& contentManager, ShaderContentParameters& parameters, const std::string& shaderPath, T... rest)
+    {
+        if(AddShader(contentManager, parameters, shaderPath))
             return AddShaders(contentManager, rest...);
         else
             return false;

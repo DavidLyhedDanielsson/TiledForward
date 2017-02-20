@@ -22,9 +22,11 @@ SpriteRenderer::~SpriteRenderer()
 {
 }
 
-bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
+bool SpriteRenderer::Init(ContentManager& contentManager, int screenWidth, int screenHeight)
 {
 	hasBegun = false;
+
+    SetScreenSize(screenWidth, screenHeight);
 
 	//RGBA RGBA
 	//RGBA RGBA
@@ -58,14 +60,17 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int width, int height)
 
     drawBinds.AddBuffers(&vertexBuffer, &indexBuffer);
 
-    viewProjectionMatrix = glm::ortho(0.0f, 1280.0f, 720.0f, 0.0f);
-
     drawBinds.AddUniform("viewProjMatrix", viewProjectionMatrix);
 
     if(!drawBinds.Init())
 		return false;
 
 	return true;
+}
+
+void SpriteRenderer::SetScreenSize(int width, int height)
+{
+    viewProjectionMatrix = glm::ortho(0.0f, (float)width, (float)height, 0.0f);
 }
 
 void SpriteRenderer::Begin()
@@ -173,6 +178,7 @@ void SpriteRenderer::Draw()
     vertexBuffer.Update(&vertices[0], sizeof(Vertex2D) * vertices.size());
 
     drawBinds.Bind();
+    drawBinds["viewProjMatrix"] = viewProjectionMatrix;
 
 	AddNewBatch(*whiteTexture);
 	spriteBatch.pop_back();

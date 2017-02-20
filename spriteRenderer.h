@@ -13,7 +13,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 class Texture;
 
@@ -30,7 +30,8 @@ public:
 	SpriteRenderer();
 	~SpriteRenderer();
 
-	bool Init(ContentManager& contentManager, int width, int height);
+	bool Init(ContentManager& contentManager, int screenWidth, int screenHeight);
+	void SetScreenSize(int width, int height);
 
 	void Begin();
 	void End();

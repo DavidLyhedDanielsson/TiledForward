@@ -80,6 +80,8 @@ CONTENT_ERROR_CODES GLShader::Load(const char* filePath
     if(shaderSource.empty())
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
+    ParseVariables(shaderSource, parameters->variables);
+
     if(!CompileFromSource(shaderSource))
         return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
 
@@ -183,4 +185,52 @@ std::string GLShader::ReadSourceFromFile(const std::string& path)
     in.read(&shaderSource[0], shaderSource.size());
 
     return shaderSource;
+}
+
+void GLShader::ParseVariables(std::string shaderSource, std::vector<std::pair<std::string, std::string>>& variables)
+{
+    auto foundLocation = shaderSource.find("\ncppint");
+    if(foundLocation == shaderSource.npos)
+    {
+        for(const auto& pair : variables)
+            Logger::LogLine(LOG_TYPE::WARNING, "Variable \"" + pair.first + "\" not found in shader \"" + GetPath() + "\"");
+
+        return;
+    }
+
+    ++foundLocation; // Skip \n
+    while(foundLocation != shaderSource.npos)
+    {
+        auto end = shaderSource.find_first_of(")\n", foundLocation);
+        if(shaderSource[end] == '\n')
+        {
+            Logger::LogLine(LOG_TYPE::WARNING, std::string("Error parsing shader variable in \"") + GetPath() + "\", expected ')', found newline: " + shaderSource.substr(foundLocation, end - foundLocation + 1));
+            continue;
+        }
+
+        // Skip "cppvariable("
+        int foundParen = shaderSource[foundLocation + 6] == '(';
+        std::string name = shaderSource.substr(foundLocation + 6 + foundParen, end - (foundLocation + 6 + foundParen));
+
+        if(name.back() == ')')
+            name.pop_back();
+
+        auto iter = variables.begin();
+        for(; iter != variables.end(); ++iter)
+        {
+            if(iter->first == name)
+                break;
+        }
+
+        if(iter == variables.end())
+        {
+            Logger::LogLine(LOG_TYPE::WARNING, std::string("Error parsing shader variable in \"") + GetPath() + "\", no variable named \"" + name + "\" found");
+            continue;
+        }
+
+        foundParen = shaderSource[end] == ')';
+        shaderSource.replace(foundLocation, end - foundLocation + foundParen, "#define " + iter->first + " " + iter->second);
+
+        foundLocation = shaderSource.find("cppint", foundLocation + 1);
+    }
 }

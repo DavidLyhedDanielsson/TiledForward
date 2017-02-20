@@ -19,7 +19,7 @@ void GLBuffer::Update(const void* data, size_t size)
 
     if(size > this->size)
     {
-        Logger::LogLine(LOG_TYPE::WARNING, "Size too big when updating buffer: , size, " > ", this->size. Only enough data to fit in the buffer will be copied");
+        Logger::LogLine(LOG_TYPE::WARNING, "Size too big when updating buffer: ", size, " > " , this->size, ". Only enough data to fit in the buffer will be copied");
         size = this->size;
     }
 #endif // NDEBUG

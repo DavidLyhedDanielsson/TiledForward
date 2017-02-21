@@ -24,8 +24,8 @@ public:
     GLDrawBinds drawBinds; // TODO
     GLDrawBinds zPrepassBinds;
 
-    void DrawZPrepass(const glm::vec3 cameraPosition);
-    void DrawOpaque(const glm::vec3 cameraPosition);
+    void DrawZPrepass();
+    void DrawOpaque();
     void DrawTransparent(const glm::vec3 cameraPosition);
 
 protected:

@@ -320,7 +320,7 @@ bool GLDrawBinds::CreateShaderProgram()
 void GLDrawBinds::BindUniforms()
 {
     //for(const auto& pair : uniformBinds)
-    for(auto iter = uniformBinds.begin(), end = uniformBinds.end(); iter != end;)
+    for(auto iter = uniformBinds.begin(), end = uniformBinds.end(); iter != end; ++iter)
     {
         GLint location = glGetUniformLocation(shaderProgram, iter->first.c_str());
         if(location == -1)
@@ -329,14 +329,10 @@ void GLDrawBinds::BindUniforms()
                                                iter->first +
                                                "\", nothing will be bound");
 
-            iter = uniformBinds.erase(iter);
+            //iter = uniformBinds.erase(iter);
         }
         else
-        {
             iter->second->SetLocation(location);
-
-            ++iter;
-        }
     }
 }
 
@@ -492,11 +488,11 @@ void GLDrawBinds::GetActiveStorageBlocks()
         }
         else
         {
-            //storageBufferBinds.at(name)->shaderProgram = shaderProgram;
-            //storageBufferBinds.at(name)->blockIndex = blockIndex;
+            storageBufferBinds.at(name)->shaderProgram = shaderProgram;
+            storageBufferBinds.at(name)->blockIndex = blockIndex;
 
             // TODO: Call Init?
-            //glUniformBlockBinding(shaderProgram, blockIndex, uniformBufferBinds.at(name)->bindingPoint);
+            glShaderStorageBlockBinding(shaderProgram, blockIndex, storageBufferBinds.at(name)->bindingPoint);
         }
     }
 }
@@ -531,11 +527,11 @@ void GLDrawBinds::GetActiveUniformBlocks()
         }
         else
         {
-            //uniformBufferBinds.at(name)->shaderProgram = shaderProgram;
-            //uniformBufferBinds.at(name)->blockIndex = blockIndex;
+            uniformBufferBinds.at(name)->shaderProgram = shaderProgram;
+            uniformBufferBinds.at(name)->blockIndex = blockIndex;
 
             // TODO: Call Init?
-            //glUniformBlockBinding(shaderProgram, blockIndex, uniformBufferBinds.at(name)->bindingPoint);
+            glUniformBlockBinding(shaderProgram, blockIndex, uniformBufferBinds.at(name)->bindingPoint);
         }
     }
 }

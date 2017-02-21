@@ -11,7 +11,7 @@ PrimitiveDrawer::~PrimitiveDrawer()
 
 bool PrimitiveDrawer::Init(ContentManager& contentManager)
 {
-    GenerateSphere(contentManager, 1.0f, 10, 11);
+    GenerateSphere(contentManager, 1.0f, 51, 51);
 
     return true;
 }

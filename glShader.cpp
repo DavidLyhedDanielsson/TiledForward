@@ -57,6 +57,7 @@ bool GLShader::Apply(Content* content)
         return false;
 
     this->shader = shader->shader;
+    this->shaderSource = std::move(shader->shaderSource);
 
     // TODO: Move?
     for(auto shaderProgram : shaderPrograms)
@@ -64,6 +65,9 @@ bool GLShader::Apply(Content* content)
 
     for(auto shaderProgram : shaderPrograms)
         shaderProgram->RelinkShaders();
+
+    ParseVariables(shaderSource, variables);
+    shaderSource.resize(0);
 }
 
 CONTENT_ERROR_CODES GLShader::Load(const char* filePath
@@ -75,6 +79,8 @@ CONTENT_ERROR_CODES GLShader::Load(const char* filePath
         return CONTENT_ERROR_CODES::CONTENT_PARAMETER_CAST;
 
     this->shaderType = parameters->type;
+    this->variables = parameters->variables;
+
     std::string shaderSource = ReadSourceFromFile(filePath);
 
     if(shaderSource.empty())
@@ -117,10 +123,6 @@ CONTENT_ERROR_CODES GLShader::BeginHotReload(const char* filePath, ContentManage
 bool GLShader::ApplyHotReload()
 {
     bool returnValue = CompileFromSource(shaderSource);
-
-    shaderSource.resize(0);
-
-    // TODO: Init uniform blocks here?
 
     return returnValue;
 }
@@ -227,10 +229,11 @@ void GLShader::ParseVariables(std::string shaderSource, std::vector<std::pair<st
             Logger::LogLine(LOG_TYPE::WARNING, std::string("Error parsing shader variable in \"") + GetPath() + "\", no variable named \"" + name + "\" found");
             continue;
         }
-
-        foundParen = shaderSource[end] == ')';
-        shaderSource.replace(foundLocation, end - foundLocation + foundParen, "#define " + iter->first + " " + iter->second);
-
+        else
+        {
+            foundParen = shaderSource[end] == ')';
+            shaderSource.replace(foundLocation, end - foundLocation + foundParen, "#define " + iter->first + " " + iter->second);
+        }
         foundLocation = shaderSource.find("cppint", foundLocation + 1);
     }
 }

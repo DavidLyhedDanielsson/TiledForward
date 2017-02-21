@@ -280,7 +280,7 @@ DiskContent* OBJModel::CreateInstance() const
     return new OBJModel;
 }
 
-void OBJModel::DrawZPrepass(const glm::vec3 cameraPosition)
+void OBJModel::DrawZPrepass()
 {
     zPrepassBinds.Bind();
 
@@ -290,7 +290,7 @@ void OBJModel::DrawZPrepass(const glm::vec3 cameraPosition)
     zPrepassBinds.Unbind();
 }
 
-void OBJModel::DrawOpaque(const glm::vec3 cameraPosition)
+void OBJModel::DrawOpaque()
 {
     drawBinds.Bind();
 

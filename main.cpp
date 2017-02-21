@@ -67,8 +67,8 @@ private:
     int screenWidth = DEFAULT_SCREEN_WIDTH;
     int screenHeight = DEFAULT_SCREEN_HEIGHT;
 
-    int WORK_GROUP_WIDTH = 16;
-    int WORK_GROUP_HEIGHT = 16;
+    int WORK_GROUP_WIDTH = 32;
+    int WORK_GROUP_HEIGHT = 32;
 
     struct Lights
     {
@@ -94,6 +94,7 @@ private:
 
     PerspectiveCamera camera;
     PerspectiveCamera snapshotCamera;
+    PerspectiveCamera* currentCamera;
 
     // Debug
     bool wireframe;
@@ -148,6 +149,7 @@ Main::Main()
           , msaaCount(2)
           , depthBufferTexture(0)
           , backBufferTexture(0)
+          , currentCamera(&camera)
 { }
 
 float currentFrameTime = 0.0f;
@@ -336,6 +338,18 @@ void Main::InitConsole()
             }
     ));
 
+    console.AddCommand(new CommandCallMethod("camera"
+                                             , [&](const std::vector<Argument>& args)
+            {
+                if(currentCamera == &camera)
+                    currentCamera = &snapshotCamera;
+                else
+                    currentCamera = &camera;
+
+                return Argument("Camera set");
+            }
+    ));
+
     guiManager.AddContainer(&console);
 
     Logger::SetCallOnLog(
@@ -421,6 +435,7 @@ void Main::InitInput()
                 spriteRenderer.SetScreenSize(screenWidth, screenHeight);
                 console.SetSize(screenWidth, screenHeight / 2);
                 camera.SetPerspectiveVertical(camera.GetFOVVertical(), screenWidth, screenHeight, camera.GetNearPlane(), camera.GetFarPlane());
+                snapshotCamera.SetPerspectiveVertical(snapshotCamera.GetFOVVertical(), screenWidth, screenHeight, snapshotCamera.GetNearPlane(), snapshotCamera.GetFarPlane());
 
                 ResizeFramebuffer(width, screenHeight, msaaCount);
 
@@ -463,23 +478,23 @@ void Main::Update(Timer& deltaTimer)
     if(!console.GetActive())
     {
         if(keysDown.count(KEY_CODE::A))
-            camera.MoveRight(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveRight(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
         else if(keysDown.count(KEY_CODE::D))
-            camera.MoveRight(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveRight(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
 
         if(keysDown.count(KEY_CODE::W))
-            camera.MoveFoward(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveFoward(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
         else if(keysDown.count(KEY_CODE::S))
-            camera.MoveFoward(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveFoward(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
 
         if(keysDown.count(KEY_CODE::V))
-            camera.MoveUp(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveUp(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
         else if(keysDown.count(KEY_CODE::C))
-            camera.MoveUp(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveUp(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
 
         glm::vec2 mouseDelta = Input::GetMouseDelta();
 
-        camera.Rotate(mouseDelta * 0.0025f);
+        currentCamera->Rotate(mouseDelta * 0.0025f);
     }
 
     guiManager.Update(deltaTimer.GetDelta());
@@ -540,17 +555,27 @@ GLDrawBinds lineDrawBinds;
 
 void Main::Render(Timer& deltaTimer)
 {
-    primitiveDrawer.sphereBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-    worldModel->drawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+    auto viewMatrix = currentCamera->GetViewMatrix();
+    auto viewMatrixInverse = glm::inverse(currentCamera->GetViewMatrix());
+    auto projectionMatrix = currentCamera->GetProjectionMatrix();
+    auto projectionMatrixInverse = glm::inverse(currentCamera->GetProjectionMatrix());
+    auto viewProjectionMatrix = projectionMatrix * viewMatrix;
+
+    primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
+    worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["Lights"] = lightsBuffer;
 
-    lineDrawBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+    lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
-    tiles["viewMatrix"] = camera.GetViewMatrix();
-    tiles["projectionMatrix"] = camera.GetProjectionMatrix();
-    tiles["projectionInverseMatrix"] = glm::inverse(camera.GetProjectionMatrix());
-    tiles["viewInverseMatrix"] = glm::inverse(camera.GetViewMatrix());
+    tiles["viewMatrix"] = viewMatrix;
+    tiles["projectionMatrix"] = projectionMatrix;
+    tiles["projectionInverseMatrix"] = projectionMatrixInverse;
+    tiles["viewInverseMatrix"] = viewMatrixInverse;
     tiles["Lights"] = lightsBuffer;
+
+    // Needed to make hot reloading work
+    //glm::ivec2 screenSize(screenWidth, screenHeight);
+    //tiles["ScreenSize"] = screenSize;
 
     // Set states
     glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
@@ -569,10 +594,7 @@ void Main::Render(Timer& deltaTimer)
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    //primitiveDrawer.sphereBinds["viewProjectionMatrix"] = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-    //worldModel->DrawZPrepass(camera.GetPosition());
-
-    worldModel->DrawOpaque(camera.GetPosition());
+    worldModel->DrawOpaque();
 
     tiles.Bind();
 
@@ -611,7 +633,6 @@ void Main::Render(Timer& deltaTimer)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     worldModel->DrawOpaque(camera.GetPosition());
-    //primitiveDrawer.End();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -756,12 +777,14 @@ void Main::Render(Timer& deltaTimer)
     lineDrawBinds.Bind();
     lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
     lineDrawBinds.Unbind();*/
+    glDisable(GL_CULL_FACE);
+
+    //primitiveDrawer.End();
 
     if(drawTiles)
         DrawTiles();
 
     glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
 
     spriteRenderer.Begin();
 

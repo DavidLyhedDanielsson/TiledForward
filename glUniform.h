@@ -16,6 +16,10 @@ struct GLUniformArray;
 class GLUniformBase
 {
 public:
+    GLUniformBase()
+            : location(-1)
+    { }
+
     virtual void UploadData() = 0;
     virtual bool VerifyType(GLEnums::UNIFORM_TYPE type) = 0;
 

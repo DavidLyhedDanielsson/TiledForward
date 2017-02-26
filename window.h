@@ -12,7 +12,6 @@
 #include <d3d11.h>
 #else
 #include <GL/gl3w.h>
-#include <GL/gl.h>
 #endif
 
 #include <memory>

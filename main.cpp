@@ -46,20 +46,20 @@ private:
         float padding;
     };
 
-    const static int LIGHT_COUNT = 1;
+    const static int LIGHT_COUNT = 32;
 
-    const float LIGHT_DEFAULT_AMBIENT = 0.5f;
-    const float LIGHT_MIN_STRENGTH = 2.0f;
-    const float LIGHT_MAX_STRENGTH = 2.0f;
+    const float LIGHT_DEFAULT_AMBIENT = 0.1f;
+    const float LIGHT_MIN_STRENGTH = 0.0f;
+    const float LIGHT_MAX_STRENGTH = 5.0f;
     const float LIGHT_MAX_LIFETIME = 5000.0f;
 
-    /*const float LIGHT_RANGE_X = 12.0f;
-    const float LIGHT_MAX_Z = 8.0f;
-    const float LIGHT_RANGE_Z = 8.0f;*/
+    const float LIGHT_RANGE_X = 12.0f;
+    const float LIGHT_MAX_Y = 8.0f;
+    const float LIGHT_RANGE_Z = 8.0f;
 
-    const float LIGHT_RANGE_X = 0.0f;
+    /*const float LIGHT_RANGE_X = 0.0f;
     const float LIGHT_MAX_Y = 0.0f;
-    const float LIGHT_RANGE_Z = 0.0f;
+    const float LIGHT_RANGE_Z = 0.0f;*/
 
     const static int DEFAULT_SCREEN_WIDTH = 1280;
     const static int DEFAULT_SCREEN_HEIGHT = 720;
@@ -623,6 +623,8 @@ void Main::Render(Timer& deltaTimer)
     glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
     lightCull.Unbind();
 
+    worldModel->DrawOpaque();
+
     //tiles.Bind();
     //glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
     //tiles.Unbind();
@@ -631,7 +633,6 @@ void Main::Render(Timer& deltaTimer)
     //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     //glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
-    worldModel->DrawOpaque();
 
     //primitiveDrawer.End();
 

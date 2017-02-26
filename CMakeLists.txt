@@ -17,6 +17,7 @@ add_custom_target(
         ${CONTENT_DIR}/instance.vert
         ${CONTENT_DIR}/instance.frag
         ${CONTENT_DIR}/zPrepass.vert
+        ${CONTENT_DIR}/lightCull.comp
         ${CONTENT_DIR}/tiles.comp
 )
 

@@ -189,7 +189,7 @@ std::string GLShader::ReadSourceFromFile(const std::string& path)
     return shaderSource;
 }
 
-void GLShader::ParseVariables(std::string shaderSource, std::vector<std::pair<std::string, std::string>>& variables)
+void GLShader::ParseVariables(std::string& shaderSource, std::vector<std::pair<std::string, std::string>>& variables)
 {
     auto foundLocation = shaderSource.find("\ncppint");
     if(foundLocation == shaderSource.npos)

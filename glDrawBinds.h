@@ -66,6 +66,8 @@ public:
     template<typename T>
     void operator=(const std::vector<T>& values);
 
+    void operator=(const GLVariable& rhs);
+
 private:
     GLDrawBinds* parent;
     GLUniformBase* uniform;
@@ -171,6 +173,8 @@ public:
     void DrawElementsInstanced(int instances, GLEnums::DRAW_MODE drawMode = GLEnums::DRAW_MODE::TRIANGLES);
 
     GLVariable operator[](const std::string& name);
+
+    GLShaderStorageBuffer* GetSSBO(const std::string& name);
 protected:
 private:
     // Also used for uniforms
@@ -262,10 +266,17 @@ private:
         buffer->SetData(value);
     }
     template<typename T>
+    void UpdateStorageBuffer(GLShaderStorageBuffer* buffer, const std::vector<T>& values)
+    {
+        buffer->SetData(&values[0], sizeof(T) * values.size());
+    }
+    template<typename T>
     void UpdateStorageBuffer(GLShaderStorageBuffer* buffer, const T& value)
     {
         buffer->SetData(&value, sizeof(T));
     }
+
+    void Share(GLShaderStorageBuffer* lhs, GLShaderStorageBuffer* rhs);
 
     void GetActiveStorageBlocks();
     void GetActiveUniformBlocks();
@@ -291,6 +302,8 @@ void GLVariable::operator=(const std::vector<T>& values)
 {
     if(uniformBuffer)
         parent->UpdateUniformBuffer(uniformBuffer, values);
+    else if(storageBuffer)
+        parent->UpdateStorageBuffer(storageBuffer, values);
 }
 
 #endif // GLSHADERRESOURCEBINDS_H__

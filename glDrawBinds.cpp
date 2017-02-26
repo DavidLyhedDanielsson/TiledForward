@@ -102,7 +102,7 @@ bool GLDrawBinds::AddShader(ContentManager& contentManager
 
     shaderBinds.push_back(std::make_pair(parameters.type, newShader));
 
-    return false;
+    return true;
 }
 
 std::vector<GLDrawBinds::Attrib> GLDrawBinds::GetActiveAttribs() const
@@ -847,4 +847,29 @@ GLVariable GLDrawBinds::operator[](const std::string& name)
         alreadyWarned.insert(name);
     }
     return GLVariable();
+}
+
+GLShaderStorageBuffer* GLDrawBinds::GetSSBO(const std::string& name)
+{
+    if(storageBufferBinds.count(name) != 0)
+        return storageBufferBinds.at(name).get();
+
+    return nullptr;
+}
+
+void GLDrawBinds::Share(GLShaderStorageBuffer* lhs, GLShaderStorageBuffer* rhs)
+{
+    lhs->Share(rhs);
+}
+
+void GLVariable::operator=(const GLVariable& rhs)
+{
+    if(uniformBuffer != nullptr && rhs.uniformBuffer != nullptr)
+    {
+        Logger::LogLine(LOG_TYPE::WARNING, "Not supported");
+    }
+    else if(storageBuffer != nullptr && rhs.storageBuffer != nullptr)
+    {
+        parent->Share(storageBuffer, rhs.storageBuffer);
+    }
 }

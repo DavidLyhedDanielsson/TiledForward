@@ -51,3 +51,23 @@ void GLShaderStorageBuffer::SetData(const void* data, size_t dataSize)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 }
+
+void GLShaderStorageBuffer::Share(GLShaderStorageBuffer* other)
+{
+    glDeleteBuffers(1, &bufferIndex);
+
+    this->bindingPoint = other->bindingPoint;
+    this->bufferIndex = other->bufferIndex;
+    this->size = other->size;
+
+    glShaderStorageBlockBinding(shaderProgram, blockIndex, bindingPoint);
+}
+
+void GLShaderStorageBuffer::UpdateData(const size_t offset, void* data, int dataSize)
+{
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferIndex);
+    void* mappedData = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, offset, dataSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+    std::memcpy(mappedData, data, dataSize);
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}

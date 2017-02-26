@@ -208,10 +208,16 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     vertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
     indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC_DRAW, indices);
 
+    ShaderContentParameters parameters;
+    parameters.type = GLEnums::SHADER_TYPE::FRAGMENT;
+    parameters.variables.push_back(std::make_pair("WORK_GROUP_WIDTH", std::to_string(32)));
+    parameters.variables.push_back(std::make_pair("WORK_GROUP_HEIGHT", std::to_string(32)));
+    parameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(32)));
+
     // Normal draw binds
     if(!drawBinds.AddShaders(*contentManager
                              , GLEnums::SHADER_TYPE::VERTEX, "forward.vert"
-                             , GLEnums::SHADER_TYPE::FRAGMENT, "forward.frag"))
+                             , parameters, "forward.frag"))
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
     GLInputLayout vertexBufferLayout;

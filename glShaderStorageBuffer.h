@@ -14,6 +14,9 @@ public:
     void Bind();
     void Unbind();
 
+    void Share(GLShaderStorageBuffer* other);
+    void UpdateData(const size_t offset, void* data, int dataSize);
+
 protected:
 private:
     GLuint shaderProgram;

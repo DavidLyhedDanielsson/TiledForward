@@ -4,15 +4,11 @@
 
 cppint(WORK_GROUP_WIDTH)
 cppint(WORK_GROUP_HEIGHT)
+cppint(MAX_LIGHTS_PER_TILE)
+
+const int MSAA_COUNT = 2;
 
 layout(location = 0, rgba8) uniform image2DMS inImage;
-layout(location = 1) uniform sampler2DMS depthBuffer;
-//layout(location = 1, rgba8) uniform image2DMS outImage;
-
-uniform mat4 viewMatrix;
-uniform mat4 projectionMatrix;
-uniform mat4 projectionInverseMatrix;
-uniform mat4 viewInverseMatrix;
 
 struct LightData
 {
@@ -29,161 +25,42 @@ layout(std140) buffer Lights
     LightData lights[];
 };
 
-layout(std140) buffer ScreenSize
+// Memory is "allocated" by increasing (atomically) occupiedIndices
+// Accessed once to increase occupiedIndices and then again to put lights into lightIndices
+layout(std140) buffer LightIndices
 {
-    int screenWidth;
-    int screenHeight;
+    int occupiedIndices; // Needs to be initialized to 0!
+    int lightIndices[40 * 23 * MAX_LIGHTS_PER_TILE];
 };
 
-const int LOCAL_LIGHT_COUNT = 64;
-
-shared int lightCount;
-shared uint lightIndices[LOCAL_LIGHT_COUNT];
-
-const int MSAA_COUNT = 2;
-
-const int PLANE_TOP = 0;
-const int PLANE_BOTTOM = 1;
-const int PLANE_LEFT = 2;
-const int PLANE_RIGHT = 3;
-
-vec4 CreatePlane(vec3 far0, vec3 far1)
+struct TileLightData
 {
-    vec3 planeABC;
-    planeABC = normalize(cross(far0, far1));
-    float dist = 0.0f; //dot(far0, planeABC);
+    int start;
+    int numberOfLights;
+    ivec2 padding;
+};
 
-    return vec4(planeABC, dist);
-}
+// Accessed once per tile
+layout(std140) buffer TileLights
+{
+    TileLightData tileLightData[23][40];
+};
 
 layout(local_size_x = 32, local_size_y = 32) in;
 void main()
 {
-    /*float depth = 0.0f;
-    for(int i = 0; i < MSAA_COUNT; ++i)
-        depth += texelFetch(depthBuffer, ivec2(gl_GlobalInvocationID), i).x;
+    vec3 finalColor = vec3(0.0f);
 
-    depth /= 2.0f;
-    depth = 1.0f - depth;
+    int lightStart = tileLightData[gl_WorkGroupID.y][gl_WorkGroupID.x].start;
+    int lightCount = tileLightData[gl_WorkGroupID.y][gl_WorkGroupID.x].numberOfLights;
 
-    vec4 unprojectedDepth = projectionInverseMatrix * vec4(0.0f, 0.0f, depth, 1.0f);
-    depth = unprojectedDepth.z / unprojectedDepth.w;
+    for(int i = lightStart; i < lightStart + lightCount; ++i)
+        finalColor += lights[lightIndices[i]].color;
 
-    if(gl_GlobalInvocationID.x < screenWidth / 2)
-        for(int i = 0; i < MSAA_COUNT; ++i)
-            imageStore(inImage, ivec2(gl_GlobalInvocationID), i, vec4(depth / 100.0f, depth / 100.0f, depth / 100.0f, 1.0f));*/
+    //float maxLength = max(max(finalColor.x, finalColor.y), finalColor.z);
+    //finalColor = normalize(finalColor) * min(maxLength, 1.0f);
 
-    if(gl_LocalInvocationIndex == 0)
-        lightCount = 0;
-
-    barrier();
-
-    for(uint i = gl_LocalInvocationIndex; i < lights.length(); i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
-    {
-        LightData light = lights[i];
-
-        const int TOP_LEFT = 3;
-        const int TOP_RIGHT = 2;
-        const int BOTTOM_RIGHT = 1;
-        const int BOTTOM_LEFT = 0;
-        const int CENTER = 4;
-
-        const vec2 offsets[5] =
-        {
-            vec2(0.0f, 0.0f)
-            , vec2(1.0f, 0.0f)
-            , vec2(1.0f, 1.0f)
-            , vec2(0.0f, 1.0f)
-            , vec2(0.5f, 0.5f)
-        };
-
-        vec3 viewPositions[5];
-
-        for(int j = 0; j < 4; ++j)
-        {
-            vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy) + offsets[j]) * vec2(gl_WorkGroupSize.xy))
-                                              / vec2(screenWidth, screenHeight), 1.0f);
-            ndcPosition.x *= 2.0f;
-            ndcPosition.x -= 1.0f;
-            ndcPosition.y *= 2.0f;
-            ndcPosition.y -= 1.0f;
-
-            vec4 unprojectedPosition = projectionInverseMatrix * vec4(ndcPosition, 1.0f);
-            unprojectedPosition /= unprojectedPosition.w;
-
-            viewPositions[j] = vec3(unprojectedPosition);
-        }
-
-        vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy) + offsets[4]) * vec2(gl_WorkGroupSize.xy))
-                                                      / vec2(screenWidth, screenHeight), 1.0f);
-        ndcPosition.x *= 2.0f;
-        ndcPosition.x -= 1.0f;
-        ndcPosition.y *= 2.0f;
-        ndcPosition.y -= 1.0f;
-
-        vec4 unprojectedPosition = projectionInverseMatrix * vec4(ndcPosition, 1.0f);
-        unprojectedPosition /= unprojectedPosition.w;
-
-        viewPositions[4] = vec3(unprojectedPosition);
-
-        vec4 planes[4];
-        planes[PLANE_TOP] = CreatePlane(viewPositions[TOP_RIGHT], viewPositions[TOP_LEFT]);
-        planes[PLANE_BOTTOM] = CreatePlane(viewPositions[BOTTOM_LEFT], viewPositions[BOTTOM_RIGHT]);
-        planes[PLANE_RIGHT] = CreatePlane(viewPositions[BOTTOM_RIGHT], viewPositions[TOP_RIGHT]);
-        planes[PLANE_LEFT] = CreatePlane(viewPositions[TOP_LEFT], viewPositions[BOTTOM_LEFT]);
-
-        vec3 planeForward = normalize(viewPositions[CENTER]);
-
-        vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
-
-        if(dot(zeroPos, zeroPos) > light.strength * light.strength)
-        {
-            bool inside = false;
-
-            if(dot(normalize(zeroPos), planeForward) > 0.0f)
-            {
-                inside = true;
-
-                for(int j = 0; j < 4; ++j)
-                {
-                    float dist = dot(zeroPos, vec3(planes[j])) + planes[j].w;
-                    if(dist < -light.strength)
-                    {
-                        inside = false;
-                        break;
-                    }
-                }
-            }
-
-            if(inside)
-                lightIndices[atomicAdd(lightCount, 1)] = i;
-        }
-        else
-            lightIndices[atomicAdd(lightCount, 1)] = i;
-
-    }
-
-    barrier();
-
-    if(lightCount != 0)
-    {
-        const float opacity = 0.5f;
-
-        vec3 currentColor = vec3(0.0f);
-        for(int i = 0; i < MSAA_COUNT; ++i)
-            currentColor += imageLoad(inImage, ivec2(gl_GlobalInvocationID), i).xyz;
-        currentColor /= float(MSAA_COUNT);
-
-        vec3 lightColor = vec3(0.0f);
-        for(int i = 0; i < lightCount; ++i)
-            lightColor += lights[lightIndices[i]].color;
-
-        float maxLength = max(max(lightColor.x, lightColor.y), lightColor.z);
-        lightColor = normalize(lightColor) * min(maxLength, 1.0f);
-
-        vec3 finalColor = currentColor * opacity + lightColor * (1.0f - opacity);
-
+    if(finalColor != vec3(0.0f))
         for(int i = 0; i < MSAA_COUNT; ++i)
             imageStore(inImage, ivec2(gl_GlobalInvocationID), i, vec4(finalColor, 1.0f));
-    }
 }

@@ -48,9 +48,9 @@ private:
 
     const static int LIGHT_COUNT = 1;
 
-    const float LIGHT_DEFAULT_AMBIENT = 0.1f;
-    const float LIGHT_MIN_STRENGTH = 5.0f;
-    const float LIGHT_MAX_STRENGTH = 5.0f;
+    const float LIGHT_DEFAULT_AMBIENT = 0.5f;
+    const float LIGHT_MIN_STRENGTH = 2.0f;
+    const float LIGHT_MAX_STRENGTH = 2.0f;
     const float LIGHT_MAX_LIFETIME = 5000.0f;
 
     /*const float LIGHT_RANGE_X = 12.0f;
@@ -58,7 +58,7 @@ private:
     const float LIGHT_RANGE_Z = 8.0f;*/
 
     const float LIGHT_RANGE_X = 0.0f;
-    const float LIGHT_MAX_Z = 0.0f;
+    const float LIGHT_MAX_Y = 0.0f;
     const float LIGHT_RANGE_Z = 0.0f;
 
     const static int DEFAULT_SCREEN_WIDTH = 1280;
@@ -69,6 +69,7 @@ private:
 
     int WORK_GROUP_WIDTH = 32;
     int WORK_GROUP_HEIGHT = 32;
+    int MAX_LIGHTS_PER_TILE = 32;
 
     struct Lights
     {
@@ -115,6 +116,7 @@ private:
     float minFrameTime;
     float maxFrameTime;
 
+    GLDrawBinds lightCull;
     GLDrawBinds tiles;
 
     GLuint queries[2];
@@ -261,6 +263,11 @@ int Main::InitContent()
     worldModel = contentManager.Load<OBJModel>("sponza.obj");
     if(worldModel == nullptr)
         return 3;
+
+    worldModel->drawBinds["Lights"] = lightCull["Lights"];
+    worldModel->drawBinds["LightIndices"] = lightCull["LightIndices"];
+    worldModel->drawBinds["TileLights"] = lightCull["TileLights"];
+    worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
 }
 
 void Main::InitConsole()
@@ -455,7 +462,7 @@ void Main::InitLights()
         LightData newLight;
 
         float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-        float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Z + 1.0f;
+        float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 1.0f;
         float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
         newLight.position = glm::vec3(xPos, yPos, zPos);
@@ -470,7 +477,8 @@ void Main::InitLights()
         lightsBuffer.lights[i] = newLight;
     }
 
-    worldModel->drawBinds["Lights"] = lightsBuffer; // Allocate data before runtime
+    lightCull["Lights"] = lightsBuffer;
+    //worldModel->drawBinds["Lights"] = lightsBuffer; // Allocate data before runtime
 }
 
 void Main::Update(Timer& deltaTimer)
@@ -519,7 +527,7 @@ void Main::Update(Timer& deltaTimer)
             lightsBuffer.lights[i].padding = 0.0f;
 
             float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Z + 1.0f;
+            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 1.0f;
             float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
             lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
@@ -567,15 +575,19 @@ void Main::Render(Timer& deltaTimer)
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
-    tiles["viewMatrix"] = viewMatrix;
-    tiles["projectionMatrix"] = projectionMatrix;
-    tiles["projectionInverseMatrix"] = projectionMatrixInverse;
-    tiles["viewInverseMatrix"] = viewMatrixInverse;
-    tiles["Lights"] = lightsBuffer;
+    lightCull["viewMatrix"] = viewMatrix;
+    lightCull["projectionMatrix"] = projectionMatrix;
+    lightCull["projectionInverseMatrix"] = projectionMatrixInverse;
+    lightCull["viewInverseMatrix"] = viewMatrixInverse;
+
+    lightCull["Lights"] = lightsBuffer;
+
+    int zero = 0;
+    lightCull.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
 
     // Needed to make hot reloading work
     //glm::ivec2 screenSize(screenWidth, screenHeight);
-    //tiles["ScreenSize"] = screenSize;
+    //lightCull["ScreenSize"] = screenSize;
 
     // Set states
     glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
@@ -591,12 +603,11 @@ void Main::Render(Timer& deltaTimer)
     glDepthFunc(GL_GREATER);
 
     // Bind custom framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+    //glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    worldModel->DrawOpaque();
-
-    tiles.Bind();
+    lightCull.Bind();
 
     //glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
     //glUniform1i(0, 0);
@@ -610,16 +621,23 @@ void Main::Render(Timer& deltaTimer)
     //glUniform1i(1, 1);
 
     glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
-    tiles.Unbind();
+    lightCull.Unbind();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    //tiles.Bind();
+    //glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
+    //tiles.Unbind();
+
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    //glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+    worldModel->DrawOpaque();
+
+    //primitiveDrawer.End();
 
     //glActiveTexture(GL_TEXTURE0);
 
-    //tiles.Unbind();
+    //lightCull.Unbind();
 
     //glBindFramebuffer(GL_READ_FRAMEBUFFER, depthRenderBuffer);
     //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -779,8 +797,6 @@ void Main::Render(Timer& deltaTimer)
     lineDrawBinds.Unbind();*/
     glDisable(GL_CULL_FACE);
 
-    //primitiveDrawer.End();
-
     if(drawTiles)
         DrawTiles();
 
@@ -813,21 +829,45 @@ bool Main::InitFrameBuffers()
     lineDrawBinds.AddUniform("viewProjectionMatrix", glm::mat4());
     lineDrawBinds.Init();
 
-    tiles.AddUniform("viewMatrix", glm::mat4());
-    tiles.AddUniform("projectionMatrix", glm::mat4());
-    tiles.AddUniform("projectionInverseMatrix", glm::mat4());
-    tiles.AddUniform("viewInverseMatrix", glm::mat4());
-    tiles.AddUniform("worldMatrix", glm::scale(glm::mat4(), glm::vec3(0.01f)));
+    lightCull.AddUniform("viewMatrix", glm::mat4());
+    lightCull.AddUniform("projectionMatrix", glm::mat4());
+    lightCull.AddUniform("projectionInverseMatrix", glm::mat4());
+    lightCull.AddUniform("viewInverseMatrix", glm::mat4());
+    lightCull.AddUniform("worldMatrix", glm::scale(glm::mat4(), glm::vec3(0.01f)));
 
     ShaderContentParameters parameters;
     parameters.type = GLEnums::SHADER_TYPE::COMPUTE;
     parameters.variables.push_back(std::make_pair("WORK_GROUP_WIDTH", std::to_string(WORK_GROUP_WIDTH)));
     parameters.variables.push_back(std::make_pair("WORK_GROUP_HEIGHT", std::to_string(WORK_GROUP_HEIGHT)));
+    parameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(MAX_LIGHTS_PER_TILE)));
+    lightCull.AddShaders(contentManager, parameters, "lightCull.comp");
+    lightCull.Init();
+
     tiles.AddShaders(contentManager, parameters, "tiles.comp");
     tiles.Init();
 
     glm::ivec2 screenSize(screenWidth, screenHeight);
-    tiles["ScreenSize"] = screenSize;
+    lightCull["ScreenSize"] = screenSize;
+
+    std::vector<int> data(1 + 40 * 23 * MAX_LIGHTS_PER_TILE);
+    data[0] = 0;
+    lightCull["LightIndices"] = data;
+
+    data.clear();
+    data.resize(40 * 23 * 4, -1);
+    lightCull["TileLights"] = data;
+
+    /*auto Lights = lightCull.GetSSBO("Lights");
+    auto LightIndices = lightCull.GetSSBO("LightIndices");
+    auto TileLights = lightCull.GetSSBO("TileLights");
+
+    auto Lights = lightCull.GetSSBO("Lights");
+    auto LightIndices = lightCull.GetSSBO("LightIndices");
+    auto TileLights = lightCull.GetSSBO("TileLights");*/
+
+    tiles["Lights"] = lightCull["Lights"];
+    tiles["LightIndices"] = lightCull["LightIndices"];
+    tiles["TileLights"] = lightCull["TileLights"];
 
     glGenFramebuffers(1, &frameBufferDepthOnly);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
@@ -920,7 +960,7 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
     if(recreateBuffers)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    tiles["ScreenSize"] = glm::ivec2(width, height);
+    lightCull["ScreenSize"] = glm::ivec2(width, height);
 
     return true;
 }

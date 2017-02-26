@@ -10,13 +10,16 @@ layout(location = 2) in vec2 texCoord;
 out vec3 WorldPosition;
 out vec3 Normal;
 out vec2 TexCoord;
+out mat4 outMatrix;
 
 void main()
 {
     vec4 tempWorldPosition = worldMatrix * vec4(position, 1.0f);
+    vec4 projectedPosition = viewProjectionMatrix * tempWorldPosition;
 
-    gl_Position = viewProjectionMatrix * tempWorldPosition;
+    gl_Position = projectedPosition;
 
+    outMatrix = viewProjectionMatrix;
     WorldPosition = tempWorldPosition.xyz;
     Normal = normal;
     TexCoord = texCoord;

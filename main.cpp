@@ -46,7 +46,7 @@ private:
         float padding;
     };
 
-    const static int LIGHT_COUNT = 32;
+    const static int LIGHT_COUNT = 512;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     const float LIGHT_MIN_STRENGTH = 0.0f;
@@ -603,9 +603,17 @@ void Main::Render(Timer& deltaTimer)
     glDepthFunc(GL_GREATER);
 
     // Bind custom framebuffer
-    //glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+#define DRAW_TO_CUSTOM
+#ifdef DRAW_TO_CUSTOM
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+#else
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#endif
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+#ifdef DRAW_TO_CUSTOM
+    worldModel->DrawOpaque();
+#endif
 
     lightCull.Bind();
 
@@ -623,16 +631,18 @@ void Main::Render(Timer& deltaTimer)
     glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
     lightCull.Unbind();
 
-    worldModel->DrawOpaque();
 
     //tiles.Bind();
     //glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
     //tiles.Unbind();
 
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
-    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    //glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-
+#ifdef DRAW_TO_CUSTOM
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+#else
+    worldModel->DrawOpaque();
+#endif
 
     //primitiveDrawer.End();
 

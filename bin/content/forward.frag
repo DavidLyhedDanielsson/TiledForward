@@ -89,9 +89,9 @@ void main()
 {
     vec3 textureColor = texture(tex, TexCoord).xyz;
 
-    vec3 finalColor = vec3(0.0f);
+    vec3 finalColor = vec3(textureColor);
 
-    vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
+    /*vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
 
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
     vec2 gridIndex = TexelToGrid(texel);
@@ -124,7 +124,7 @@ void main()
 
     finalColor += ambientStrength;
     finalColor *= materials[materialIndex].diffuseColor;
-    finalColor *= textureColor;
+    finalColor *= textureColor;*/
 
     outColor = vec4(finalColor, 1.0f);
 }

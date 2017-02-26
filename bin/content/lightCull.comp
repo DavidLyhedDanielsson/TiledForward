@@ -186,7 +186,7 @@ void main()
 
     barrier();
 
-    /*if(lightCount != 0)
+    if(lightCount != 0)
     {
         const float opacity = 0.5f;
 
@@ -196,18 +196,26 @@ void main()
         currentColor /= float(MSAA_COUNT);
 
         vec3 lightColor = vec3(0.0f);
-        for(int i = 0; i < lightCount; ++i)
+        if(lightCount < 16)
+            lightColor = vec3(0.0f, 0.0f, 1.0f);
+        else if(lightCount < 32)
+            lightColor = vec3(0.0f, 1.0f, 0.0f);
+        else if(lightCount < 64)
+            lightColor = vec3(1.0f, 1.0f, 1.0f);
+        else
+            lightColor = vec3(1.0f, 0.0f, 0.0f);
+        /*for(int i = 0; i < lightCount; ++i)
             lightColor += lights[localLightIndices[i]].color;
 
         float maxLength = max(max(lightColor.x, lightColor.y), lightColor.z);
-        lightColor = normalize(lightColor) * min(maxLength, 1.0f);
+        lightColor = normalize(lightColor) * min(maxLength, 1.0f);*/
 
         vec3 finalColor = currentColor * opacity + lightColor * (1.0f - opacity);
 
         for(int i = 0; i < MSAA_COUNT; ++i)
             //imageStore(inImage, ivec2(gl_GlobalInvocationID), i, vec4(1.0f));
             imageStore(inImage, ivec2(gl_GlobalInvocationID), i, vec4(finalColor, 1.0f));
-    }*/
+    }
 
     if(gl_LocalInvocationIndex == 0)
     {

@@ -55,7 +55,10 @@ private:
 
     bool CompileFromSource(const std::string& source);
     std::string ReadSourceFromFile(const std::string& path);
-    void ParseVariables(std::string& shaderSource, std::vector<std::pair<std::string, std::string>>& variables);
+
+    void Parse(std::string& shaderSource, const std::vector<std::pair<std::string, std::string>>& variables);
+    std::string ParseVariable(const std::string& line, const std::vector<std::pair<std::string, std::string>>& variables);
+    std::string ParseInclude(const std::string& line);
 };
 
 #endif // GLSHADER_H__

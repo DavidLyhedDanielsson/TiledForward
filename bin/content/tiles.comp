@@ -1,46 +1,8 @@
 #version 450 core
 
-#include "commonConstants.glsl"
-
-const int MSAA_COUNT = 2;
+#include "commonConstants.glsh"
 
 layout(location = 0, rgba8) uniform image2DMS inImage;
-
-struct LightData
-{
-    vec3 position;
-    float strength;
-    vec3 color;
-    float padding;
-};
-
-layout(std140) buffer Lights
-{
-    vec3 padding;
-    float ambientStrength;
-    LightData lights[];
-};
-
-// Memory is "allocated" by increasing (atomically) occupiedIndices
-// Accessed once to increase occupiedIndices and then again to put lights into lightIndices
-layout(std140) buffer LightIndices
-{
-    int occupiedIndices; // Needs to be initialized to 0!
-    int lightIndices[];
-};
-
-struct TileLightData
-{
-    int start;
-    int numberOfLights;
-    ivec2 padding;
-};
-
-// Accessed once per tile
-layout(std140) buffer TileLights
-{
-    TileLightData tileLightData[23][40];
-};
 
 layout(local_size_x = 32, local_size_y = 32) in;
 void main()

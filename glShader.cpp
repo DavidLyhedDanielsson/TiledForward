@@ -6,6 +6,7 @@
 
 #include "glDrawBinds.h"
 #include "glUniformBuffer.h"
+#include "glCPPShared.h"
 
 GLShader::GLShader()
         : shaderType(GLEnums::SHADER_TYPE::UNKNOWN)
@@ -64,7 +65,7 @@ bool GLShader::Apply(Content* content)
     for(auto shaderProgram : shaderPrograms)
         shaderProgram->RelinkShaders();
 
-    Parse(shaderSource, variables);
+    //Parse(shaderSource, variables, nullptr); // TODO: Support this?
     shaderSource.resize(0);
 }
 
@@ -84,7 +85,7 @@ CONTENT_ERROR_CODES GLShader::Load(const char* filePath
     if(shaderSource.empty())
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
-    Parse(shaderSource, parameters->variables);
+    Parse(shaderSource, parameters->variables, contentManager);
 
     if(!CompileFromSource(shaderSource))
         return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
@@ -112,6 +113,8 @@ CONTENT_ERROR_CODES GLShader::BeginHotReload(const char* filePath, ContentManage
 {
     shaderSource = ReadSourceFromFile(filePath);
 
+    Parse(shaderSource, variables, contentManager);
+
     if(shaderSource.empty())
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
@@ -120,7 +123,8 @@ CONTENT_ERROR_CODES GLShader::BeginHotReload(const char* filePath, ContentManage
 
 bool GLShader::ApplyHotReload()
 {
-    bool returnValue = CompileFromSource(shaderSource);
+    //Parse(shaderSource, variables, nullptr);
+    bool returnValue = CompileFromSource(shaderSource); // TODO: Support this?
 
     return returnValue;
 }
@@ -147,7 +151,7 @@ bool GLShader::CompileFromSource(const std::string& source)
         std::unique_ptr<GLchar> errorLog(new char[logSize]);
         glGetShaderInfoLog(shader, logSize, nullptr, errorLog.get());
 
-        Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader at \"", this->GetPath(), "\": ", const_cast<const char*>(errorLog.get()));
+        Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader at \"", this->GetPath(), "\": ", const_cast<const char*>(errorLog.get()), "\nShader source:\n" + source);
 
         return false;
     }
@@ -187,7 +191,9 @@ std::string GLShader::ReadSourceFromFile(const std::string& path)
     return shaderSource;
 }
 
-void GLShader::Parse(std::string& shaderSource, const std::vector<std::pair<std::string, std::string>>& variables)
+void GLShader::Parse(std::string& shaderSource
+                     , const std::vector<std::pair<std::string, std::string>>& variables
+                     , ContentManager* contentManager)
 {
     std::stringstream sstream(shaderSource);
 
@@ -211,7 +217,7 @@ void GLShader::Parse(std::string& shaderSource, const std::vector<std::pair<std:
         }
         else if(line.compare(0, 8, "#include") == 0)
         {
-            newData = ParseInclude(line);
+            newData = ParseInclude(line, variables, contentManager);
 
             if(!newData.empty())
             {
@@ -226,7 +232,7 @@ void GLShader::Parse(std::string& shaderSource, const std::vector<std::pair<std:
     }
 }
 
-void GLShader::Parse(std::string& shaderSource)
+/*void GLShader::Parse(std::string& shaderSource, ContentManager* contentManager)
 {
     std::stringstream sstream(shaderSource);
 
@@ -236,8 +242,8 @@ void GLShader::Parse(std::string& shaderSource)
     {
         std::string newData;
 
-        if(line.compare(0, 7, "include") == 0)
-            newData = ParseInclude(line);
+        if(line.compare(0, 8, "#include") == 0)
+            newData = ParseInclude(line, contentManager);
 
         if(!newData.empty())
         {
@@ -249,13 +255,13 @@ void GLShader::Parse(std::string& shaderSource)
 
         lastG = (int)sstream.tellg();
     }
-}
+}*/
 
 std::string GLShader::ParseVariable(const std::string& line, const std::vector<std::pair<std::string, std::string>>& variables)
 {
-    // Skip "cconst("
+    // Skip "cconst "
     std::string name = line.substr(7);
-    // Remove )
+    // Remove ;
     name.pop_back();
 
     auto iter = variables.begin();
@@ -279,7 +285,7 @@ std::string GLShader::ParseVariable(const std::string& line, const std::vector<s
     return "#define " + iter->first + " " + iter->second;
 }
 
-std::string GLShader::ParseInclude(const std::string& line)
+std::string GLShader::ParseInclude(const std::string& line, const std::vector<std::pair<std::string, std::string>>& variables, ContentManager* contentManager)
 {
     // Skip to until name
     std::string name = line.substr(line.find(' ') + 2);
@@ -289,6 +295,15 @@ std::string GLShader::ParseInclude(const std::string& line)
     std::string thisPath = GetPath();
     thisPath = thisPath.substr(0, thisPath.find_last_of("/\\") + 1);
 
+    if(contentManager != nullptr)
+    {
+        std::string headerName = name.substr(0, name.find_last_of('.') + 1) + "h";
+
+        auto shared = contentManager->GetLoadedContent<GLCPPShared>(thisPath + headerName);
+        if(shared != nullptr)
+            shared->AddUsage(this);
+    }
+
     std::string includeFileSource = ReadSourceFromFile(thisPath + name);
     if(includeFileSource.empty())
     {
@@ -296,6 +311,6 @@ std::string GLShader::ParseInclude(const std::string& line)
         return "";
     }
 
-    Parse(includeFileSource);
+    Parse(includeFileSource, variables, contentManager);
     return includeFileSource;
 }

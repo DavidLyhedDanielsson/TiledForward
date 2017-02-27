@@ -36,6 +36,20 @@ ContentManager::~ContentManager()
 	Unload();
 }
 
+void ContentManager::ForceHotReload(DiskContent* content)
+{
+    std::lock_guard<std::mutex> vectorGuard(forcedHotReloadsMutex);
+
+    forcedHotReloads.push_back(content);
+}
+
+void ContentManager::ForceHotReload(std::vector<DiskContent*> content)
+{
+    std::lock_guard<std::mutex> vectorGuard(forcedHotReloadsMutex);
+
+    forcedHotReloads.insert(forcedHotReloads.end(), content.begin(), content.end());
+}
+
 void ContentManager::Unload()
 {
 	for(auto& iter : contentMap)
@@ -334,8 +348,30 @@ void ContentManager::WaitForFileChanges(
         }
 #endif
 
+        if(forcedHotReloads.size() != 0)
+        {
+            // Sleep in case of multiple updates
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+            std::lock_guard<std::mutex> vectorGuard(forcedHotReloadsMutex);
+            std::lock_guard<std::mutex> mapGuard(reloadMapMutex);
+
+            for(DiskContent* content : forcedHotReloads)
+            {
+                DiskContent* reloadContent = content->CreateInstance();
+                reloadContent->SetPath(content->GetPath());
+                if(reloadContent->BeginHotReload(std::string(content->GetPath()).c_str(), this) == CONTENT_ERROR_CODES::NONE) // TODO: More error handling?
+                    reloadMap.insert(std::make_pair(content->GetPath(), reloadContent));
+            }
+
+            contentToHotReload = true;
+
+            forcedHotReloads.clear();
+        }
+
 		if(update)
 		{
+            // Sleep in case of multiple updates
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 			//<new, modified, removed>
@@ -373,7 +409,6 @@ void ContentManager::WaitForFileChanges(
 			close(fileDescriptor);
 			fileDescriptor = inotify_init();
 			watchDescriptor = inotify_add_watch(fileDescriptor, contentRootDirectory.c_str(), IN_CLOSE_WRITE); // TODO: Error handling, remove watch
-
 		}
 	}
 
@@ -498,4 +533,9 @@ bool ContentManager::HasLoaded(const std::string& path) const
 bool ContentManager::HasCreated(const std::string& path) const
 {
     return contentMap.find(path) != contentMap.end();
+}
+
+const char* ContentManager::GetRootDir() const
+{
+	return contentRootDirectory.c_str();
 }

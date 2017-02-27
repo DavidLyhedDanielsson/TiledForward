@@ -1,3 +1,0 @@
-cconst(WORK_GROUP_WIDTH)
-cconst(WORK_GROUP_HEIGHT)
-cconst(MAX_LIGHTS_PER_TILE)

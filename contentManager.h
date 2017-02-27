@@ -233,6 +233,9 @@ public:
 		}
 	}
 
+    void ForceHotReload(DiskContent* content);
+    void ForceHotReload(std::vector<DiskContent*> content);
+
 	/**
 	* Unloads all content loaded by this manager. Automatically called when destructor is called
 	*
@@ -298,6 +301,8 @@ public:
 
     bool HasLoaded(const std::string& path) const;
     bool HasCreated(const std::string& path) const;
+
+	const char* GetRootDir() const;
 private:
 	std::string contentRootDirectory;
 
@@ -320,8 +325,11 @@ private:
 
 	std::unordered_map<std::string, Content*> contentMap; //Use map if there are memory issues
 	std::unordered_map<std::string, DiskContent*> reloadMap; //Use map if there are memory issues
-	std::mutex reloadMapMutex;
+    std::vector<DiskContent*> forcedHotReloads;
+    std::mutex reloadMapMutex;
+    std::mutex forcedHotReloadsMutex;
 	bool contentToHotReload;
+
 
 	/**
 	* Watches for file changes and reloads content as needed

@@ -25,6 +25,7 @@
 #include "shaderContentParameters.h"
 #include "console/commandCallMethod.h"
 #include "primitiveDrawer.h"
+#include "glCPPShared.h"
 
 #include <glm/gtx/component_wise.hpp>
 
@@ -46,7 +47,7 @@ private:
         float padding;
     };
 
-    const static int LIGHT_COUNT = 2048;
+    const static int lightCount = 2048;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     const float LIGHT_MIN_STRENGTH = 0.0f;
@@ -67,15 +68,15 @@ private:
     int screenWidth = DEFAULT_SCREEN_WIDTH;
     int screenHeight = DEFAULT_SCREEN_HEIGHT;
 
-    int WORK_GROUP_WIDTH = 32;
-    int WORK_GROUP_HEIGHT = 32;
-    int MAX_LIGHTS_PER_TILE = 1024;
+    int workGroupWidth = 32;
+    int workGroupHeight = 32;
+    int maxLightsPerTile = 1024;
 
     struct Lights
     {
         glm::vec3 padding;
         float ambientStrength;
-        LightData lights[LIGHT_COUNT];
+        LightData lights[lightCount];
     } lightsBuffer;
 
     OSWindow window;
@@ -122,6 +123,9 @@ private:
 
     int msaaCount;
 
+    bool recompileShaders;
+    GLCPPShared* sharedVariables;
+
     int InitContent();
     void InitConsole();
     void InitInput();
@@ -151,6 +155,7 @@ Main::Main()
           , depthBufferTexture(0)
           , backBufferTexture(0)
           , currentCamera(&camera)
+          , recompileShaders(false)
 { }
 
 float currentFrameTime = 0.0f;
@@ -163,6 +168,26 @@ int Main::Run()
 
     if(window.Create((unsigned int)screenWidth, (unsigned int)screenHeight) == OSWindow::NONE)
     {
+        GLint maxSize;
+        glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &maxSize);
+
+        if(maxLightsPerTile > maxSize / sizeof(int))
+        {
+            Logger::LogLine(LOG_TYPE::FATAL, "GPU only supports a maximum of ", maxSize / sizeof(int), " ints in shared memory");
+            return 1;
+        }
+
+        GLCPPSharedContentParameters sharedParameters;
+        sharedParameters.variables =
+                {
+                        std::make_pair("WORK_GROUP_WIDTH", std::to_string(workGroupWidth))
+                        , std::make_pair("WORK_GROUP_HEIGHT", std::to_string(workGroupHeight))
+                        , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(maxLightsPerTile))
+                        , std::make_pair("MSAA_COUNT", std::to_string(msaaCount))
+                };
+        sharedParameters.outPath = std::string(contentManager.GetRootDir());
+        sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
+
         if(!InitFrameBuffers())
             return 2;
         InitInput();
@@ -172,6 +197,8 @@ int Main::Run()
             return errVal;
 
         InitConsole();
+
+        recompileShaders = true;
 
         // Use a reversed depth buffer
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
@@ -196,7 +223,7 @@ int Main::Run()
         minFrameTime = std::numeric_limits<float>::max();
         maxFrameTime = std::numeric_limits<float>::min();
 
-        const static int FRAME_CAP = 60;
+        const static int FRAME_CAP = 9999;
 
         Timer deltaTimer;
         deltaTimer.ResetDelta();
@@ -462,7 +489,7 @@ void Main::InitLights()
     lightsBuffer.padding = glm::vec3(1.0f, 1.2f, 1.23f);
     lightsBuffer.ambientStrength = LIGHT_DEFAULT_AMBIENT;
 
-    for(int i = 0; i < LIGHT_COUNT; ++i)
+    for(int i = 0; i < lightCount; ++i)
     {
         LightData newLight;
 
@@ -514,7 +541,7 @@ void Main::Update(Timer& deltaTimer)
 
     contentManager.HotReload();
 
-    for(int i = 0; i < LIGHT_COUNT; ++i)
+    for(int i = 0; i < lightCount; ++i)
     {
         lightsBuffer.lights[i].padding += deltaTimer.GetDeltaMillisecondsFraction();
 
@@ -624,7 +651,7 @@ void Main::Render(Timer& deltaTimer)
 
     glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
 
-    glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
+    glDispatchCompute((GLuint)std::ceil(screenWidth / (float)workGroupWidth), (GLuint)std::ceil(screenHeight / (float)workGroupHeight), 1);
     lightCull.Unbind();
 
 #ifdef DRAW_TO_CUSTOM
@@ -688,16 +715,15 @@ bool Main::InitFrameBuffers()
 
     ShaderContentParameters parameters;
     parameters.type = GLEnums::SHADER_TYPE::COMPUTE;
-    parameters.variables.push_back(std::make_pair("WORK_GROUP_WIDTH", std::to_string(WORK_GROUP_WIDTH)));
-    parameters.variables.push_back(std::make_pair("WORK_GROUP_HEIGHT", std::to_string(WORK_GROUP_HEIGHT)));
-    parameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(MAX_LIGHTS_PER_TILE)));
+    parameters.variables.push_back(std::make_pair("LOCAL_LIGHT_COUNT", std::to_string(maxLightsPerTile)));
     lightCull.AddShaders(contentManager, parameters, "lightCull.comp");
-    lightCull.Init();
+    if(!lightCull.Init())
+        return false;
 
     glm::ivec2 screenSize(screenWidth, screenHeight);
     lightCull["ScreenSize"] = screenSize;
 
-    std::vector<int> data(1 + 40 * 23 * MAX_LIGHTS_PER_TILE);
+    std::vector<int> data(1 + 40 * 23 * maxLightsPerTile);
     data[0] = 0;
     lightCull["LightIndices"] = data;
 
@@ -798,6 +824,12 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
 
     lightCull["ScreenSize"] = glm::ivec2(width, height);
 
+    if(recompileShaders)
+    {
+        sharedVariables->SetValue("MSAA_COUNT", std::to_string(msaaCount));
+        sharedVariables->WriteValues();
+    }
+
     return true;
 }
 
@@ -820,16 +852,16 @@ void Main::DrawTiles()
             };
 
     auto startX = tileToDraw.x == -1 ? 0 : tileToDraw.x;
-    auto endX = tileToDraw.x == -1 ? (int)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH) : tileToDraw.x + 1;
+    auto endX = tileToDraw.x == -1 ? (int)std::ceil(screenWidth / (float)workGroupWidth) : tileToDraw.x + 1;
 
     auto startY = tileToDraw.y == -1 ? 0 : tileToDraw.y;
-    auto endY = tileToDraw.y == -1 ? (int)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT) : tileToDraw.y + 1;
+    auto endY = tileToDraw.y == -1 ? (int)std::ceil(screenHeight / (float)workGroupHeight) : tileToDraw.y + 1;
     for(int y = startY; y < endY; ++y)
     {
         for(int x = startX; x < endX; ++x)
         {
             const glm::ivec2 gl_WorkGroupID(x, y);
-            const glm::ivec2 gl_WorkGroupSize(WORK_GROUP_WIDTH, WORK_GROUP_HEIGHT);
+            const glm::ivec2 gl_WorkGroupSize(workGroupWidth, workGroupHeight);
 
             const glm::vec2 SCREEN_SIZE(screenWidth, screenHeight);
 

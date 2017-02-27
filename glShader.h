@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "glEnums.h"
+#include "contentManager.h"
 
 class GLUniformBuffer;
 
@@ -56,10 +57,10 @@ private:
     bool CompileFromSource(const std::string& source);
     std::string ReadSourceFromFile(const std::string& path);
 
-    void Parse(std::string& shaderSource, const std::vector<std::pair<std::string, std::string>>& variables);
-    void Parse(std::string& shaderSource);
+    void Parse(std::string& shaderSource, const std::vector<std::pair<std::string, std::string>>& variables, ContentManager* contentManager);
+    //void Parse(std::string& shaderSource, ContentManager* contentManager);
     std::string ParseVariable(const std::string& line, const std::vector<std::pair<std::string, std::string>>& variables);
-    std::string ParseInclude(const std::string& line);
+    std::string ParseInclude(const std::string& line, const std::vector<std::pair<std::string, std::string>>& variables, ContentManager* contentManager);
 };
 
 #endif // GLSHADER_H__

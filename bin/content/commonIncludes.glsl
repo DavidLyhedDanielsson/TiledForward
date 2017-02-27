@@ -1,12 +1,4 @@
-#include "commonConstants.glsl"
-
-struct LightData
-{
-    vec3 position;
-    float strength;
-    vec3 color;
-    float padding;
-};
+#include "shared.glsh"
 
 layout(std140) buffer Lights
 {
@@ -21,13 +13,6 @@ layout(std140) buffer LightIndices
 {
     int occupiedIndices; // Needs to be initialized to 0!
     int lightIndices[];
-};
-
-struct TileLightData
-{
-    int start;
-    int numberOfLights;
-    ivec2 padding;
 };
 
 // Accessed once per tile

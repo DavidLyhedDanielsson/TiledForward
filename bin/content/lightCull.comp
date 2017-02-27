@@ -15,12 +15,8 @@ layout(std140) buffer ScreenSize
     int screenHeight;
 };
 
-const int LOCAL_LIGHT_COUNT = 1024;
-
 shared int lightCount;
-shared int localLightIndices[LOCAL_LIGHT_COUNT];
-
-const int MSAA_COUNT = 2;
+shared int localLightIndices[MAX_LIGHTS_PER_TILE];
 
 const int PLANE_TOP = 0;
 const int PLANE_BOTTOM = 1;

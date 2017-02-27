@@ -1,10 +1,6 @@
 #version 450 core
 
-#define cppint(a) const int a = 1;
-
-cppint(WORK_GROUP_WIDTH)
-cppint(WORK_GROUP_HEIGHT)
-cppint(MAX_LIGHTS_PER_TILE)
+include(commonConstants.glsl)
 
 uniform mat4 viewProjectionMatrix;
 uniform mat4 worldMatrix;

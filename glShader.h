@@ -57,6 +57,7 @@ private:
     std::string ReadSourceFromFile(const std::string& path);
 
     void Parse(std::string& shaderSource, const std::vector<std::pair<std::string, std::string>>& variables);
+    void Parse(std::string& shaderSource);
     std::string ParseVariable(const std::string& line, const std::vector<std::pair<std::string, std::string>>& variables);
     std::string ParseInclude(const std::string& line);
 };

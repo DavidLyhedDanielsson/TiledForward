@@ -9,17 +9,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BINARY_DIR})
 
-add_custom_target(
-        glslCompile ALL
-        glslangValidator
-        ${CONTENT_DIR}/forward.vert
-        ${CONTENT_DIR}/forward.frag
-        ${CONTENT_DIR}/instance.vert
-        ${CONTENT_DIR}/instance.frag
-        ${CONTENT_DIR}/zPrepass.vert
-        ${CONTENT_DIR}/lightCull.comp
-        ${CONTENT_DIR}/tiles.comp
-)
+#add_custom_target(
+#        glslCompile ALL
+#        glslangValidator
+#        ${CONTENT_DIR}/forward.vert
+#        ${CONTENT_DIR}/forward.frag
+#        ${CONTENT_DIR}/instance.vert
+#        ${CONTENT_DIR}/instance.frag
+#        ${CONTENT_DIR}/zPrepass.vert
+#        ${CONTENT_DIR}/lightCull.comp
+#        ${CONTENT_DIR}/tiles.comp
+#)
 
 project(opengl)
 
@@ -39,7 +39,7 @@ file(GLOB SOURCE_FILES *.h *.hpp *.cpp *.c console/*)
 add_executable(opengl ${SOURCE_FILES})
 
 target_link_libraries(opengl GLEW GL X11 pthread stdc++fs dl IL freetype assimp)
-add_dependencies(opengl glslCompile)
+#add_dependencies(opengl glslCompile)
 
 if(DEBUG_BUILD)
     set(PNG_LIBRARY_NAME png_d)

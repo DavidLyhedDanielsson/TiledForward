@@ -167,7 +167,11 @@ int Main::Run()
         if(!InitFrameBuffers())
             return 2;
         InitInput();
-        InitContent();
+
+        int errVal = InitContent();
+        if(errVal != 0)
+            return errVal;
+
         InitConsole();
 
         // Use a reversed depth buffer
@@ -268,6 +272,8 @@ int Main::InitContent()
     worldModel->drawBinds["LightIndices"] = lightCull["LightIndices"];
     worldModel->drawBinds["TileLights"] = lightCull["TileLights"];
     worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
+
+    return 0;
 }
 
 void Main::InitConsole()

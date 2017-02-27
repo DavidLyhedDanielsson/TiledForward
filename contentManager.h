@@ -69,7 +69,7 @@ public:
 			{
 				if(!diskContent->CreateDefaultContent(path.c_str(), this))
 				{
-					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\", and no default content could be created");
+					Logger::LogLine(LOG_TYPE::FATAL, "Couldn't load content at \"" + path + "\", and no default content could be created");
 
 					delete newContent;
 					newContent = nullptr;
@@ -82,9 +82,9 @@ public:
 				ContentCreationParameters* creationParameters = dynamic_cast<ContentCreationParameters*>(contentParameters);
 
 				if(creationParameters != nullptr)
-					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't create content with ID \"" + std::string(creationParameters->uniqueID) + "\"");
+					Logger::LogLine(LOG_TYPE::FATAL, "Couldn't create content with ID \"" + std::string(creationParameters->uniqueID) + "\"");
 				else
-					Logger::LogLine(LOG_TYPE::WARNING, "Couldn't load content at \"" + path + "\"");
+					Logger::LogLine(LOG_TYPE::FATAL, "Couldn't load content at \"" + path + "\"");
 
 				delete newContent;
 				newContent = nullptr;

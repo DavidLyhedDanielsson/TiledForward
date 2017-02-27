@@ -37,9 +37,7 @@ bool GLShader::CreateDefaultContent(const char* filePath, ContentManager* conten
     {
         case GLEnums::SHADER_TYPE::VERTEX:
         case GLEnums::SHADER_TYPE::FRAGMENT:
-            shaderSource = "void main() { }";
-            break;
-        case GLEnums::SHADER_TYPE::TESS_CONTROL: // TODO: Implement these
+        case GLEnums::SHADER_TYPE::TESS_CONTROL:
         case GLEnums::SHADER_TYPE::TESS_EVALUATION:
         case GLEnums::SHADER_TYPE::GEOMETRY:
         case GLEnums::SHADER_TYPE::COMPUTE:
@@ -66,7 +64,7 @@ bool GLShader::Apply(Content* content)
     for(auto shaderProgram : shaderPrograms)
         shaderProgram->RelinkShaders();
 
-    ParseVariables(shaderSource, variables);
+    Parse(shaderSource, variables);
     shaderSource.resize(0);
 }
 
@@ -86,7 +84,7 @@ CONTENT_ERROR_CODES GLShader::Load(const char* filePath
     if(shaderSource.empty())
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
-    ParseVariables(shaderSource, parameters->variables);
+    Parse(shaderSource, parameters->variables);
 
     if(!CompileFromSource(shaderSource))
         return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
@@ -191,59 +189,113 @@ std::string GLShader::ReadSourceFromFile(const std::string& path)
 
 void GLShader::Parse(std::string& shaderSource, const std::vector<std::pair<std::string, std::string>>& variables)
 {
+    std::stringstream sstream(shaderSource);
 
+    std::string line;
+    auto lastG = sstream.tellg();
+    while(std::getline(sstream, line))
+    {
+        std::string newData;
+
+        if(line.compare(0, 6, "cconst") == 0)
+        {
+            newData = ParseVariable(line, variables);
+
+            if(!newData.empty())
+            {
+                shaderSource.replace(lastG, line.length(), newData);
+
+                sstream.str(shaderSource);
+                sstream.seekg((int)lastG + (int)newData.length() + 1);
+            }
+        }
+        else if(line.compare(0, 7, "include") == 0)
+        {
+            newData = ParseInclude(line);
+
+            if(!newData.empty())
+            {
+                shaderSource.replace(lastG, line.length(), newData);
+
+                sstream.str(shaderSource);
+                sstream.seekg((int)lastG);
+            }
+        }
+
+        lastG = (int)sstream.tellg();
+    }
+}
+
+void GLShader::Parse(std::string& shaderSource)
+{
+    std::stringstream sstream(shaderSource);
+
+    std::string line;
+    auto lastG = sstream.tellg();
+    while(std::getline(sstream, line))
+    {
+        std::string newData;
+
+        if(line.compare(0, 7, "include") == 0)
+            newData = ParseInclude(line);
+
+        if(!newData.empty())
+        {
+            shaderSource.replace(lastG, line.length(), newData);
+
+            sstream.str(shaderSource);
+            sstream.seekg((int)lastG);
+        }
+
+        lastG = (int)sstream.tellg();
+    }
 }
 
 std::string GLShader::ParseVariable(const std::string& line, const std::vector<std::pair<std::string, std::string>>& variables)
 {
-    auto foundLocation = shaderSource.find("\ncppint");
-    if(foundLocation == shaderSource.npos)
-    {
-        for(const auto& pair : variables)
-            Logger::LogLine(LOG_TYPE::WARNING, "Variable \"" + pair.first + "\" not found in shader \"" + GetPath() + "\"");
+    // Skip "cconst("
+    std::string name = line.substr(7);
+    // Remove )
+    name.pop_back();
 
-        return;
+    auto iter = variables.begin();
+    for(; iter != variables.end(); ++iter)
+    {
+        if(iter->first == name)
+            break;
     }
 
-    ++foundLocation; // Skip \n
-    while(foundLocation != shaderSource.npos)
+    if(iter == variables.end())
     {
-        auto end = shaderSource.find_first_of(")\n", foundLocation);
-        if(shaderSource[end] == '\n')
-        {
-            Logger::LogLine(LOG_TYPE::WARNING, std::string("Error parsing shader variable in \"") + GetPath() + "\", expected ')', found newline: " + shaderSource.substr(foundLocation, end - foundLocation + 1));
-            continue;
-        }
+        Logger::LogLine(LOG_TYPE::WARNING, std::string("Error parsing shader variable in \"")
+                                           + GetPath()
+                                           + "\", no variable named \""
+                                           + name
+                                           + "\" found");
 
-        // Skip "cppvariable("
-        int foundParen = shaderSource[foundLocation + 6] == '(';
-        std::string name = shaderSource.substr(foundLocation + 6 + foundParen, end - (foundLocation + 6 + foundParen));
-
-        if(name.back() == ')')
-            name.pop_back();
-
-        auto iter = variables.begin();
-        for(; iter != variables.end(); ++iter)
-        {
-            if(iter->first == name)
-                break;
-        }
-
-        if(iter == variables.end())
-        {
-            Logger::LogLine(LOG_TYPE::WARNING, std::string("Error parsing shader variable in \"") + GetPath() + "\", no variable named \"" + name + "\" found");
-            continue;
-        }
-        else
-        {
-            foundParen = shaderSource[end] == ')';
-            shaderSource.replace(foundLocation, end - foundLocation + foundParen, "#define " + iter->first + " " + iter->second);
-        }
-        foundLocation = shaderSource.find("cppint", foundLocation + 1);
+        return "";
     }
+
+    return "#define " + iter->first + " " + iter->second;
 }
 
 std::string GLShader::ParseInclude(const std::string& line)
 {
+    // Skip "include("
+    std::string name = line.substr(8);
+    // Remove )
+    name.pop_back();
 
+    std::string thisPath = GetPath();
+    thisPath = thisPath.substr(0, thisPath.find_last_of("/\\") + 1);
+
+    std::string includeFileSource = ReadSourceFromFile(thisPath + name);
+    if(includeFileSource.empty())
+    {
+        Logger::LogLine(LOG_TYPE::FATAL, "Couldn't find include file at \"" + thisPath + name + "\"");
+        return "";
+    }
+
+    Parse(includeFileSource);
+    return includeFileSource;
 }

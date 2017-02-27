@@ -46,16 +46,16 @@ private:
         float padding;
     };
 
-    const static int LIGHT_COUNT = 512;
+    const static int LIGHT_COUNT = 2048;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     const float LIGHT_MIN_STRENGTH = 0.0f;
-    const float LIGHT_MAX_STRENGTH = 5.0f;
-    const float LIGHT_MAX_LIFETIME = 5000.0f;
+    const float LIGHT_MAX_STRENGTH = 2.0f;
+    const float LIGHT_MAX_LIFETIME = 1000.0f;
 
-    const float LIGHT_RANGE_X = 12.0f;
+    const float LIGHT_RANGE_X = 14.0f;
     const float LIGHT_MAX_Y = 8.0f;
-    const float LIGHT_RANGE_Z = 8.0f;
+    const float LIGHT_RANGE_Z = 6.0f;
 
     /*const float LIGHT_RANGE_X = 0.0f;
     const float LIGHT_MAX_Y = 0.0f;
@@ -69,7 +69,7 @@ private:
 
     int WORK_GROUP_WIDTH = 32;
     int WORK_GROUP_HEIGHT = 32;
-    int MAX_LIGHTS_PER_TILE = 32;
+    int MAX_LIGHTS_PER_TILE = 1024;
 
     struct Lights
     {
@@ -462,7 +462,7 @@ void Main::InitLights()
         LightData newLight;
 
         float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-        float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 1.0f;
+        float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y;
         float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
         newLight.position = glm::vec3(xPos, yPos, zPos);
@@ -527,7 +527,7 @@ void Main::Update(Timer& deltaTimer)
             lightsBuffer.lights[i].padding = 0.0f;
 
             float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 1.0f;
+            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y;
             float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
             lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
@@ -603,7 +603,7 @@ void Main::Render(Timer& deltaTimer)
     glDepthFunc(GL_GREATER);
 
     // Bind custom framebuffer
-#define DRAW_TO_CUSTOM
+//#define DRAW_TO_CUSTOM
 #ifdef DRAW_TO_CUSTOM
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
 #else
@@ -640,8 +640,22 @@ void Main::Render(Timer& deltaTimer)
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    glDepthMask(GL_FALSE);
+
+    worldModel->DrawTransparent(camera.GetPosition());
 #else
     worldModel->DrawOpaque();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    glDepthMask(GL_FALSE);
+
+    worldModel->DrawTransparent(camera.GetPosition());
 #endif
 
     //primitiveDrawer.End();

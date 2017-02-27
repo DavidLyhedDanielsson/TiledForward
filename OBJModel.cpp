@@ -212,7 +212,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     parameters.type = GLEnums::SHADER_TYPE::FRAGMENT;
     parameters.variables.push_back(std::make_pair("WORK_GROUP_WIDTH", std::to_string(32)));
     parameters.variables.push_back(std::make_pair("WORK_GROUP_HEIGHT", std::to_string(32)));
-    parameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(32)));
+    parameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(1024)));
 
     // Normal draw binds
     if(!drawBinds.AddShaders(*contentManager

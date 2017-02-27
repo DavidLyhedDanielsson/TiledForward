@@ -30,7 +30,7 @@ layout(std140) buffer Lights
 layout(std140) buffer LightIndices
 {
     int occupiedIndices; // Needs to be initialized to 0!
-    int lightIndices[40 * 23 * MAX_LIGHTS_PER_TILE];
+    int lightIndices[];
 };
 
 struct TileLightData

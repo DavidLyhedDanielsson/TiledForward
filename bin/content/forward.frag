@@ -53,7 +53,7 @@ layout (std140) buffer Lights
 layout(std140) buffer LightIndices
 {
     int occupiedIndices; // Needs to be initialized to 0!
-    int lightIndices[40 * 23 * MAX_LIGHTS_PER_TILE];
+    int lightIndices[];
 };
 
 struct TileLightData
@@ -89,42 +89,50 @@ void main()
 {
     vec3 textureColor = texture(tex, TexCoord).xyz;
 
-    vec3 finalColor = vec3(textureColor);
+    vec3 finalColor = vec3(0.0f);
 
-    /*vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
+    vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
 
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
     vec2 gridIndex = TexelToGrid(texel);
 
     int lightStart = tileLightData[int(gridIndex.y)][int(gridIndex.x)].start;
     int lightCount = tileLightData[int(gridIndex.y)][int(gridIndex.x)].numberOfLights;
-    for(int i = lightStart; i < lightStart + lightCount; ++i)
+
+    if(lightCount > MAX_LIGHTS_PER_TILE)
+        finalColor = vec3(1.0f, 0.0f, 0.0f);
+    else
     {
-        LightData light = lights[lightIndices[i]];
+        for(int i = lightStart; i < lightStart + lightCount; ++i)
+        {
+            LightData light = lights[lightIndices[i]];
 
-        vec3 lightDirection = WorldPosition - light.position;
-        float lightDistance = length(lightDirection);
+            vec3 lightDirection = WorldPosition - light.position;
+            float lightDistance = length(lightDirection);
 
-        if(lightDistance > light.strength)
-            continue;
+            if(lightDistance > light.strength)
+                continue;
 
-        lightDirection = normalize(lightDirection);
+            lightDirection = normalize(lightDirection);
 
-        float linearFactor = 2.0f / light.strength;
-        float quadraticFactor = 1.0f / (light.strength * light.strength);
+            float linearFactor = 2.0f / light.strength;
+            float quadraticFactor = 1.0f / (light.strength * light.strength);
 
-        float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
-        attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);
+            float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
+            attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);
 
-        //finalColor += light.color * diffuse * attenuation;
+            //finalColor += light.color * diffuse * attenuation;
 
-        float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
-        finalColor += light.color * diffuse * attenuation;
+            //float attenuation = 1.0f;
+
+            float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
+            finalColor += light.color * diffuse * attenuation;
+        }
+
+        finalColor += ambientStrength;
+        finalColor *= materials[materialIndex].diffuseColor;
+        finalColor *= textureColor;
     }
 
-    finalColor += ambientStrength;
-    finalColor *= materials[materialIndex].diffuseColor;
-    finalColor *= textureColor;*/
-
-    outColor = vec4(finalColor, 1.0f);
+    outColor = vec4(finalColor, materials[materialIndex].opacity);
 }

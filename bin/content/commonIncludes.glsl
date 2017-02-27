@@ -1,4 +1,4 @@
-include(commonConstants.glsl)
+#include "commonConstants.glsl"
 
 struct LightData
 {

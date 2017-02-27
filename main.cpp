@@ -117,7 +117,6 @@ private:
     float maxFrameTime;
 
     GLDrawBinds lightCull;
-    GLDrawBinds tiles;
 
     GLuint queries[2];
 
@@ -582,9 +581,7 @@ void Main::Render(Timer& deltaTimer)
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
     lightCull["viewMatrix"] = viewMatrix;
-    lightCull["projectionMatrix"] = projectionMatrix;
     lightCull["projectionInverseMatrix"] = projectionMatrixInverse;
-    lightCull["viewInverseMatrix"] = viewMatrixInverse;
 
     lightCull["Lights"] = lightsBuffer;
 
@@ -623,24 +620,12 @@ void Main::Render(Timer& deltaTimer)
 
     lightCull.Bind();
 
-    //glBindTexture(GL_TEXTURE_2D, depthBufferTexture);
-    //glUniform1i(0, 0);
-
-    //glActiveTexture(GL_TEXTURE0);
     glBindImageTexture(0, backBufferTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
-    //glUniform1i(0, 0);
 
-    //glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
-    //glUniform1i(1, 1);
 
     glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
     lightCull.Unbind();
-
-
-    //tiles.Bind();
-    //glDispatchCompute((GLuint)std::ceil(screenWidth / (float)WORK_GROUP_WIDTH), (GLuint)std::ceil(screenHeight / (float)WORK_GROUP_HEIGHT), 1);
-    //tiles.Unbind();
 
 #ifdef DRAW_TO_CUSTOM
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
@@ -664,168 +649,6 @@ void Main::Render(Timer& deltaTimer)
     worldModel->DrawTransparent(camera.GetPosition());
 #endif
 
-    //primitiveDrawer.End();
-
-    //glActiveTexture(GL_TEXTURE0);
-
-    //lightCull.Unbind();
-
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, depthRenderBuffer);
-    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-    // Bind default framebuffer
-    /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDepthFunc(GL_LESS);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    if(wireframe)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    worldModel->DrawOpaque(camera.GetPosition());
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    glDepthMask(GL_FALSE);
-
-    worldModel->DrawTransparent(camera.GetPosition());
-
-    glDepthMask(GL_TRUE);
-
-    if(wireframe)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, depthRenderBuffer);
-    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-    //glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);*/
-
-    //glDisable(GL_DEPTH_TEST);
-    //glDisable(GL_CULL_FACE);
-
-    /*std::vector<LineVertex> linePositions;
-    std::vector<GLuint> lineIndices;
-
-    const int TOP_LEFT = 0;
-    const int TOP_RIGHT = 1;
-    const int BOTTOM_RIGHT = 2;
-    const int BOTTOM_LEFT = 3;
-
-    //primitiveDrawer.DrawSphere(glm::vec3(0.0f), 0.1f, glm::vec3(1.0f));
-    primitiveDrawer.End();
-
-    //if(!drawTiles)
-    //{
-        const static glm::ivec2 offsets[4] =
-                {
-                        glm::ivec2(0, 0)
-                        , glm::ivec2(1, 0)
-                        , glm::ivec2(1, 1)
-                        , glm::ivec2(0, 1)
-                };
-
-        auto startX = tileToDraw.x == -1 ? 0 : tileToDraw.x;
-        auto endX = tileToDraw.x == -1 ? 40 : tileToDraw.x + 1;
-
-        auto startY = tileToDraw.y == -1 ? 0 : tileToDraw.y;
-        auto endY = tileToDraw.y == -1 ? 23 : tileToDraw.y + 1;
-
-        for(int y = startY; y < endY; ++y)
-        {
-            for(int x = startX; x < endX; ++x)
-            {
-                const glm::ivec2 gl_WorkGroupID(x, y);
-                const glm::ivec2 gl_WorkGroupSize(32, 32);
-
-                const glm::vec2 SCREEN_SIZE(1280.0f, 720.0f);
-
-                glm::vec3 viewPositions[4];
-
-                glm::mat4 projectionInverseMatrix = glm::inverse(snapshotCamera.GetProjectionMatrix());
-                glm::mat4 viewInverseMatrix = glm::inverse(snapshotCamera.GetViewMatrix());
-
-                for(int i = 0; i < 4; ++i)
-                {
-                    glm::vec3 ndcPosition = glm::vec3(glm::vec2((gl_WorkGroupID + offsets[i]) * gl_WorkGroupSize)
-                                                      / SCREEN_SIZE, 1.0f);
-                    ndcPosition.x *= 2.0f;
-                    ndcPosition.x -= 1.0f;
-                    ndcPosition.y *= -2.0f;
-                    ndcPosition.y += 1.0f;
-
-                    glm::vec4 unprojectedPosition = projectionInverseMatrix * glm::vec4(ndcPosition, 1.0f);
-                    unprojectedPosition /= unprojectedPosition.w;
-
-                    viewPositions[i] = glm::vec3(unprojectedPosition);
-                }
-
-                auto CreatePlane = [](glm::vec3 far0, glm::vec3 far1) -> glm::vec4
-                {
-                    glm::vec3 planeABC;
-                    planeABC = normalize(cross(far0, far1));
-                    float dist = dot(far0, planeABC);
-
-                    return glm::vec4(planeABC, dist);
-                };
-
-                const int PLANE_TOP = 0;
-                const int PLANE_BOTTOM = 1;
-                const int PLANE_LEFT = 2;
-                const int PLANE_RIGHT = 3;
-
-                glm::vec4 planes[4];
-                planes[PLANE_TOP] = CreatePlane(viewPositions[TOP_LEFT], viewPositions[TOP_RIGHT]);
-                planes[PLANE_BOTTOM] = CreatePlane(viewPositions[BOTTOM_RIGHT], viewPositions[BOTTOM_LEFT]);
-                planes[PLANE_RIGHT] = CreatePlane(viewPositions[TOP_RIGHT], viewPositions[BOTTOM_RIGHT]);
-                planes[PLANE_LEFT] = CreatePlane(viewPositions[BOTTOM_LEFT], viewPositions[TOP_LEFT]);
-
-                glm::vec3 zeroPos = glm::vec3(snapshotCamera.GetViewMatrix() * glm::vec4(lightsBuffer.lights[0].position, 1.0f));
-
-                bool inside = true;
-                for(int i = 0; i < 4; ++i)
-                {
-                    float dist = glm::dot(zeroPos, glm::vec3(planes[i])) + planes[i].w;
-                    if(dist > lightsBuffer.lights[0].strength)
-                        inside = false;
-                }
-
-                if(inside)
-                {
-
-                    if(zeroPos.z < 0)
-                        inside = false;
-                }
-
-                glm::vec3 colors[4];
-                colors[PLANE_TOP] = glm::vec3(0.0f, 1.0f, 0.0f);
-                colors[PLANE_BOTTOM] = glm::vec3(0.0f, 0.0f, 1.0f);
-                colors[PLANE_LEFT] = glm::vec3(1.0f, 1.0f, 0.0f);
-                colors[PLANE_RIGHT] = glm::vec3(1.0f, 0.0f, 0.0f);
-
-                if(inside)
-                for(int i = 0; i < 4; ++i)
-                {
-                    glm::vec3 eye(viewInverseMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-                    glm::vec3 target(viewInverseMatrix * glm::vec4(glm::vec3(viewPositions[i]), 1.0f));
-
-                    glm::vec3 color = inside ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
-
-                    linePositions.push_back(LineVertex(eye, color));
-                    linePositions.push_back(LineVertex(target, color));
-
-                    lineIndices.push_back(lineIndices.size());
-                    lineIndices.push_back(lineIndices.size());
-                }
-            }
-        }
-    //}
-
-    lineVertexBuffer.Update(linePositions.data(), linePositions.size() * sizeof(linePositions[0]));
-    lineIndexBuffer.Update(lineIndices);
-
-    lineDrawBinds.Bind();
-    lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
-    lineDrawBinds.Unbind();*/
     glDisable(GL_CULL_FACE);
 
     if(drawTiles)
@@ -861,10 +684,7 @@ bool Main::InitFrameBuffers()
     lineDrawBinds.Init();
 
     lightCull.AddUniform("viewMatrix", glm::mat4());
-    lightCull.AddUniform("projectionMatrix", glm::mat4());
     lightCull.AddUniform("projectionInverseMatrix", glm::mat4());
-    lightCull.AddUniform("viewInverseMatrix", glm::mat4());
-    lightCull.AddUniform("worldMatrix", glm::scale(glm::mat4(), glm::vec3(0.01f)));
 
     ShaderContentParameters parameters;
     parameters.type = GLEnums::SHADER_TYPE::COMPUTE;
@@ -873,9 +693,6 @@ bool Main::InitFrameBuffers()
     parameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(MAX_LIGHTS_PER_TILE)));
     lightCull.AddShaders(contentManager, parameters, "lightCull.comp");
     lightCull.Init();
-
-    tiles.AddShaders(contentManager, parameters, "tiles.comp");
-    tiles.Init();
 
     glm::ivec2 screenSize(screenWidth, screenHeight);
     lightCull["ScreenSize"] = screenSize;
@@ -887,18 +704,6 @@ bool Main::InitFrameBuffers()
     data.clear();
     data.resize(40 * 23 * 4, -1);
     lightCull["TileLights"] = data;
-
-    /*auto Lights = lightCull.GetSSBO("Lights");
-    auto LightIndices = lightCull.GetSSBO("LightIndices");
-    auto TileLights = lightCull.GetSSBO("TileLights");
-
-    auto Lights = lightCull.GetSSBO("Lights");
-    auto LightIndices = lightCull.GetSSBO("LightIndices");
-    auto TileLights = lightCull.GetSSBO("TileLights");*/
-
-    tiles["Lights"] = lightCull["Lights"];
-    tiles["LightIndices"] = lightCull["LightIndices"];
-    tiles["TileLights"] = lightCull["TileLights"];
 
     glGenFramebuffers(1, &frameBufferDepthOnly);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);

@@ -389,8 +389,8 @@ bool GLDrawBinds::CheckRequirements() const
             return false;
         }
 
-        if(!pixelBound)
-            LogWithName(LOG_TYPE::WARNING, "No pixel shader to match vertex shader, is this intended?");
+        //if(!pixelBound)
+        //    LogWithName(LOG_TYPE::WARNING, "No pixel shader to match vertex shader, is this intended?");
     }
 
     return !computeBound;

@@ -209,7 +209,7 @@ void GLShader::Parse(std::string& shaderSource, const std::vector<std::pair<std:
                 sstream.seekg((int)lastG + (int)newData.length() + 1);
             }
         }
-        else if(line.compare(0, 7, "include") == 0)
+        else if(line.compare(0, 8, "#include") == 0)
         {
             newData = ParseInclude(line);
 
@@ -281,9 +281,9 @@ std::string GLShader::ParseVariable(const std::string& line, const std::vector<s
 
 std::string GLShader::ParseInclude(const std::string& line)
 {
-    // Skip "include("
-    std::string name = line.substr(8);
-    // Remove )
+    // Skip to until name
+    std::string name = line.substr(line.find(' ') + 2);
+    // Remove "
     name.pop_back();
 
     std::string thisPath = GetPath();

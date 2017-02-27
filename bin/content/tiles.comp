@@ -1,6 +1,6 @@
 #version 450 core
 
-include(commonConstants.glsl)
+#include "commonConstants.glsl"
 
 const int MSAA_COUNT = 2;
 

@@ -67,6 +67,8 @@ bool GLShader::Apply(Content* content)
 
     //Parse(shaderSource, variables, nullptr); // TODO: Support this?
     shaderSource.resize(0);
+
+    return true;
 }
 
 CONTENT_ERROR_CODES GLShader::Load(const char* filePath
@@ -113,7 +115,7 @@ CONTENT_ERROR_CODES GLShader::BeginHotReload(const char* filePath, ContentManage
 {
     shaderSource = ReadSourceFromFile(filePath);
 
-    Parse(shaderSource, variables, contentManager);
+    Parse(shaderSource, variables, nullptr);
 
     if(shaderSource.empty())
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
@@ -124,7 +126,7 @@ CONTENT_ERROR_CODES GLShader::BeginHotReload(const char* filePath, ContentManage
 bool GLShader::ApplyHotReload()
 {
     //Parse(shaderSource, variables, nullptr);
-    bool returnValue = CompileFromSource(shaderSource); // TODO: Support this?
+    bool returnValue = CompileFromSource(shaderSource);
 
     return returnValue;
 }

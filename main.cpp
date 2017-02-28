@@ -47,7 +47,7 @@ private:
         float padding;
     };
 
-    const static int lightCount = 2048;
+    const static int lightCount = 64;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     const float LIGHT_MIN_STRENGTH = 0.0f;
@@ -117,6 +117,8 @@ private:
     float minFrameTime;
     float maxFrameTime;
 
+    float cameraSpeed;
+
     GLDrawBinds lightCull;
 
     GLuint queries[2];
@@ -156,6 +158,7 @@ Main::Main()
           , backBufferTexture(0)
           , currentCamera(&camera)
           , recompileShaders(false)
+          , cameraSpeed(0.01f)
 { }
 
 float currentFrameTime = 0.0f;
@@ -314,6 +317,7 @@ void Main::InitConsole()
                  , false);
     console.Autoexec();
     console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
+    console.AddCommand(new CommandGetSet<float>("cameraSpeed", &cameraSpeed));
 
     console.AddCommand(new CommandCallMethod("light_position"
                                              , [&](const std::vector<Argument>& args)
@@ -518,19 +522,19 @@ void Main::Update(Timer& deltaTimer)
     if(!console.GetActive())
     {
         if(keysDown.count(KEY_CODE::A))
-            currentCamera->MoveRight(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveRight(-cameraSpeed * deltaTimer.GetDeltaMillisecondsFraction());
         else if(keysDown.count(KEY_CODE::D))
-            currentCamera->MoveRight(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveRight(cameraSpeed * deltaTimer.GetDeltaMillisecondsFraction());
 
         if(keysDown.count(KEY_CODE::W))
-            currentCamera->MoveFoward(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveFoward(cameraSpeed * deltaTimer.GetDeltaMillisecondsFraction());
         else if(keysDown.count(KEY_CODE::S))
-            currentCamera->MoveFoward(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveFoward(-cameraSpeed * deltaTimer.GetDeltaMillisecondsFraction());
 
         if(keysDown.count(KEY_CODE::V))
-            currentCamera->MoveUp(0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveUp(cameraSpeed * deltaTimer.GetDeltaMillisecondsFraction());
         else if(keysDown.count(KEY_CODE::C))
-            currentCamera->MoveUp(-0.01f * deltaTimer.GetDeltaMillisecondsFraction());
+            currentCamera->MoveUp(-cameraSpeed * deltaTimer.GetDeltaMillisecondsFraction());
 
         glm::vec2 mouseDelta = Input::GetMouseDelta();
 
@@ -633,18 +637,10 @@ void Main::Render(Timer& deltaTimer)
     glDepthFunc(GL_GREATER);
 
     // Bind custom framebuffer
-//#define DRAW_TO_CUSTOM
-#ifdef DRAW_TO_CUSTOM
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-#endif
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-#ifdef DRAW_TO_CUSTOM
-    worldModel->DrawOpaque();
-#endif
-
+    // Light pass
     lightCull.Bind();
 
     glBindImageTexture(0, backBufferTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
@@ -654,18 +650,7 @@ void Main::Render(Timer& deltaTimer)
     glDispatchCompute((GLuint)std::ceil(screenWidth / (float)workGroupWidth), (GLuint)std::ceil(screenHeight / (float)workGroupHeight), 1);
     lightCull.Unbind();
 
-#ifdef DRAW_TO_CUSTOM
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    glDepthMask(GL_FALSE);
-
-    worldModel->DrawTransparent(camera.GetPosition());
-#else
+    // Forward pass (opaque)
     worldModel->DrawOpaque();
 
     glEnable(GL_BLEND);
@@ -673,8 +658,13 @@ void Main::Render(Timer& deltaTimer)
     glBlendEquation(GL_FUNC_ADD);
     glDepthMask(GL_FALSE);
 
+    // Forward pass (transparent)
     worldModel->DrawTransparent(camera.GetPosition());
-#endif
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     glDisable(GL_CULL_FACE);
 

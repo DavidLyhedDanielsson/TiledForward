@@ -184,8 +184,12 @@ void GLCPPShared::WriteValues()
 {
     WriteGLSHFile(ReadAndParse(inFile));
 
+    std::vector<DiskContent*> diskContentUsages;
+
     for(GLShader* usage : usages)
-        contentManager->ForceHotReload(usage);
+        diskContentUsages.push_back(usage);
+
+    contentManager->ForceHotReload(diskContentUsages);
 }
 
 void GLCPPShared::AddUsage(GLShader* shader)

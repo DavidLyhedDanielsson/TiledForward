@@ -2,6 +2,7 @@
 #define GLSHADERSTORAGEBUFFER_H__
 
 #include "glBufferBase.h"
+#include "glDynamicBuffer.h"
 
 class GLShaderStorageBuffer
 {
@@ -28,6 +29,7 @@ private:
     GLint size;
 
     void SetData(const void* data, size_t dataSize);
+    void SetData(GLDynamicBuffer* buffer);
 };
 
 #endif // GLSHADERSTORAGEBUFFER_H__

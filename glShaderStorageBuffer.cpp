@@ -52,6 +52,24 @@ void GLShaderStorageBuffer::SetData(const void* data, size_t dataSize)
     }
 }
 
+void GLShaderStorageBuffer::SetData(GLDynamicBuffer* buffer)
+{
+    if(buffer->GetTotalSize() != this->size)
+    {
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferIndex);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, buffer->GetTotalSize(), nullptr, GL_DYNAMIC_DRAW);
+
+        this->size = buffer->GetTotalSize();
+    }
+    else
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferIndex);
+
+    void* mappedData = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY | GL_MAP_INVALIDATE_BUFFER_BIT);
+    buffer->UploadData(mappedData);
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
 void GLShaderStorageBuffer::Share(GLShaderStorageBuffer* other)
 {
     glDeleteBuffers(1, &bufferIndex);

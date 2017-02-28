@@ -17,6 +17,7 @@
 #include "glUniformBuffer.h"
 #include "glShaderStorageBuffer.h"
 #include "shaderContentParameters.h"
+#include "glDynamicBuffer.h"
 
 class GLVariable
 {
@@ -61,7 +62,10 @@ public:
     {}
 
     template<typename T>
-    void operator=(T value);
+    void operator=(T* value);
+
+    template<typename T>
+    void operator=(const T& value);
 
     template<typename T>
     void operator=(const std::vector<T>& values);
@@ -71,7 +75,6 @@ public:
 private:
     GLDrawBinds* parent;
     GLUniformBase* uniform;
-    //GLUniformBufferVariable* uniformBufferVariable;
     GLUniformBuffer* uniformBuffer;
     GLShaderStorageBuffer* storageBuffer;
 };
@@ -276,6 +279,11 @@ private:
         buffer->SetData(&value, sizeof(T));
     }
 
+    void UpdateStorageBuffer(GLShaderStorageBuffer* buffer, GLDynamicBuffer* data)
+    {
+        buffer->SetData(data);
+    }
+
     void Share(GLShaderStorageBuffer* lhs, GLShaderStorageBuffer* rhs);
 
     void GetActiveStorageBlocks();
@@ -283,9 +291,18 @@ private:
 };
 
 template<typename T>
-void GLVariable::operator=(T value)
+inline void GLVariable::operator=(T* buffer)
 {
-    static_assert(!std::is_pointer<T>::value, "Pointers aren't allowed, use std::vector instead");
+    static_assert(std::is_base_of<GLDynamicBuffer, T>::value, "Only vectors, pointers, or const T& are allowed");
+
+    if(storageBuffer)
+        parent->UpdateStorageBuffer(storageBuffer, static_cast<GLDynamicBuffer*>(buffer));
+}
+
+template<typename T>
+inline void GLVariable::operator=(const T& value)
+{
+    static_assert(!std::is_base_of<GLDynamicBuffer, T>::value, "Use pointers to update a GLDynamicBuffer");
 
     if(uniform)
         parent->UpdateUniform(uniform, value);
@@ -298,7 +315,7 @@ void GLVariable::operator=(T value)
 }
 
 template<typename T>
-void GLVariable::operator=(const std::vector<T>& values)
+inline void GLVariable::operator=(const std::vector<T>& values)
 {
     if(uniformBuffer)
         parent->UpdateUniformBuffer(uniformBuffer, values);

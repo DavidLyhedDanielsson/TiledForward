@@ -3,6 +3,7 @@
 #include <set>
 #include <glm/gtc/matrix_transform.hpp>
 #include <X11/Xlib.h>
+#include <random>
 
 #include "window.h"
 #include "timer.h"
@@ -29,6 +30,36 @@
 
 #include <glm/gtx/component_wise.hpp>
 
+struct LightData
+{
+    glm::vec3 position;
+    float strength;
+    glm::vec3 color;
+    float padding;
+};
+
+class LightsBuffer
+        : public GLDynamicBuffer
+{
+public:
+    size_t GetTotalSize() const override
+    {
+        return sizeof(glm::vec3) + sizeof(float) + sizeof(LightData) * lights.size();
+    }
+
+    void UploadData(void* location) const override
+    {
+        char* locationChar = (char*)location;
+
+        std::memcpy(locationChar + sizeof(padding), &ambientStrength, sizeof(float));
+        std::memcpy(locationChar + sizeof(padding) + sizeof(ambientStrength), &lights[0], sizeof(LightData) * lights.size());
+    }
+
+    glm::vec3 padding;
+    float ambientStrength;
+    std::vector<LightData> lights;
+};
+
 class Main
 {
 public:
@@ -39,20 +70,12 @@ public:
     int Run();
 protected:
 private:
-    struct LightData
-    {
-        glm::vec3 position;
-        float strength;
-        glm::vec3 color;
-        float padding;
-    };
-
-    const static int lightCount = 64;
+    int lightCount = 512;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
-    const float LIGHT_MIN_STRENGTH = 0.0f;
-    const float LIGHT_MAX_STRENGTH = 2.0f;
-    const float LIGHT_MAX_LIFETIME = 1000.0f;
+    float lightMinStrength = 0.0f;
+    float lightMaxStrength = 5.0f;
+    float lightLifetime = 1000.0f;
 
     const float LIGHT_RANGE_X = 14.0f;
     const float LIGHT_MAX_Y = 8.0f;
@@ -72,12 +95,14 @@ private:
     int workGroupHeight = 32;
     int maxLightsPerTile = 1024;
 
-    struct Lights
+    /*struct Lights
     {
         glm::vec3 padding;
         float ambientStrength;
         LightData lights[lightCount];
-    } lightsBuffer;
+    } lightsBuffer;*/
+
+    LightsBuffer lightsBuffer;
 
     OSWindow window;
 
@@ -139,6 +164,8 @@ private:
     void Render(Timer& deltaTimer);
     void DrawTiles();
     bool ResizeFramebuffer(int width, int height, bool recreateBuffers);
+
+    LightData GetRandomLight();
 };
 
 int main(int argc, char* argv[])
@@ -319,6 +346,36 @@ void Main::InitConsole()
     console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
     console.AddCommand(new CommandGetSet<float>("cameraSpeed", &cameraSpeed));
 
+    console.AddCommand(new CommandGetSet<float>("light_minStrength", &lightMinStrength));
+    console.AddCommand(new CommandGetSet<float>("light_maxStrength", &lightMaxStrength));
+    console.AddCommand(new CommandGetSet<float>("light_lifetime", &lightLifetime));
+
+
+    console.AddCommand(new CommandCallMethod("light_lightCount"
+                                             , [&](const std::vector<Argument>& args)
+            {
+                if(args.size() == 0)
+                    return Argument("lightCount = " + std::to_string(lightCount));
+                else if(args.size() != 1)
+                    return Argument("Needs 1 parameter");
+
+                int newCount = std::stoi(args.front().value);
+
+                if(newCount > lightCount)
+                {
+                    lightsBuffer.lights.reserve(newCount);
+                    for(int i = lightCount; i < lightCount + newCount; ++i)
+                        lightsBuffer.lights.push_back(GetRandomLight());
+                }
+                else
+                    lightsBuffer.lights.resize(newCount);
+
+                lightCount = newCount;
+
+                return Argument("lightCount updated to " + std::to_string(lightCount));
+            }
+    ));
+
     console.AddCommand(new CommandCallMethod("light_position"
                                              , [&](const std::vector<Argument>& args)
             {
@@ -490,30 +547,15 @@ void Main::InitInput()
 
 void Main::InitLights()
 {
+    lightsBuffer.lights.reserve(lightCount);
+
     lightsBuffer.padding = glm::vec3(1.0f, 1.2f, 1.23f);
     lightsBuffer.ambientStrength = LIGHT_DEFAULT_AMBIENT;
 
     for(int i = 0; i < lightCount; ++i)
-    {
-        LightData newLight;
+        lightsBuffer.lights.push_back(GetRandomLight());
 
-        float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-        float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y;
-        float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
-
-        newLight.position = glm::vec3(xPos, yPos, zPos);
-        newLight.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
-        newLight.padding = rand() / (float)RAND_MAX * LIGHT_MAX_LIFETIME;
-
-        if(newLight.padding <= LIGHT_MAX_LIFETIME * 0.5f)
-            newLight.strength = (newLight.padding / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
-        else
-            newLight.strength = ((LIGHT_MAX_LIFETIME * 0.5f - (newLight.padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
-
-        lightsBuffer.lights[i] = newLight;
-    }
-
-    lightCull["Lights"] = lightsBuffer;
+    lightCull["Lights"] = &lightsBuffer;
     //worldModel->drawBinds["Lights"] = lightsBuffer; // Allocate data before runtime
 }
 
@@ -550,15 +592,15 @@ void Main::Update(Timer& deltaTimer)
         lightsBuffer.lights[i].padding += deltaTimer.GetDeltaMillisecondsFraction();
 
         float newStrength;
-        if(lightsBuffer.lights[i].padding <= LIGHT_MAX_LIFETIME * 0.5f)
-            newStrength = (lightsBuffer.lights[i].padding / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
+        if(lightsBuffer.lights[i].padding <= lightLifetime * 0.5f)
+            newStrength = (lightsBuffer.lights[i].padding / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
         else
-            newStrength = ((LIGHT_MAX_LIFETIME * 0.5f - (lightsBuffer.lights[i].padding - LIGHT_MAX_LIFETIME * 0.5f)) / (LIGHT_MAX_LIFETIME * 0.5f)) * (LIGHT_MAX_STRENGTH - LIGHT_MIN_STRENGTH) + LIGHT_MIN_STRENGTH;
+            newStrength = ((lightLifetime * 0.5f - (lightsBuffer.lights[i].padding - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
 
 
         lightsBuffer.lights[i].strength = newStrength;
 
-        if(lightsBuffer.lights[i].padding >= LIGHT_MAX_LIFETIME)
+        if(lightsBuffer.lights[i].padding >= lightLifetime)
         {
             lightsBuffer.lights[i].padding = 0.0f;
 
@@ -607,14 +649,14 @@ void Main::Render(Timer& deltaTimer)
 
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
-    worldModel->drawBinds["Lights"] = lightsBuffer;
+    worldModel->drawBinds["Lights"] = &lightsBuffer;
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
     lightCull["viewMatrix"] = viewMatrix;
     lightCull["projectionInverseMatrix"] = projectionMatrixInverse;
 
-    lightCull["Lights"] = lightsBuffer;
+    lightCull["Lights"] = &lightsBuffer;
 
     int zero = 0;
     lightCull.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
@@ -894,4 +936,24 @@ void Main::DrawTiles()
     lineDrawBinds.Bind();
     lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
     lineDrawBinds.Unbind();
+}
+
+LightData Main::GetRandomLight()
+{
+    LightData light;
+
+    float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
+    float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y;
+    float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
+
+    light.position = glm::vec3(xPos, yPos, zPos);
+    light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
+    light.padding = rand() / (float)RAND_MAX * lightLifetime;
+
+    if(light.padding <= lightLifetime * 0.5f)
+        light.strength = (light.padding / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
+    else
+        light.strength = ((lightLifetime * 0.5f - (light.padding - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
+
+    return light;
 }

@@ -70,7 +70,7 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 128;
+    int lightCount = 1024;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     float lightMinStrength = 0.0f;
@@ -93,7 +93,7 @@ private:
 
     int workGroupWidth = 32;
     int workGroupHeight = 16;
-    int maxLightsPerTile = 128;
+    int maxLightsPerTile = 512;
 
     int workGroupCountX = (int)std::ceil(DEFAULT_SCREEN_WIDTH / (float)workGroupWidth);
     int workGroupCountY = (int)std::ceil(DEFAULT_SCREEN_HEIGHT / (float)workGroupHeight);
@@ -334,6 +334,7 @@ int Main::InitContent()
     worldModel->drawBinds["Lights"] = lightCull["Lights"];
     worldModel->drawBinds["LightIndices"] = lightCull["LightIndices"];
     worldModel->drawBinds["TileLights"] = lightCull["TileLights"];
+    worldModel->drawBinds["PixelToTile"] = lightCull["PixelToTile"];
     worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
 
     return 0;
@@ -883,6 +884,9 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     lightCull["ScreenSize"] = glm::ivec2(width, height);
+
+    std::vector<int> data(width * height, -1);
+    lightCull["PixelToTile"] = data;
 
     workGroupCountX = (int)std::ceil(width / (float)workGroupWidth);
     workGroupCountY = (int)std::ceil(height / (float)workGroupHeight);

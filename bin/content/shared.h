@@ -7,21 +7,6 @@ cconst MSAA_COUNT;
 cconst WORK_GROUP_COUNT_X;
 cconst WORK_GROUP_COUNT_Y;
 
-struct LightData
-{
-    vec3 position;
-    float strength;
-    vec3 color;
-    float padding;
-};
-
-struct TileLightData
-{
-    int start;
-    int numberOfLights;
-    ivec2 padding;
-};
-
 int GetArrayIndex(int gridX, int gridY)
 {
     return gridY * WORK_GROUP_COUNT_X + gridX;

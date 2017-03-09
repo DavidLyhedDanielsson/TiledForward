@@ -29,12 +29,6 @@ layout (std140) uniform Materials
     Material materials[MAX_MATERIALS];
 };
 
-layout(std140) buffer ScreenSize
-{
-    int screenWidth;
-    int screenHeight;
-};
-
 vec2 ProjectedToTexel(vec2 projectedPosition)
 {
     return vec2((projectedPosition.x + 1.0f) * 0.5f * screenWidth, (projectedPosition.y + 1.0f) * 0.5f * screenHeight);
@@ -47,23 +41,23 @@ ivec2 TexelToGrid(vec2 texelPosition)
 
 void main()
 {
-    vec3 textureColor = texture(tex, TexCoord).xyz;
-
-    vec3 finalColor = vec3(0.0f);
-
     vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
-
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
+
     vec2 gridIndex = TexelToGrid(texel);
+    const int arrayIndex = GetArrayIndex(gridIndex);
 
-    int arrayIndex = GetArrayIndex(gridIndex);
+    //const int arrayIndex = startIndex[int(texel.y) * screenWidth + int(texel.x)];
 
-    int lightStart = tileLightData[arrayIndex].start;
-    int lightCount = tileLightData[arrayIndex].numberOfLights;
+    const int lightStart = tileLightData[arrayIndex].start;
+    const int lightCount = tileLightData[arrayIndex].numberOfLights;
 
     //float interpValue = clamp(lightCount / float(MAX_LIGHTS_PER_TILE), 0.0f, 1.0f);
     //finalColor = vec3(1.0f * interpValue, 0.0f, 1.0f * (1.0f - interpValue));
     //finalColor = 0.1f * ceil(finalColor / 0.1f);
+
+    vec3 finalColor = vec3(0.0f);
+    vec3 textureColor = texture(tex, TexCoord).xyz;
 
     if(lightCount > MAX_LIGHTS_PER_TILE)
         finalColor = vec3(1.0f, 0.0f, 0.0f);

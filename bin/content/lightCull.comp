@@ -5,12 +5,6 @@
 uniform mat4 viewMatrix;
 uniform mat4 projectionInverseMatrix;
 
-layout(std140) buffer ScreenSize
-{
-    int screenWidth;
-    int screenHeight;
-};
-
 shared int lightCount;
 shared int localLightIndices[MAX_LIGHTS_PER_TILE];
 
@@ -132,9 +126,11 @@ void main()
 
     barrier();
 
+    int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy);
+    //startIndex[gl_GlobalInvocationID.y * screenWidth + gl_GlobalInvocationID.x] = arrayIndex;
+
     if(gl_LocalInvocationIndex == 0)
     {
-        int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy);
         int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
 
         int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);

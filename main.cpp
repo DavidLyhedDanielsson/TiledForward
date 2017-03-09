@@ -70,7 +70,7 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 512;
+    int lightCount = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     float lightMinStrength = 0.0f;
@@ -81,9 +81,9 @@ private:
     const float LIGHT_MAX_Y = 8.0f;
     const float LIGHT_RANGE_Z = 6.0f;
 
-    /*const float LIGHT_RANGE_X = 0.0f;
-    const float LIGHT_MAX_Y = 0.0f;
-    const float LIGHT_RANGE_Z = 0.0f;*/
+    //const float LIGHT_RANGE_X = 0.0f;
+    //const float LIGHT_MAX_Y = 0.0f;
+    //const float LIGHT_RANGE_Z = 0.0f;
 
     const static int DEFAULT_SCREEN_WIDTH = 1280;
     const static int DEFAULT_SCREEN_HEIGHT = 720;
@@ -93,7 +93,7 @@ private:
 
     int workGroupWidth = 32;
     int workGroupHeight = 32;
-    int maxLightsPerTile = 1024;
+    int maxLightsPerTile = 128;
 
     /*struct Lights
     {
@@ -201,7 +201,7 @@ int Main::Run()
         GLint maxSize;
         glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &maxSize);
 
-        if(maxLightsPerTile > maxSize / sizeof(int))
+        if(maxLightsPerTile + 1 > maxSize / sizeof(int))
         {
             Logger::LogLine(LOG_TYPE::FATAL, "GPU only supports a maximum of ", maxSize / sizeof(int), " ints in shared memory");
             return 1;
@@ -364,7 +364,7 @@ void Main::InitConsole()
                 if(newCount > lightCount)
                 {
                     lightsBuffer.lights.reserve(newCount);
-                    for(int i = lightCount; i < lightCount + newCount; ++i)
+                    for(int i = 0; i < newCount - lightCount; ++i)
                         lightsBuffer.lights.push_back(GetRandomLight());
                 }
                 else
@@ -646,6 +646,8 @@ void Main::Render(Timer& deltaTimer)
     auto projectionMatrix = currentCamera->GetProjectionMatrix();
     auto projectionMatrixInverse = glm::inverse(currentCamera->GetProjectionMatrix());
     auto viewProjectionMatrix = projectionMatrix * viewMatrix;
+
+    glm::vec4 zeroPos = viewMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;

@@ -395,6 +395,8 @@ void ContentManager::WaitForFileChanges(
                         // Make a copy of the content, load it from disk in this thread and then update the "real"
                         // version when HotReload is called
 						DiskContent* reloadContent = diskContent->CreateInstance();
+						reloadContent->SetPath(filePathString.c_str());
+
 						if(reloadContent->BeginHotReload(filePathString.c_str(), this) == CONTENT_ERROR_CODES::NONE) // TODO: More error handling?
 						    reloadMap.insert(std::make_pair(content->GetPath(), reloadContent));
 					}

@@ -37,12 +37,12 @@ layout(std140) buffer ScreenSize
 
 vec2 ProjectedToTexel(vec2 projectedPosition)
 {
-    return vec2((projectedPosition.x + 1.0f) * 0.5f * 1280, (projectedPosition.y + 1.0f) * 0.5f * 720);
+    return vec2((projectedPosition.x + 1.0f) * 0.5f * screenWidth, (projectedPosition.y + 1.0f) * 0.5f * screenHeight);
 }
 
 ivec2 TexelToGrid(vec2 texelPosition)
 {
-    return ivec2(texelPosition.x / 32, texelPosition.y / 32);
+    return ivec2(texelPosition.x / WORK_GROUP_WIDTH, texelPosition.y / WORK_GROUP_HEIGHT);
 }
 
 void main()
@@ -56,8 +56,14 @@ void main()
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
     vec2 gridIndex = TexelToGrid(texel);
 
-    int lightStart = tileLightData[int(gridIndex.y)][int(gridIndex.x)].start;
-    int lightCount = tileLightData[int(gridIndex.y)][int(gridIndex.x)].numberOfLights;
+    int arrayIndex = GetArrayIndex(gridIndex);
+
+    int lightStart = tileLightData[arrayIndex].start;
+    int lightCount = tileLightData[arrayIndex].numberOfLights;
+
+    //float interpValue = clamp(lightCount / float(MAX_LIGHTS_PER_TILE), 0.0f, 1.0f);
+    //finalColor = vec3(1.0f * interpValue, 0.0f, 1.0f * (1.0f - interpValue));
+    //finalColor = 0.1f * ceil(finalColor / 0.1f);
 
     if(lightCount > MAX_LIGHTS_PER_TILE)
         finalColor = vec3(1.0f, 0.0f, 0.0f);
@@ -81,11 +87,8 @@ void main()
             float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
             attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);
 
-            //finalColor += light.color * diffuse * attenuation;
-
-            //float attenuation = 1.0f;
-
             float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
+
             finalColor += light.color * diffuse * attenuation;
         }
 

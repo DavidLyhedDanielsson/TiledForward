@@ -70,12 +70,12 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 1;
+    int lightCount = 128;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     float lightMinStrength = 0.0f;
     float lightMaxStrength = 5.0f;
-    float lightLifetime = 1000.0f;
+    float lightLifetime = 2500.0f;
 
     const float LIGHT_RANGE_X = 14.0f;
     const float LIGHT_MAX_Y = 8.0f;
@@ -92,8 +92,11 @@ private:
     int screenHeight = DEFAULT_SCREEN_HEIGHT;
 
     int workGroupWidth = 32;
-    int workGroupHeight = 32;
+    int workGroupHeight = 16;
     int maxLightsPerTile = 128;
+
+    int workGroupCountX = (int)std::ceil(DEFAULT_SCREEN_WIDTH / (float)workGroupWidth);
+    int workGroupCountY = (int)std::ceil(DEFAULT_SCREEN_HEIGHT / (float)workGroupHeight);
 
     /*struct Lights
     {
@@ -192,6 +195,8 @@ float currentFrameTime = 0.0f;
 
 int Main::Run()
 {
+    srand(1234);
+
     Logger::ClearLog();
 
     // TODO: Fix rename of index to blockIndex, e.g. "Used for index rounding" -> "Used for blockIndex rounding"
@@ -214,6 +219,8 @@ int Main::Run()
                         , std::make_pair("WORK_GROUP_HEIGHT", std::to_string(workGroupHeight))
                         , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(maxLightsPerTile))
                         , std::make_pair("MSAA_COUNT", std::to_string(msaaCount))
+                        , std::make_pair("WORK_GROUP_COUNT_X", std::to_string(workGroupCountX))
+                        , std::make_pair("WORK_GROUP_COUNT_Y", std::to_string(workGroupCountY))
                 };
         sharedParameters.outPath = std::string(contentManager.GetRootDir());
         sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
@@ -233,7 +240,7 @@ int Main::Run()
         // Use a reversed depth buffer
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
         glDepthRange(1.0, 0.0);
-        camera.InitFovVertical({0.0f, 0.0f, -5.0f}
+        camera.InitFovVertical({-10.0f, 5.5f, -2.0f}
                                , {0.0f, 0.0f, 0.0f}
                                , glm::half_pi<float>()
                                , screenWidth
@@ -647,8 +654,6 @@ void Main::Render(Timer& deltaTimer)
     auto projectionMatrixInverse = glm::inverse(currentCamera->GetProjectionMatrix());
     auto viewProjectionMatrix = projectionMatrix * viewMatrix;
 
-    glm::vec4 zeroPos = viewMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["Lights"] = &lightsBuffer;
@@ -687,15 +692,33 @@ void Main::Render(Timer& deltaTimer)
     // Light pass
     lightCull.Bind();
 
-    glBindImageTexture(0, backBufferTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
+    //glBindImageTexture(0, backBufferTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
+    //glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
 
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
-
+    glBeginQuery(GL_TIME_ELAPSED, queries[0]);
     glDispatchCompute((GLuint)std::ceil(screenWidth / (float)workGroupWidth), (GLuint)std::ceil(screenHeight / (float)workGroupHeight), 1);
+    glEndQuery(GL_TIME_ELAPSED);
+
+    GLint timeAvailable = 0;
+    while(!timeAvailable)
+        glGetQueryObjectiv(queries[0],  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
+
+    GLuint64 lightCullTime;
+    glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &lightCullTime);
+
     lightCull.Unbind();
 
     // Forward pass (opaque)
+    glBeginQuery(GL_TIME_ELAPSED, queries[0]);
     worldModel->DrawOpaque();
+    glEndQuery(GL_TIME_ELAPSED);
+
+    timeAvailable = 0;
+    while(!timeAvailable)
+        glGetQueryObjectiv(queries[0],  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
+
+    GLuint64 opaqueTime;
+    glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &opaqueTime);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -722,6 +745,9 @@ void Main::Render(Timer& deltaTimer)
     std::string frameString = std::to_string(averageFrameTime) + " [" + std::to_string(lastMinFrameTime) + ";" + std::to_string(lastMaxFrameTime) + " ]";
     spriteRenderer.DrawString(characterSet, frameString, glm::vec2(0.0f, screenHeight - 48));
     spriteRenderer.DrawString(characterSet, std::to_string(currentFrameTime), glm::vec2(0.0f, screenHeight - 24));
+
+    spriteRenderer.DrawString(characterSet, "Light cull: " + std::to_string(lightCullTime * 1e-6f), glm::vec2(0.0f, screenHeight - 72));
+    spriteRenderer.DrawString(characterSet, "Opaque: " + std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, screenHeight - 96));
 
     guiManager.Draw(&spriteRenderer);
 
@@ -757,12 +783,12 @@ bool Main::InitFrameBuffers()
     glm::ivec2 screenSize(screenWidth, screenHeight);
     lightCull["ScreenSize"] = screenSize;
 
-    std::vector<int> data(1 + 40 * 23 * maxLightsPerTile);
+    std::vector<int> data(1 + workGroupCountX * workGroupCountY * maxLightsPerTile);
     data[0] = 0;
     lightCull["LightIndices"] = data;
 
     data.clear();
-    data.resize(40 * 23 * 4, -1);
+    data.resize(workGroupCountX * workGroupCountY * 4, -1);
     lightCull["TileLights"] = data;
 
     glGenFramebuffers(1, &frameBufferDepthOnly);
@@ -858,8 +884,13 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
 
     lightCull["ScreenSize"] = glm::ivec2(width, height);
 
+    workGroupCountX = (int)std::ceil(width / (float)workGroupWidth);
+    workGroupCountY = (int)std::ceil(height / (float)workGroupHeight);
+
     if(recompileShaders)
     {
+        sharedVariables->SetValue("WORK_GROUP_COUNT_X", std::to_string(workGroupCountX));
+        sharedVariables->SetValue("WORK_GROUP_COUNT_Y", std::to_string(workGroupCountY));
         sharedVariables->SetValue("MSAA_COUNT", std::to_string(msaaCount));
         sharedVariables->WriteValues();
     }

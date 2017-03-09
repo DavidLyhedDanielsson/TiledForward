@@ -4,8 +4,8 @@ cconst MAX_LIGHTS_PER_TILE;
 
 cconst MSAA_COUNT;
 
-const int WORK_GROUP_COUNT_X = 40;
-const int WORK_GROUP_COUNT_Y = 23;
+cconst WORK_GROUP_COUNT_X;
+cconst WORK_GROUP_COUNT_Y;
 
 struct LightData
 {

@@ -2,10 +2,6 @@
 
 #include "commonIncludes.glsl"
 
-layout(location = 0, rgba8) uniform image2DMS inImage;
-layout(location = 1) uniform sampler2DMS depthBuffer;
-//layout(location = 1, rgba8) uniform image2DMS outImage;
-
 uniform mat4 viewMatrix;
 uniform mat4 projectionInverseMatrix;
 

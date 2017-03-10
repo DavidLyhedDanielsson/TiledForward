@@ -52,7 +52,7 @@ vec3[5] CreateFarPoints()
     for(int j = 0; j < 5; ++j)
     {
         vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy) + offsets[j])
-                                        * vec2(WORK_GROUP_WIDTH, WORK_GROUP_HEIGHT))
+                                        * vec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y))
                                         / vec2(screenWidth, screenHeight), 1.0f);
         ndcPosition.x *= 2.0f;
         ndcPosition.x -= 1.0f;
@@ -80,7 +80,7 @@ vec4[4] CreatePlanes(vec3 viewPositions[5])
     return planes;
 }
 
-layout(local_size_x = WORK_GROUP_WIDTH, local_size_y = WORK_GROUP_HEIGHT) in;
+layout(local_size_x = THREADS_PER_GROUP_X, local_size_y = THREADS_PER_GROUP_Y) in;
 void main()
 {
     if(gl_LocalInvocationIndex == 0)
@@ -88,7 +88,7 @@ void main()
 
     barrier();
 
-    for(int i = int(gl_LocalInvocationIndex); i < int(lights.length()); i += int(gl_WorkGroupSize.x * gl_WorkGroupSize.y))
+    for(int i = int(gl_LocalInvocationIndex); i < int(lights.length()); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
     {
         LightData light = lights[i];
 
@@ -142,7 +142,7 @@ void main()
         TileLightData data;
         data.start = startIndex;
         data.numberOfLights = lightCount;
-        data.padding = ivec2(gl_GlobalInvocationID);
+        data.padding = ivec2(gl_WorkGroupID) * ivec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y);
 
         tileLightData[arrayIndex] = data;
     }

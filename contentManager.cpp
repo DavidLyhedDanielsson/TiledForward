@@ -361,7 +361,7 @@ void ContentManager::WaitForFileChanges(
                 DiskContent* reloadContent = content->CreateInstance();
                 reloadContent->SetPath(content->GetPath());
 
-                // TODO: ContentManager isn't thread safe, shouldn't sent this!
+                // TODO: ContentManager isn't thread safe, shouldn't send this!
                 if(reloadContent->BeginHotReload(std::string(content->GetPath()).c_str(), this) == CONTENT_ERROR_CODES::NONE) // TODO: More error handling?
                     reloadMap.insert(std::make_pair(content->GetPath(), reloadContent));
             }

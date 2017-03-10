@@ -36,7 +36,7 @@ vec2 ProjectedToTexel(vec2 projectedPosition)
 
 ivec2 TexelToGrid(vec2 texelPosition)
 {
-    return ivec2(texelPosition.x / WORK_GROUP_WIDTH, texelPosition.y / WORK_GROUP_HEIGHT);
+    return ivec2(texelPosition.x / WORK_GROUP_SIZE_X, texelPosition.y / WORK_GROUP_SIZE_Y);
 }
 
 void main()
@@ -51,10 +51,6 @@ void main()
 
     const int lightStart = tileLightData[arrayIndex].start;
     const int lightCount = tileLightData[arrayIndex].numberOfLights;
-
-    //float interpValue = clamp(lightCount / float(MAX_LIGHTS_PER_TILE), 0.0f, 1.0f);
-    //finalColor = vec3(1.0f * interpValue, 0.0f, 1.0f * (1.0f - interpValue));
-    //finalColor = 0.1f * ceil(finalColor / 0.1f);
 
     vec3 finalColor = vec3(0.0f);
     vec3 textureColor = texture(tex, TexCoord).xyz;

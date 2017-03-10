@@ -1,11 +1,13 @@
-cconst WORK_GROUP_WIDTH;
-cconst WORK_GROUP_HEIGHT;
+cconst WORK_GROUP_SIZE_X;
+cconst WORK_GROUP_SIZE_Y;
+cconst THREADS_PER_GROUP_X;
+cconst THREADS_PER_GROUP_Y;
+cconst WORK_GROUP_COUNT_X;
+cconst WORK_GROUP_COUNT_Y;
+
 cconst MAX_LIGHTS_PER_TILE;
 
 cconst MSAA_COUNT;
-
-cconst WORK_GROUP_COUNT_X;
-cconst WORK_GROUP_COUNT_Y;
 
 int GetArrayIndex(int gridX, int gridY)
 {

@@ -27,6 +27,7 @@
 #include "console/commandCallMethod.h"
 #include "primitiveDrawer.h"
 #include "glCPPShared.h"
+#include "lightCull.h"
 
 #include <glm/gtx/component_wise.hpp>
 
@@ -70,7 +71,7 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 1024;
+    int lightCount = 32;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
     float lightMinStrength = 0.0f;
@@ -91,13 +92,6 @@ private:
     int screenWidth = DEFAULT_SCREEN_WIDTH;
     int screenHeight = DEFAULT_SCREEN_HEIGHT;
 
-    int workGroupWidth = 32;
-    int workGroupHeight = 16;
-    int maxLightsPerTile = 512;
-
-    int workGroupCountX = (int)std::ceil(DEFAULT_SCREEN_WIDTH / (float)workGroupWidth);
-    int workGroupCountY = (int)std::ceil(DEFAULT_SCREEN_HEIGHT / (float)workGroupHeight);
-
     /*struct Lights
     {
         glm::vec3 padding;
@@ -105,6 +99,7 @@ private:
         LightData lights[lightCount];
     } lightsBuffer;*/
 
+    LightCull lightCull;
     LightsBuffer lightsBuffer;
 
     OSWindow window;
@@ -119,7 +114,8 @@ private:
     SpriteRenderer spriteRenderer;
     Console console;
 
-    CharacterSet* characterSet;
+    CharacterSet* characterSet24;
+    CharacterSet* characterSet8;
     OBJModel* worldModel;
 
     PerspectiveCamera camera;
@@ -147,8 +143,6 @@ private:
 
     float cameraSpeed;
 
-    GLDrawBinds lightCull;
-
     GLuint queries[2];
 
     int msaaCount;
@@ -156,12 +150,15 @@ private:
     bool recompileShaders;
     GLCPPShared* sharedVariables;
 
+    bool drawLightCount;
+
     int InitContent();
     void InitConsole();
     void InitInput();
     void InitLights();
     bool InitFrameBuffers();
     void InitQuieries();
+    bool InitShaders();
 
     void Update(Timer& deltaTimer);
     void Render(Timer& deltaTimer);
@@ -189,6 +186,7 @@ Main::Main()
           , currentCamera(&camera)
           , recompileShaders(false)
           , cameraSpeed(0.01f)
+          , drawLightCount(false)
 { }
 
 float currentFrameTime = 0.0f;
@@ -203,30 +201,11 @@ int Main::Run()
 
     if(window.Create((unsigned int)screenWidth, (unsigned int)screenHeight) == OSWindow::NONE)
     {
-        GLint maxSize;
-        glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &maxSize);
-
-        if(maxLightsPerTile + 1 > maxSize / sizeof(int))
-        {
-            Logger::LogLine(LOG_TYPE::FATAL, "GPU only supports a maximum of ", maxSize / sizeof(int), " ints in shared memory");
-            return 1;
-        }
-
-        GLCPPSharedContentParameters sharedParameters;
-        sharedParameters.variables =
-                {
-                        std::make_pair("WORK_GROUP_WIDTH", std::to_string(workGroupWidth))
-                        , std::make_pair("WORK_GROUP_HEIGHT", std::to_string(workGroupHeight))
-                        , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(maxLightsPerTile))
-                        , std::make_pair("MSAA_COUNT", std::to_string(msaaCount))
-                        , std::make_pair("WORK_GROUP_COUNT_X", std::to_string(workGroupCountX))
-                        , std::make_pair("WORK_GROUP_COUNT_Y", std::to_string(workGroupCountY))
-                };
-        sharedParameters.outPath = std::string(contentManager.GetRootDir());
-        sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
-
+        if(!InitShaders())
+            return 3;
         if(!InitFrameBuffers())
             return 2;
+
         InitInput();
 
         int errVal = InitContent();
@@ -261,6 +240,8 @@ int Main::Run()
         maxFrameTime = std::numeric_limits<float>::min();
 
         const static int FRAME_CAP = 9999;
+
+        Logger::ClearLog();
 
         Timer deltaTimer;
         deltaTimer.ResetDelta();
@@ -325,17 +306,18 @@ int Main::InitContent()
         return 1;
     }
 
-    characterSet = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
+    characterSet24 = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
+    characterSet8 = contentManager.Load<CharacterSet>("UbuntuMono-R8.ttf");
 
     worldModel = contentManager.Load<OBJModel>("sponza.obj");
     if(worldModel == nullptr)
         return 3;
 
-    worldModel->drawBinds["Lights"] = lightCull["Lights"];
-    worldModel->drawBinds["LightIndices"] = lightCull["LightIndices"];
-    worldModel->drawBinds["TileLights"] = lightCull["TileLights"];
-    worldModel->drawBinds["PixelToTile"] = lightCull["PixelToTile"];
-    worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
+    worldModel->drawBinds["Lights"] = lightCull.drawBinds["Lights"];
+    worldModel->drawBinds["LightIndices"] = lightCull.drawBinds["LightIndices"];
+    worldModel->drawBinds["TileLights"] = lightCull.drawBinds["TileLights"];
+    worldModel->drawBinds["PixelToTile"] = lightCull.drawBinds["PixelToTile"];
+    worldModel->drawBinds["ScreenSize"] = lightCull.drawBinds["ScreenSize"];
 
     return 0;
 }
@@ -344,7 +326,7 @@ void Main::InitConsole()
 {
     console.Init(&contentManager
                  , Rect(0.0f, 0.0f, screenWidth, screenHeight / 2.0f)
-                 , console.GenerateDoomStyle(&contentManager, characterSet)
+                 , console.GenerateDoomStyle(&contentManager, characterSet24)
                  , console.GenerateDoomStyleBackgroundStyle(&contentManager)
                  , false
                  , false
@@ -352,6 +334,7 @@ void Main::InitConsole()
                  , false);
     console.Autoexec();
     console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
+    console.AddCommand(new CommandGetSet<bool>("light_drawCount", &drawLightCount));
     console.AddCommand(new CommandGetSet<float>("cameraSpeed", &cameraSpeed));
 
     console.AddCommand(new CommandGetSet<float>("light_minStrength", &lightMinStrength));
@@ -562,9 +545,91 @@ void Main::InitLights()
 
     for(int i = 0; i < lightCount; ++i)
         lightsBuffer.lights.push_back(GetRandomLight());
+}
 
-    lightCull["Lights"] = &lightsBuffer;
-    //worldModel->drawBinds["Lights"] = lightsBuffer; // Allocate data before runtime
+void Main::InitQuieries()
+{
+    glGenQueries(2, queries);
+}
+
+struct LineVertex
+{
+    glm::vec3 position;
+    glm::vec3 color;
+
+    LineVertex()
+            : position(0.0f)
+              , color(1.0f)
+    {}
+    LineVertex(glm::vec3 position)
+            : position(position)
+              , color(1.0f)
+    {}
+    LineVertex(glm::vec3 position, glm::vec3 color)
+            : position(position)
+              , color(color)
+    {}
+};
+GLVertexBuffer lineVertexBuffer;
+GLIndexBuffer lineIndexBuffer;
+GLDrawBinds lineDrawBinds;
+
+bool Main::InitFrameBuffers()
+{
+    glGenFramebuffers(1, &frameBufferDepthOnly);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
+
+    ResizeFramebuffer(screenWidth, screenHeight, true);
+
+    GLenum error = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if(error != GL_FRAMEBUFFER_COMPLETE)
+        Logger::LogLine(LOG_TYPE::FATAL, "Framebuffer not complete");
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return error == GL_FRAMEBUFFER_COMPLETE;
+}
+
+bool Main::InitShaders()
+{
+    lightCull.InitShaderConstants(screenWidth, screenHeight);
+
+    ////////////////////////////////////////////////////////////
+    // Shared variables
+
+    GLCPPSharedContentParameters sharedParameters;
+    sharedParameters.variables =
+            {
+                    std::make_pair("THREADS_PER_GROUP_X", std::to_string(lightCull.GetThreadsPerGroup().x))
+                    , std::make_pair("THREADS_PER_GROUP_Y", std::to_string(lightCull.GetThreadsPerGroup().y))
+                    , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(lightCull.GetMaxLightsPerTile()))
+                    , std::make_pair("MSAA_COUNT", std::to_string(msaaCount))
+                    , std::make_pair("WORK_GROUP_COUNT_X", std::to_string(lightCull.GetWorkGroupCount().x))
+                    , std::make_pair("WORK_GROUP_COUNT_Y", std::to_string(lightCull.GetWorkGroupCount().y))
+                    , std::make_pair("WORK_GROUP_SIZE_X", std::to_string(lightCull.GetWorkGroupSize().x))
+                    , std::make_pair("WORK_GROUP_SIZE_Y", std::to_string(lightCull.GetWorkGroupSize().y))
+            };
+    sharedParameters.outPath = std::string(contentManager.GetRootDir());
+    sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
+
+    lightCull.Init(contentManager);
+
+    ////////////////////////////////////////////////////////////
+    // Lines
+
+    const static int MAX_LINES = 1024 * 8;
+
+    lineVertexBuffer.Init<glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, sizeof(LineVertex) * MAX_LINES * 2);
+    lineIndexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, sizeof(LineVertex) * MAX_LINES * 2 * 2);
+
+    lineDrawBinds.AddBuffers(&lineVertexBuffer, &lineIndexBuffer);
+    lineDrawBinds.AddShaders(contentManager
+                             , GLEnums::SHADER_TYPE::VERTEX, "line.vert"
+                             , GLEnums::SHADER_TYPE::FRAGMENT, "line.frag");
+    lineDrawBinds.AddUniform("viewProjectionMatrix", glm::mat4());
+    lineDrawBinds.Init();
+
+    return true;
 }
 
 void Main::Update(Timer& deltaTimer)
@@ -625,28 +690,6 @@ void Main::Update(Timer& deltaTimer)
     }
 }
 
-struct LineVertex
-{
-    glm::vec3 position;
-    glm::vec3 color;
-
-    LineVertex()
-            : position(0.0f)
-              , color(1.0f)
-    {}
-    LineVertex(glm::vec3 position)
-            : position(position)
-              , color(1.0f)
-    {}
-    LineVertex(glm::vec3 position, glm::vec3 color)
-            : position(position)
-              , color(color)
-    {}
-};
-GLVertexBuffer lineVertexBuffer;
-GLIndexBuffer lineIndexBuffer;
-GLDrawBinds lineDrawBinds;
-
 void Main::Render(Timer& deltaTimer)
 {
     auto viewMatrix = currentCamera->GetViewMatrix();
@@ -660,14 +703,6 @@ void Main::Render(Timer& deltaTimer)
     worldModel->drawBinds["Lights"] = &lightsBuffer;
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
-
-    lightCull["viewMatrix"] = viewMatrix;
-    lightCull["projectionInverseMatrix"] = projectionMatrixInverse;
-
-    lightCull["Lights"] = &lightsBuffer;
-
-    int zero = 0;
-    lightCull.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
 
     // Needed to make hot reloading work
     //glm::ivec2 screenSize(screenWidth, screenHeight);
@@ -691,30 +726,14 @@ void Main::Render(Timer& deltaTimer)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Light pass
-    lightCull.Bind();
-
-    //glBindImageTexture(0, backBufferTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
-    //glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthBufferTexture);
-
-    glBeginQuery(GL_TIME_ELAPSED, queries[0]);
-    glDispatchCompute((GLuint)std::ceil(screenWidth / (float)workGroupWidth), (GLuint)std::ceil(screenHeight / (float)workGroupHeight), 1);
-    glEndQuery(GL_TIME_ELAPSED);
-
-    GLint timeAvailable = 0;
-    while(!timeAvailable)
-        glGetQueryObjectiv(queries[0],  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
-
-    GLuint64 lightCullTime;
-    glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &lightCullTime);
-
-    lightCull.Unbind();
+    auto lightCullTime = lightCull.TimedDraw(viewMatrix, projectionMatrixInverse);
 
     // Forward pass (opaque)
     glBeginQuery(GL_TIME_ELAPSED, queries[0]);
     worldModel->DrawOpaque();
     glEndQuery(GL_TIME_ELAPSED);
 
-    timeAvailable = 0;
+    GLint timeAvailable = 0;
     while(!timeAvailable)
         glGetQueryObjectiv(queries[0],  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
 
@@ -744,66 +763,22 @@ void Main::Render(Timer& deltaTimer)
     spriteRenderer.Begin();
 
     std::string frameString = std::to_string(averageFrameTime) + " [" + std::to_string(lastMinFrameTime) + ";" + std::to_string(lastMaxFrameTime) + " ]";
-    spriteRenderer.DrawString(characterSet, frameString, glm::vec2(0.0f, screenHeight - 48));
-    spriteRenderer.DrawString(characterSet, std::to_string(currentFrameTime), glm::vec2(0.0f, screenHeight - 24));
+    spriteRenderer.DrawString(characterSet24, frameString, glm::vec2(0.0f, screenHeight - 48));
+    spriteRenderer.DrawString(characterSet24, std::to_string(currentFrameTime), glm::vec2(0.0f, screenHeight - 24));
 
-    spriteRenderer.DrawString(characterSet, "Light cull: " + std::to_string(lightCullTime * 1e-6f), glm::vec2(0.0f, screenHeight - 72));
-    spriteRenderer.DrawString(characterSet, "Opaque: " + std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, screenHeight - 96));
+    spriteRenderer.DrawString(characterSet24, "Light cull: " + std::to_string(lightCullTime * 1e-6f), glm::vec2(0.0f, screenHeight - 72));
+    spriteRenderer.DrawString(characterSet24, "Opaque: " + std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, screenHeight - 96));
+
+    //Logger::LogLine(LOG_TYPE::NONE, std::to_string(lightCullTime * 1e-6f), ", ", std::to_string(opaqueTime * 1e-6f));
+
+    if(drawLightCount)
+        lightCull.DrawLightCount(spriteRenderer, characterSet8);
 
     guiManager.Draw(&spriteRenderer);
 
     spriteRenderer.End();
 
     window.SwapBuffers();
-}
-
-bool Main::InitFrameBuffers()
-{
-    const static int MAX_LINES = 1024 * 8;
-
-    lineVertexBuffer.Init<glm::vec3, glm::vec3>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, sizeof(LineVertex) * MAX_LINES * 2);
-    lineIndexBuffer.Init<GLuint>(GLEnums::BUFFER_USAGE::STREAM_DRAW, nullptr, sizeof(LineVertex) * MAX_LINES * 2 * 2);
-
-    lineDrawBinds.AddBuffers(&lineVertexBuffer, &lineIndexBuffer);
-    lineDrawBinds.AddShaders(contentManager
-                             , GLEnums::SHADER_TYPE::VERTEX, "line.vert"
-                             , GLEnums::SHADER_TYPE::FRAGMENT, "line.frag");
-    lineDrawBinds.AddUniform("viewProjectionMatrix", glm::mat4());
-    lineDrawBinds.Init();
-
-    lightCull.AddUniform("viewMatrix", glm::mat4());
-    lightCull.AddUniform("projectionInverseMatrix", glm::mat4());
-
-    ShaderContentParameters parameters;
-    parameters.type = GLEnums::SHADER_TYPE::COMPUTE;
-    parameters.variables.push_back(std::make_pair("LOCAL_LIGHT_COUNT", std::to_string(maxLightsPerTile)));
-    lightCull.AddShaders(contentManager, parameters, "lightCull.comp");
-    if(!lightCull.Init())
-        return false;
-
-    glm::ivec2 screenSize(screenWidth, screenHeight);
-    lightCull["ScreenSize"] = screenSize;
-
-    std::vector<int> data(1 + workGroupCountX * workGroupCountY * maxLightsPerTile);
-    data[0] = 0;
-    lightCull["LightIndices"] = data;
-
-    data.clear();
-    data.resize(workGroupCountX * workGroupCountY * 4, -1);
-    lightCull["TileLights"] = data;
-
-    glGenFramebuffers(1, &frameBufferDepthOnly);
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthOnly);
-
-    ResizeFramebuffer(screenWidth, screenHeight, true);
-
-    GLenum error = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if(error != GL_FRAMEBUFFER_COMPLETE)
-        Logger::LogLine(LOG_TYPE::FATAL, "Framebuffer not complete");
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    return error == GL_FRAMEBUFFER_COMPLETE;
 }
 
 bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
@@ -883,18 +858,12 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
     if(recreateBuffers)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    lightCull["ScreenSize"] = glm::ivec2(width, height);
-
-    std::vector<int> data(width * height, -1);
-    lightCull["PixelToTile"] = data;
-
-    workGroupCountX = (int)std::ceil(width / (float)workGroupWidth);
-    workGroupCountY = (int)std::ceil(height / (float)workGroupHeight);
+    lightCull.ResolutionChanged(width, height);
 
     if(recompileShaders)
     {
-        sharedVariables->SetValue("WORK_GROUP_COUNT_X", std::to_string(workGroupCountX));
-        sharedVariables->SetValue("WORK_GROUP_COUNT_Y", std::to_string(workGroupCountY));
+        sharedVariables->SetValue("WORK_GROUP_COUNT_X", std::to_string(lightCull.GetWorkGroupCount().x));
+        sharedVariables->SetValue("WORK_GROUP_COUNT_Y", std::to_string(lightCull.GetWorkGroupCount().x));
         sharedVariables->SetValue("MSAA_COUNT", std::to_string(msaaCount));
         sharedVariables->WriteValues();
     }
@@ -902,14 +871,9 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
     return true;
 }
 
-void Main::InitQuieries()
-{
-    glGenQueries(2, queries);
-}
-
 void Main::DrawTiles()
 {
-    std::vector<LineVertex> linePositions;
+    /*std::vector<LineVertex> linePositions;
     std::vector<GLuint> lineIndices;
 
     const static glm::ivec2 offsets[4] =
@@ -972,7 +936,7 @@ void Main::DrawTiles()
 
     lineDrawBinds.Bind();
     lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
-    lineDrawBinds.Unbind();
+    lineDrawBinds.Unbind();*/
 }
 
 LightData Main::GetRandomLight()

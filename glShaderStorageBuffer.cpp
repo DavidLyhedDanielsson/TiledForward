@@ -89,3 +89,17 @@ void GLShaderStorageBuffer::UpdateData(const size_t offset, void* data, int data
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
+
+std::unique_ptr<void, UniquePtrFree> GLShaderStorageBuffer::GetData() const
+{
+    void* data = malloc((size_t)this->size);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferIndex);
+    void* mappedData = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+
+    std::memcpy(data, mappedData, this->size);
+
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+    return std::unique_ptr<void, UniquePtrFree>(data);
+}

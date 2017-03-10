@@ -50,7 +50,7 @@ layout(std430) buffer TileLights
 ////////////////////////////////////////////////////////////
 // Maps from a given pixel to an index in tileLightData
 
-// Accessed once per pixel
+// Accessed once per pixel per drawn fragment
 layout(std430) buffer PixelToTile
 {
     int startIndex[];

@@ -1,8 +1,17 @@
 #ifndef GLSHADERSTORAGEBUFFER_H__
 #define GLSHADERSTORAGEBUFFER_H__
 
+#include <memory>
 #include "glBufferBase.h"
 #include "glDynamicBuffer.h"
+
+struct UniquePtrFree
+{
+    void operator()(void* pointer)
+    {
+        free(pointer);
+    }
+};
 
 class GLShaderStorageBuffer
 {
@@ -17,6 +26,8 @@ public:
 
     void Share(GLShaderStorageBuffer* other);
     void UpdateData(const size_t offset, void* data, int dataSize);
+
+    std::unique_ptr<void, UniquePtrFree> GetData() const;
 
 protected:
 private:

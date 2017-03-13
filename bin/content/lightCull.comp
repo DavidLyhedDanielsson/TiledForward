@@ -5,9 +5,6 @@
 uniform mat4 viewMatrix;
 uniform mat4 projectionInverseMatrix;
 
-shared int lightCount;
-shared int localLightIndices[MAX_LIGHTS_PER_TILE];
-
 const int PLANE_TOP = 0;
 const int PLANE_BOTTOM = 1;
 const int PLANE_LEFT = 2;
@@ -20,14 +17,6 @@ vec4 CreatePlane(vec3 far0, vec3 far1)
     float dist = 0.0f; //dot(far0, planeABC);
 
     return vec4(planeABC, dist);
-}
-
-void AddLightIfPossible(int lightIndex)
-{
-    int index = atomicAdd(lightCount, 1);
-
-    if(index < MAX_LIGHTS_PER_TILE)
-        localLightIndices[index] = lightIndex;
 }
 
 const int BOTTOM_LEFT = 0;
@@ -80,6 +69,17 @@ vec4[4] CreatePlanes(vec3 viewPositions[5])
     return planes;
 }
 
+shared int lightCount;
+shared int localLightIndices[MAX_LIGHTS_PER_TILE];
+
+void AddLightIfPossible(int lightIndex)
+{
+    int index = atomicAdd(lightCount, 1);
+
+    if(index < MAX_LIGHTS_PER_TILE)
+        localLightIndices[index] = lightIndex;
+}
+
 layout(local_size_x = THREADS_PER_GROUP_X, local_size_y = THREADS_PER_GROUP_Y) in;
 void main()
 {
@@ -126,11 +126,12 @@ void main()
 
     barrier();
 
-    int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy);
+    //int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy);
     //startIndex[gl_GlobalInvocationID.y * screenWidth + gl_GlobalInvocationID.x] = arrayIndex;
 
     if(gl_LocalInvocationIndex == 0)
     {
+        int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy);
         int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
 
         int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);

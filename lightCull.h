@@ -28,7 +28,8 @@ public:
 
     int GetMaxLightsPerTile() const;
 
-    GLDrawBinds drawBinds;
+    GLDrawBinds lightCullDrawBinds;
+    GLDrawBinds lightReductionDrawBinds;
 
 protected:
 private:
@@ -44,6 +45,7 @@ private:
     GLuint timeQuery;
 
     void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
+    void Draw();
     void PostDraw();
 };
 

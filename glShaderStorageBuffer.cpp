@@ -72,6 +72,9 @@ void GLShaderStorageBuffer::SetData(GLDynamicBuffer* buffer)
 
 void GLShaderStorageBuffer::Share(GLShaderStorageBuffer* other)
 {
+    if(bufferIndex == other->bufferIndex)
+        return;
+
     glDeleteBuffers(1, &bufferIndex);
 
     this->bindingPoint = other->bindingPoint;

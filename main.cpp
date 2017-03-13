@@ -30,6 +30,7 @@
 #include "lightCull.h"
 
 #include <glm/gtx/component_wise.hpp>
+#include <IL/il.h>
 
 struct LightData
 {
@@ -71,20 +72,20 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 32;
+    int lightCount = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 0.1f;
-    float lightMinStrength = 0.0f;
+    float lightMinStrength = 5.0f;
     float lightMaxStrength = 5.0f;
-    float lightLifetime = 2500.0f;
+    float lightLifetime = 9999999999999999999.0f;
 
-    const float LIGHT_RANGE_X = 14.0f;
-    const float LIGHT_MAX_Y = 8.0f;
-    const float LIGHT_RANGE_Z = 6.0f;
+    //const float LIGHT_RANGE_X = 14.0f;
+    //const float LIGHT_MAX_Y = 8.0f;
+    //const float LIGHT_RANGE_Z = 6.0f;
 
-    //const float LIGHT_RANGE_X = 0.0f;
-    //const float LIGHT_MAX_Y = 0.0f;
-    //const float LIGHT_RANGE_Z = 0.0f;
+    const float LIGHT_RANGE_X = 0.0f;
+    const float LIGHT_MAX_Y = 0.0f;
+    const float LIGHT_RANGE_Z = 0.0f;
 
     const static int DEFAULT_SCREEN_WIDTH = 1280;
     const static int DEFAULT_SCREEN_HEIGHT = 720;
@@ -151,6 +152,8 @@ private:
     GLCPPShared* sharedVariables;
 
     bool drawLightCount;
+    bool dumpPreBackBuffer;
+    bool dumpPostBackBuffer;
 
     int InitContent();
     void InitConsole();
@@ -166,6 +169,7 @@ private:
     bool ResizeFramebuffer(int width, int height, bool recreateBuffers);
 
     LightData GetRandomLight();
+    void DumpBackBuffer();
 };
 
 int main(int argc, char* argv[])
@@ -187,6 +191,8 @@ Main::Main()
           , recompileShaders(false)
           , cameraSpeed(0.01f)
           , drawLightCount(false)
+          , dumpPreBackBuffer(false)
+          , dumpPostBackBuffer(false)
 { }
 
 float currentFrameTime = 0.0f;
@@ -313,11 +319,11 @@ int Main::InitContent()
     if(worldModel == nullptr)
         return 3;
 
-    worldModel->drawBinds["Lights"] = lightCull.drawBinds["Lights"];
-    worldModel->drawBinds["LightIndices"] = lightCull.drawBinds["LightIndices"];
-    worldModel->drawBinds["TileLights"] = lightCull.drawBinds["TileLights"];
-    worldModel->drawBinds["PixelToTile"] = lightCull.drawBinds["PixelToTile"];
-    worldModel->drawBinds["ScreenSize"] = lightCull.drawBinds["ScreenSize"];
+    worldModel->drawBinds["Lights"] = lightCull.lightCullDrawBinds["Lights"];
+    worldModel->drawBinds["LightIndices"] = lightCull.lightCullDrawBinds["LightIndices"];
+    worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
+    worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
+    worldModel->drawBinds["ScreenSize"] = lightCull.lightCullDrawBinds["ScreenSize"];
 
     return 0;
 }
@@ -478,6 +484,10 @@ void Main::InitInput()
                             console.Activate();
                         }
                     }
+                    else if(keyState.key == KEY_CODE::F11)
+                        dumpPreBackBuffer = true;
+                    else if(keyState.key == KEY_CODE::F12)
+                        dumpPostBackBuffer = true;
                 }
                 else if(keyState.action == KEY_ACTION::UP)
                 {
@@ -612,7 +622,8 @@ bool Main::InitShaders()
     sharedParameters.outPath = std::string(contentManager.GetRootDir());
     sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
 
-    lightCull.Init(contentManager);
+    if(!lightCull.Init(contentManager))
+        return false;
 
     ////////////////////////////////////////////////////////////
     // Lines
@@ -753,6 +764,10 @@ void Main::Render(Timer& deltaTimer)
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0); // Bind 0 for screenshots
+    if(dumpPreBackBuffer)
+       DumpBackBuffer();
+
     glDisable(GL_CULL_FACE);
 
     if(drawTiles)
@@ -777,6 +792,9 @@ void Main::Render(Timer& deltaTimer)
     guiManager.Draw(&spriteRenderer);
 
     spriteRenderer.End();
+
+    if(dumpPostBackBuffer)
+        DumpBackBuffer();
 
     window.SwapBuffers();
 }
@@ -957,4 +975,69 @@ LightData Main::GetRandomLight()
         light.strength = ((lightLifetime * 0.5f - (light.padding - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
 
     return light;
+}
+
+void Main::DumpBackBuffer()
+{
+    ilInit();
+
+    if(ilGetError() != 0)
+    {
+        Logger::LogLine(LOG_TYPE::FATAL, "Couldn't dump backbuffer to screenshot");
+        return;
+    }
+
+    ILuint image;
+    ilGenImages(1, &image);
+
+    if(ilGetError() != 0)
+    {
+        Logger::LogLine(LOG_TYPE::FATAL, "Couldn't dump backbuffer to screenshot");
+        return;
+    }
+
+    GLubyte* backBufferData = new GLubyte[screenWidth * screenHeight * 3];
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glReadPixels(0, 0, screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, backBufferData);
+
+    ilBindImage(image);
+    ilTexImage(screenWidth, screenHeight, 1, 3, IL_RGB, IL_UNSIGNED_BYTE, backBufferData);
+    ilSetData(backBufferData);
+
+    if(ilGetError() != 0)
+    {
+        ilDeleteImage(image);
+        delete[] backBufferData;
+        Logger::LogLine(LOG_TYPE::FATAL, "Couldn't dump backbuffer to screenshot");
+        return;
+    }
+
+    std::string fileName = "backbuffer";
+    std::string format = ".png";
+
+    int nameCount = 0;
+    std::ifstream file((fileName + std::to_string(nameCount) + format).c_str());
+    while(file.is_open())
+    {
+        ++nameCount;
+        file.close();
+        file.open((fileName + std::to_string(nameCount) + format).c_str());
+    }
+
+    ilEnable(IL_FILE_OVERWRITE);
+    ilSaveImage((fileName + std::to_string(nameCount) + format).c_str());
+
+    if(ilGetError() != 0)
+    {
+        ilDeleteImage(image);
+        delete[] backBufferData;
+        Logger::LogLine(LOG_TYPE::FATAL, "Couldn't dump backbuffer to screenshot");
+        return;
+    }
+
+    ilDeleteImage(image);
+    delete[] backBufferData;
+    dumpPreBackBuffer = false;
+    dumpPostBackBuffer = false;
 }

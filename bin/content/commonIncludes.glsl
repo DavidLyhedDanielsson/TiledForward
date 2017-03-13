@@ -53,5 +53,5 @@ layout(std430) buffer TileLights
 // Accessed once per pixel per drawn fragment
 layout(std430) buffer PixelToTile
 {
-    int startIndex[];
+    int pixelTileIndex[];
 };

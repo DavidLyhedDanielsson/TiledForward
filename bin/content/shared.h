@@ -9,6 +9,26 @@ cconst MAX_LIGHTS_PER_TILE;
 
 cconst MSAA_COUNT;
 
+int GetArrayIndex(int gridX, int gridY, int workGroupCount)
+{
+    return gridY * workGroupCount + gridX;
+}
+
+int GetArrayIndex(ivec2 grid, int workGroupCount)
+{
+    return GetArrayIndex(grid.x, grid.y, workGroupCount);
+}
+
+int GetArrayIndex(uvec2 grid, int workGroupCount)
+{
+    return GetArrayIndex(int(grid.x), int(grid.y), workGroupCount);
+}
+
+int GetArrayIndex(vec2 grid, int workGroupCount)
+{
+    return GetArrayIndex(int(grid.x), int(grid.y), workGroupCount);
+}
+
 int GetArrayIndex(int gridX, int gridY)
 {
     return gridY * WORK_GROUP_COUNT_X + gridX;

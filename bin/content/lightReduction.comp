@@ -1,0 +1,174 @@
+#version 450 core
+
+#include "commonIncludes.glsl"
+
+uniform mat4 viewMatrix;
+uniform mat4 projectionInverseMatrix;
+
+const int PLANE_TOP = 0;
+const int PLANE_BOTTOM = 1;
+const int PLANE_LEFT = 2;
+const int PLANE_RIGHT = 3;
+
+vec4 CreatePlane(vec3 far0, vec3 far1)
+{
+    vec3 planeABC;
+    planeABC = normalize(cross(far0, far1));
+    float dist = 0.0f; //dot(far0, planeABC);
+
+    return vec4(planeABC, dist);
+}
+
+const int BOTTOM_LEFT = 0;
+const int BOTTOM_RIGHT = 1;
+const int TOP_RIGHT = 2;
+const int TOP_LEFT = 3;
+const int CENTER = 4;
+
+vec3[5] CreateFarPoints()
+{
+    const vec2 offsets[5] =
+    {
+        vec2(0.0f, 0.0f)
+        , vec2(1.0f, 0.0f)
+        , vec2(1.0f, 1.0f)
+        , vec2(0.0f, 1.0f)
+        , vec2(0.5f, 0.5f)
+    };
+
+    vec3 viewPositions[5];
+
+    for(int j = 0; j < 5; ++j)
+    {
+        vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy / 2) + offsets[j])
+                                        * vec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y))
+                                        //* vec2(WORK_GROUP_SIZE_X / 2, WORK_GROUP_SIZE_Y / 2))
+                                        / vec2(screenWidth, screenHeight), 1.0f);
+        ndcPosition.x *= 2.0f;
+        ndcPosition.x -= 1.0f;
+        ndcPosition.y *= 2.0f;
+        ndcPosition.y -= 1.0f;
+
+        vec4 unprojectedPosition = projectionInverseMatrix * vec4(ndcPosition, 1.0f);
+        unprojectedPosition /= unprojectedPosition.w;
+
+        viewPositions[j] = vec3(unprojectedPosition);
+    }
+
+    return viewPositions;
+}
+
+vec4[4] CreatePlanes(vec3 viewPositions[5])
+{
+    vec4 planes[4];
+
+    planes[PLANE_TOP] = CreatePlane(viewPositions[TOP_RIGHT], viewPositions[TOP_LEFT]);
+    planes[PLANE_BOTTOM] = CreatePlane(viewPositions[BOTTOM_LEFT], viewPositions[BOTTOM_RIGHT]);
+    planes[PLANE_RIGHT] = CreatePlane(viewPositions[BOTTOM_RIGHT], viewPositions[TOP_RIGHT]);
+    planes[PLANE_LEFT] = CreatePlane(viewPositions[TOP_LEFT], viewPositions[BOTTOM_LEFT]);
+
+    return planes;
+}
+
+shared int newLightCount;
+shared int localLightIndices[MAX_LIGHTS_PER_TILE];
+
+shared int startIndex;
+shared int lightCount;
+
+uniform int workGroupCountX;
+
+layout(std430) buffer CurrentLightIndices
+{
+    int currentOccupiedIndices; // Needs to be initialized to 0!
+    int currentLightIndices[];
+};
+
+layout(std430) buffer CurrentTileLights
+{
+    TileLightData currentTileLightData[];
+};
+
+void AddLightIfPossible(int lightIndex)
+{
+    int index = atomicAdd(newLightCount, 1);
+
+    if(index < MAX_LIGHTS_PER_TILE)
+        localLightIndices[index] = lightIndex;
+}
+
+layout(local_size_x = THREADS_PER_GROUP_X, local_size_y = THREADS_PER_GROUP_Y) in;
+void main()
+{
+    if(gl_LocalInvocationIndex == 0)
+    {
+        int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy / 2, workGroupCountX);
+
+        startIndex = currentTileLightData[arrayIndex].start;
+        lightCount = currentTileLightData[arrayIndex].numberOfLights;
+    }
+
+    barrier();
+
+    //if(lightCount > 0)
+    //{
+        for(int i = int(gl_LocalInvocationIndex); i < lightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
+        {
+            LightData light = lights[currentLightIndices[startIndex + i]];
+
+            vec3 viewPositions[5] = CreateFarPoints();
+            vec4 planes[4] = CreatePlanes(viewPositions);
+
+            vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
+
+            if(dot(zeroPos, zeroPos) > light.strength * light.strength)
+            {
+                bool inside = false;
+
+                vec3 planeForward = normalize(viewPositions[CENTER]);
+                if(dot(normalize(zeroPos), planeForward) > 0.0f)
+                {
+                    inside = true;
+
+                    for(int j = 0; j < 4; ++j)
+                    {
+                        float dist = dot(zeroPos, vec3(planes[j])) + planes[j].w;
+                        if(dist < -light.strength)
+                        {
+                            inside = false;
+                            break;
+                        }
+                    }
+                }
+
+                if(inside)
+                    AddLightIfPossible(startIndex + i);
+            }
+            else
+                AddLightIfPossible(startIndex + i);
+        }
+    //}
+
+    barrier();
+
+    if(gl_LocalInvocationIndex == 0)
+    {
+        int newArrayIndex = GetArrayIndex(gl_WorkGroupID.xy, workGroupCountX * 2);
+        int newStartIndex = newArrayIndex * MAX_LIGHTS_PER_TILE;
+
+        int cappedLightCount = min(newLightCount, MAX_LIGHTS_PER_TILE);
+        for(int i = 0; i < cappedLightCount; ++i)
+            lightIndices[newStartIndex + i] = localLightIndices[i];
+        for(int i = cappedLightCount; i < MAX_LIGHTS_PER_TILE; ++i)
+            lightIndices[newStartIndex + i] = -1;
+
+        TileLightData data;
+        data.start = newStartIndex;
+        //data.start = startIndex;
+        data.numberOfLights = lightCount;
+        //data.numberOfLights = lightCount;
+        data.padding = ivec2(gl_WorkGroupID) * ivec2(WORK_GROUP_SIZE_X / 2, WORK_GROUP_SIZE_Y / 2);
+
+        tileLightData[newArrayIndex] = data;
+    }
+}

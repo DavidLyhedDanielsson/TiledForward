@@ -77,7 +77,7 @@ void GLShaderStorageBuffer::Share(GLShaderStorageBuffer* other)
 
     glDeleteBuffers(1, &bufferIndex);
 
-    this->bindingPoint = other->bindingPoint;
+    //this->bindingPoint = other->bindingPoint;
     this->bufferIndex = other->bufferIndex;
     this->size = other->size;
 
@@ -93,6 +93,18 @@ void GLShaderStorageBuffer::UpdateData(const size_t offset, void* data, int data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
+void GLShaderStorageBuffer::SetData(int value)
+{
+    void* data = malloc(size);
+    std::memset(data, value, this->size);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferIndex);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->size, data);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    free(data);
+}
+
 std::unique_ptr<void, UniquePtrFree> GLShaderStorageBuffer::GetData() const
 {
     void* data = malloc((size_t)this->size);
@@ -105,4 +117,9 @@ std::unique_ptr<void, UniquePtrFree> GLShaderStorageBuffer::GetData() const
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     return std::unique_ptr<void, UniquePtrFree>(data);
+}
+
+int GLShaderStorageBuffer::GetSize() const
+{
+    return size;
 }

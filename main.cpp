@@ -72,20 +72,20 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 1;
+    int lightCount = 64;
 
-    const float LIGHT_DEFAULT_AMBIENT = 0.1f;
+    const float LIGHT_DEFAULT_AMBIENT = 1.0f;
     float lightMinStrength = 5.0f;
     float lightMaxStrength = 5.0f;
     float lightLifetime = 9999999999999999999.0f;
 
-    //const float LIGHT_RANGE_X = 14.0f;
-    //const float LIGHT_MAX_Y = 8.0f;
-    //const float LIGHT_RANGE_Z = 6.0f;
+    const float LIGHT_RANGE_X = 14.0f;
+    const float LIGHT_MAX_Y = 8.0f;
+    const float LIGHT_RANGE_Z = 6.0f;
 
-    const float LIGHT_RANGE_X = 0.0f;
-    const float LIGHT_MAX_Y = 0.0f;
-    const float LIGHT_RANGE_Z = 0.0f;
+    //const float LIGHT_RANGE_X = 0.0f;
+    //const float LIGHT_MAX_Y = 0.0f;
+    //const float LIGHT_RANGE_Z = 0.0f;
 
     const static int DEFAULT_SCREEN_WIDTH = 1280;
     const static int DEFAULT_SCREEN_HEIGHT = 720;
@@ -338,7 +338,6 @@ void Main::InitConsole()
                  , false
                  , false
                  , false);
-    console.Autoexec();
     console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
     console.AddCommand(new CommandGetSet<bool>("light_drawCount", &drawLightCount));
     console.AddCommand(new CommandGetSet<float>("cameraSpeed", &cameraSpeed));
@@ -446,6 +445,8 @@ void Main::InitConsole()
                 return Argument("Camera set");
             }
     ));
+
+    console.Autoexec();
 
     guiManager.AddContainer(&console);
 
@@ -964,6 +965,19 @@ LightData Main::GetRandomLight()
     float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
     float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y;
     float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
+
+    /*if(lightsBuffer.lights.size() == 0)
+    {
+        xPos = 0.0f;
+        yPos = 1.0f;
+        zPos = 0.0f;
+    }
+    else
+    {
+        xPos = 7.5f;
+        yPos = 1.0f;
+        zPos = 0.0f;
+    }*/
 
     light.position = glm::vec3(xPos, yPos, zPos);
     light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);

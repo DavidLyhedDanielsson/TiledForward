@@ -1,6 +1,6 @@
 #include "shared.glsh"
 
-layout(std140) buffer ScreenSize
+layout(std430) buffer ScreenSize
 {
     int screenWidth;
     int screenHeight;
@@ -28,11 +28,11 @@ layout(std430) buffer Lights
 
 // Memory is "allocated" by increasing (atomically) occupiedIndices
 // Accessed once to increase occupiedIndices and then again to put lights into lightIndices
-layout(std430) buffer LightIndices
+/*layout(std430) buffer LightIndices
 {
     int occupiedIndices; // Needs to be initialized to 0!
     int lightIndices[];
-};
+};*/
 
 struct TileLightData
 {
@@ -42,16 +42,16 @@ struct TileLightData
 };
 
 // Accessed once per tile
-layout(std430) buffer TileLights
+/*layout(std430) buffer TileLights
 {
     TileLightData tileLightData[];
-};
+};*/
 
 ////////////////////////////////////////////////////////////
 // Maps from a given pixel to an index in tileLightData
 
 // Accessed once per pixel per drawn fragment
-layout(std430) buffer PixelToTile
+/*layout(std430) buffer PixelToTile
 {
     int pixelTileIndex[];
-};
+};*/

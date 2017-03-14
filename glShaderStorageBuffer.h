@@ -26,8 +26,11 @@ public:
 
     void Share(GLShaderStorageBuffer* other);
     void UpdateData(const size_t offset, void* data, int dataSize);
+    void SetData(int value);
 
     std::unique_ptr<void, UniquePtrFree> GetData() const;
+
+    int GetSize() const;
 
 protected:
 private:

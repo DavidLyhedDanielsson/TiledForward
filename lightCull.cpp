@@ -5,7 +5,7 @@
 LightCull::LightCull()
         : workGroupSize(128, 128)
           , threadsPerGroup(16, 16)
-          , maxLightsPerTile(1)
+          , maxLightsPerTile(64)
 {}
 
 LightCull::~LightCull()
@@ -59,16 +59,19 @@ bool LightCull::Init(ContentManager& contentManager)
     if(!lightReductionDrawBinds.Init())
         return false;
 
-    // Light count + light indices * 4 (for reduction)
-    lightReductionDrawBinds["LightIndices"] = std::vector<int>(1 + (workGroupCount.x * workGroupCount.y * 4) * maxLightsPerTile, 0);
-    // offset + count + padding2
-    lightReductionDrawBinds["TileLights"] = std::vector<int>((workGroupCount.x * workGroupCount.y * 4) * 4, -1);
-
-    lightReductionDrawBinds["CurrentLightIndices"] = lightCullDrawBinds["LightIndices"];
-    lightReductionDrawBinds["CurrentTileLights"] = lightCullDrawBinds["TileLights"];
+    // These are always the same
     lightReductionDrawBinds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
-    // TODO: Update this?
-    lightReductionDrawBinds["PixelToTile"] = lightCullDrawBinds["PixelToTile"];
+    lightReductionDrawBinds["Lights"] = lightCullDrawBinds["Lights"];
+
+    //These aren't
+    // Light count + light indices * 4 (for reduction)
+    lightReductionDrawBinds["NewLightIndices"] = std::vector<int>(1 + (workGroupCount.x * workGroupCount.y * 4) * maxLightsPerTile, 0);
+    // offset + count + padding2
+    lightReductionDrawBinds["NewTileLights"] = std::vector<int>((workGroupCount.x * workGroupCount.y * 4) * 4, -1);
+
+    lightReductionDrawBinds["OldLightIndices"] = lightCullDrawBinds["LightIndices"];
+    lightReductionDrawBinds["OldTileLights"] = lightCullDrawBinds["TileLights"];
+    lightReductionDrawBinds["OldPixelToTile"] = lightCullDrawBinds["PixelToTile"];
 
     glGenQueries(1, &timeQuery);
 
@@ -117,7 +120,8 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
 
     ////////////////////////////////////////////////////////////
     // Light reduction
-    lightReductionDrawBinds.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
+    lightReductionDrawBinds.GetSSBO("NewLightIndices")->UpdateData(0, &zero, sizeof(int));
+    //lightReductionDrawBinds.GetSSBO("CurrentTileLights")->SetData(-1);
 
     lightReductionDrawBinds["viewMatrix"] = viewMatrix;
     lightReductionDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
@@ -131,9 +135,17 @@ void LightCull::Draw()
 
     lightCullDrawBinds.Unbind();
 
+    GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    glClientWaitSync(writeSync, 0, 1000000000);
+    glDeleteSync(writeSync);
+
     lightReductionDrawBinds.Bind();
 
     glDispatchCompute(workGroupCount.x * 2, workGroupCount.y * 2, 1);
+
+    writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    glClientWaitSync(writeSync, 0, 1000000000);
+    glDeleteSync(writeSync);
 }
 
 void LightCull::PostDraw()
@@ -165,7 +177,7 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
         for(int x = 0; x < workGroupCount.x; ++x)
         {
             int numberOfLights = intData[(workGroupCount.y - y - 1) * workGroupCount.x + x].numberOfLights;
-            if(numberOfLights > 0)
+            if(numberOfLights != 0)
             {
                 if((x + y) % 2 == 0)
                     spriteRenderer.Draw(Rect(x * workGroupSize.x, y * workGroupSize.y, workGroupSize.x, workGroupSize.y), glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
@@ -180,8 +192,44 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
                     drawPosition = glm::clamp(drawPosition, glm::vec2(0.0f), glm::vec2(screenWidth - textWidth, screenHeight - characterSet->GetLineHeight()));
 
                     spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSet->GetLineHeight()), glm::vec4(0.0f, 0.0f, 0.0f, 0.85f));
-                    spriteRenderer.DrawString(characterSet, lightCountText, drawPosition);
+                    spriteRenderer.DrawString(characterSet, lightCountText, drawPosition, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
+            }
+        }
+    }
+
+    auto oldData = std::move(data);
+    auto oldIntData = intData;
+
+    tileLightsSSBO = lightReductionDrawBinds.GetSSBO("NewTileLights");
+    data = tileLightsSSBO->GetData();
+
+    intData = static_cast<LightData*>(data.get());
+
+    glm::uvec2 tempSize = glm::uvec2(workGroupSize.x / 2, workGroupSize.y / 2);
+    glm::uvec2 tempCount = glm::uvec2(workGroupCount.x * 2, workGroupCount.y * 2);
+
+    xSpacing = tempSize.x;
+    ySpacing = tempSize.y;
+
+    for(int y = 0; y < tempCount.y; ++y)
+    {
+        for(int x = 0; x < tempCount.x; ++x)
+        {
+            int numberOfLights = intData[(tempCount.y - y - 1) * tempCount.x + x].numberOfLights;
+            int oldNumberOfLights = oldIntData[(workGroupCount.y - y / 2 - 1) * workGroupCount.x + x / 2].numberOfLights;
+            if(numberOfLights != oldNumberOfLights)
+            {
+                std::string lightCountText = std::to_string(oldNumberOfLights - numberOfLights);
+
+                auto textWidth = characterSet->GetWidthAtIndex(lightCountText.c_str(), -1);
+
+                glm::vec2 drawPosition = glm::vec2(x * xSpacing + xSpacing / 2 - textWidth / 2, y * ySpacing + ySpacing / 2 - characterSet->GetLineHeight() / 2);
+                drawPosition = glm::clamp(drawPosition, glm::vec2(0.0f), glm::vec2(screenWidth - textWidth, screenHeight - characterSet->GetLineHeight()));
+
+                spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSet->GetLineHeight()), glm::vec4(1.0f, 0.0f, 0.0f, 0.85f));
+                spriteRenderer.DrawString(characterSet, lightCountText, drawPosition);
+
             }
         }
     }
@@ -216,6 +264,7 @@ void LightCull::ResolutionChanged(int newWidth, int newHeight)
 
     std::vector<int> data((unsigned long)(newWidth * newHeight), -1);
     lightCullDrawBinds["PixelToTile"] = data;
+    lightReductionDrawBinds["NewPixelToTile"] = data;
 
     workGroupCount.x = (GLuint)std::ceil(newWidth / (float)workGroupSize.x);
     workGroupCount.y = (GLuint)std::ceil(newHeight / (float)workGroupSize.y);

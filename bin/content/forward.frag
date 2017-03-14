@@ -29,9 +29,26 @@ layout (std140) uniform Materials
     Material materials[MAX_MATERIALS];
 };
 
+layout(std430) buffer LightIndices
+{
+    int occupiedIndices; // Needs to be initialized to 0!
+    int lightIndices[];
+};
+
+layout(std430) buffer TileLights
+{
+    TileLightData tileLightData[];
+};
+
+layout(std430) buffer PixelToTile
+{
+    int pixelTileIndex[];
+};
+
 vec2 ProjectedToTexel(vec2 projectedPosition)
 {
-    return vec2((projectedPosition.x + 1.0f) * 0.5f * screenWidth, (projectedPosition.y + 1.0f) * 0.5f * screenHeight);
+    //TODO: FIX THIS!
+    return vec2((projectedPosition.x + 1.0f) * 0.5f * 1280, (projectedPosition.y + 1.0f) * 0.5f * 720);
 }
 
 ivec2 TexelToGrid(vec2 texelPosition)

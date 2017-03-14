@@ -40,9 +40,9 @@ vec3[5] CreateFarPoints()
 
     for(int j = 0; j < 5; ++j)
     {
-        vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy / 2) + offsets[j])
-                                        * vec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y))
-                                        //* vec2(WORK_GROUP_SIZE_X / 2, WORK_GROUP_SIZE_Y / 2))
+        vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy) + offsets[j])
+                                        //* vec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y))
+                                        * vec2(WORK_GROUP_SIZE_X / 2, WORK_GROUP_SIZE_Y / 2))
                                         / vec2(screenWidth, screenHeight), 1.0f);
         ndcPosition.x *= 2.0f;
         ndcPosition.x -= 1.0f;
@@ -102,6 +102,8 @@ void main()
 {
     if(gl_LocalInvocationIndex == 0)
     {
+        newLightCount = 0;
+
         int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy / 2, workGroupCountX);
 
         startIndex = currentTileLightData[arrayIndex].start;
@@ -110,8 +112,8 @@ void main()
 
     barrier();
 
-    //if(lightCount > 0)
-    //{
+    if(lightCount > 0)
+    {
         for(int i = int(gl_LocalInvocationIndex); i < lightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         {
             LightData light = lights[currentLightIndices[startIndex + i]];
@@ -147,7 +149,7 @@ void main()
             else
                 AddLightIfPossible(startIndex + i);
         }
-    //}
+    }
 
     barrier();
 
@@ -165,7 +167,7 @@ void main()
         TileLightData data;
         data.start = newStartIndex;
         //data.start = startIndex;
-        data.numberOfLights = lightCount;
+        data.numberOfLights = newLightCount;
         //data.numberOfLights = lightCount;
         data.padding = ivec2(gl_WorkGroupID) * ivec2(WORK_GROUP_SIZE_X / 2, WORK_GROUP_SIZE_Y / 2);
 

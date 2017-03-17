@@ -229,7 +229,8 @@ void Logger::Log(LOG_TYPE logType, const std::string& text)
 	}
 #endif //_WIN32
 
-	if(logType == LOG_TYPE::INFO_NOWRITE
+	if(logType == LOG_TYPE::NONE_NOWRITE
+	   || logType == LOG_TYPE::INFO_NOWRITE
 	   || logType == LOG_TYPE::WARNING_NOWRITE
 	   || logType == LOG_TYPE::FATAL_NOWRITE
 	   || logType == LOG_TYPE::DEBUG_NOWRITE)

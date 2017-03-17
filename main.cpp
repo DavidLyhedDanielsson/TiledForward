@@ -72,20 +72,20 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 64;
+    int lightCount = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 1.0f;
     float lightMinStrength = 5.0f;
     float lightMaxStrength = 5.0f;
     float lightLifetime = 9999999999999999999.0f;
 
-    const float LIGHT_RANGE_X = 14.0f;
-    const float LIGHT_MAX_Y = 8.0f;
-    const float LIGHT_RANGE_Z = 6.0f;
+    //const float LIGHT_RANGE_X = 14.0f;
+    //const float LIGHT_MAX_Y = 8.0f;
+    //const float LIGHT_RANGE_Z = 6.0f;
 
-    //const float LIGHT_RANGE_X = 0.0f;
-    //const float LIGHT_MAX_Y = 0.0f;
-    //const float LIGHT_RANGE_Z = 0.0f;
+    const float LIGHT_RANGE_X = 0.0f;
+    const float LIGHT_MAX_Y = 0.0f;
+    const float LIGHT_RANGE_Z = 0.0f;
 
     const static int DEFAULT_SCREEN_WIDTH = 1280;
     const static int DEFAULT_SCREEN_HEIGHT = 720;
@@ -100,7 +100,10 @@ private:
         LightData lights[lightCount];
     } lightsBuffer;*/
 
+//#define DO_LIGHT_CULL
+#ifdef DO_LIGHT_CULL
     LightCull lightCull;
+#endif
     LightsBuffer lightsBuffer;
 
     OSWindow window;
@@ -117,7 +120,11 @@ private:
 
     CharacterSet* characterSet24;
     CharacterSet* characterSet8;
+
+#define LOAD_WORLD_MODEL
+#ifdef LOAD_WORLD_MODEL
     OBJModel* worldModel;
+#endif
 
     PerspectiveCamera camera;
     PerspectiveCamera snapshotCamera;
@@ -170,6 +177,12 @@ private:
 
     LightData GetRandomLight();
     void DumpBackBuffer();
+
+    std::vector<int> CreateTree(int maxDivisions);
+    void SetTreeData(std::vector<int>& tree, int screenX, int screenY, int depth, int data);
+
+    std::vector<int> tree;
+    int GetTreeData(std::vector<int>& tree, int screenX, int screenY);
 };
 
 int main(int argc, char* argv[])
@@ -315,15 +328,31 @@ int Main::InitContent()
     characterSet24 = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
     characterSet8 = contentManager.Load<CharacterSet>("UbuntuMono-R8.ttf");
 
+#ifdef LOAD_WORLD_MODEL
     worldModel = contentManager.Load<OBJModel>("sponza.obj");
     if(worldModel == nullptr)
         return 3;
 
+#ifdef DO_LIGHT_CULL
     worldModel->drawBinds["Lights"] = lightCull.lightCullDrawBinds["Lights"];
     worldModel->drawBinds["LightIndices"] = lightCull.lightCullDrawBinds["LightIndices"];
     worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
     worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
     worldModel->drawBinds["ScreenSize"] = lightCull.lightCullDrawBinds["ScreenSize"];
+#else
+    worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
+    worldModel->drawBinds["Tree"] = tree;
+#endif
+
+    srand(time(nullptr));
+    std::vector<glm::vec4> colors;
+    for(int y = 0; y < screenWidth / 2; ++y)
+    {
+        for(int x = 0; x < screenHeight / 2; ++x)
+            colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
+    }
+    worldModel->drawBinds["ColorBuffer"] = colors;
+#endif
 
     return 0;
 }
@@ -601,8 +630,86 @@ bool Main::InitFrameBuffers()
     return error == GL_FRAMEBUFFER_COMPLETE;
 }
 
+void Main::SetTreeData(std::vector<int>& tree, int screenX, int screenY, int depth, int data)
+{
+    int depthOffset = -1;
+    for(int i = 0; i < depth; ++i)
+        depthOffset += pow(2, i) * pow(2, i);
+
+    glm::ivec2 range(screenWidth, screenHeight);
+    range /= pow(2, depth);
+
+    int x = screenX / range.x;
+    int y = screenY / range.y;
+
+    uint64_t index = 0;
+
+    for(int i = 0; i < sizeof(int) * 8; ++i)
+    {
+        int extractedBit;
+
+        if(i % 2 == 0)
+            extractedBit = (x >> (i / 2)) & 1;
+        else
+            extractedBit = (y >> (i / 2)) & 1;
+
+        index |= (extractedBit << i);
+    }
+
+    assert(depthOffset + index < tree.size());
+    tree[depthOffset + index] = data;
+
+    Logger::LogLine(LOG_TYPE::NONE_NOWRITE, screenX, ", ", screenY, " <=> ", depthOffset + index);
+}
+
+int Main::GetTreeData(std::vector<int>& tree, int screenX, int screenY)
+{
+    int depthOffset = -1;
+
+    for(int i = 0; i < 3; ++i)
+    {
+        //depthOffset += int(pow(2, i)) * int(pow(2, i));
+        depthOffset += int(pow(4, i));
+
+        glm::vec2 range = glm::vec2(float(screenWidth) / 2.0f, float(screenHeight) / 2.0f);
+
+        int x = int(screenX / range.x);
+        int y = int(screenY / range.y);
+
+        int index = 0;
+
+        for(int j = 0; j < 32; ++j)
+        {
+            int extractedBit;
+
+            if(j % 2 == 0)
+                extractedBit = (x >> (j / 2)) & 1;
+            else
+                extractedBit = (y >> (j / 2)) & 1;
+
+            index |= (extractedBit << j);
+        }
+
+        int potentialIndex = tree[depthOffset + index];
+        if(potentialIndex != -1)
+            return potentialIndex;
+    }
+
+    return 0;
+}
+
+std::vector<int> Main::CreateTree(int maxDivisions)
+{
+    int size = 0;
+    for(int i = 0; i < maxDivisions; ++i)
+        size += pow(2, i + 1) * pow(2, i + 1);
+
+    return std::vector<int>(size, -1);
+}
+
 bool Main::InitShaders()
 {
+#ifdef DO_LIGHT_CULL
     lightCull.InitShaderConstants(screenWidth, screenHeight);
 
     ////////////////////////////////////////////////////////////
@@ -618,13 +725,24 @@ bool Main::InitShaders()
                     , std::make_pair("WORK_GROUP_COUNT_X", std::to_string(lightCull.GetWorkGroupCount().x))
                     , std::make_pair("WORK_GROUP_COUNT_Y", std::to_string(lightCull.GetWorkGroupCount().y))
                     , std::make_pair("WORK_GROUP_SIZE_X", std::to_string(lightCull.GetWorkGroupSize().x))
-                    , std::make_pair("WORK_GROUP_SIZE_Y", std::to_string(lightCull.GetWorkGroupSize().y))
+                    , std::make_pair("WORK_GROUP_SIZE_Y", std::to_st1ring(lightCull.GetWorkGroupSize().y))
             };
     sharedParameters.outPath = std::string(contentManager.GetRootDir());
     sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
 
     if(!lightCull.Init(contentManager))
         return false;
+#endif
+    const int MAX_DIVISIONS = 3;
+
+    tree = CreateTree(MAX_DIVISIONS);
+
+    for(int y = 0; y < 8; ++y)
+        for(int x = 0; x < 8; ++x)
+            SetTreeData(tree, 1280 / 8 * x, 720 / 8 * y, 3, y * 8 + x);
+
+    SetTreeData(tree, 0, 0, 1, 0);
+    SetTreeData(tree, 1000, 482, 2, 1);
 
     ////////////////////////////////////////////////////////////
     // Lines
@@ -694,7 +812,7 @@ void Main::Update(Timer& deltaTimer)
             float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
             lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
-            lightsBuffer.lights[i].strength = 0.0f;
+            lightsBuffer.lights[i].strength = std::fmod(lightsBuffer.lights[i].padding, lightLifetime);
             lightsBuffer.lights[i].color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
         }
 
@@ -711,8 +829,10 @@ void Main::Render(Timer& deltaTimer)
     auto viewProjectionMatrix = projectionMatrix * viewMatrix;
 
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
+#ifdef LOAD_WORLD_MODEL
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["Lights"] = &lightsBuffer;
+#endif
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
@@ -738,8 +858,10 @@ void Main::Render(Timer& deltaTimer)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Light pass
+#ifdef DO_LIGHT_CULL
     auto lightCullTime = lightCull.TimedDraw(viewMatrix, projectionMatrixInverse);
-
+#endif
+#ifdef LOAD_WORLD_MODEL
     // Forward pass (opaque)
     glBeginQuery(GL_TIME_ELAPSED, queries[0]);
     worldModel->DrawOpaque();
@@ -759,6 +881,7 @@ void Main::Render(Timer& deltaTimer)
 
     // Forward pass (transparent)
     worldModel->DrawTransparent(camera.GetPosition());
+#endif
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
@@ -782,13 +905,22 @@ void Main::Render(Timer& deltaTimer)
     spriteRenderer.DrawString(characterSet24, frameString, glm::vec2(0.0f, screenHeight - 48));
     spriteRenderer.DrawString(characterSet24, std::to_string(currentFrameTime), glm::vec2(0.0f, screenHeight - 24));
 
+#ifndef DO_LIGHT_CULL
+    float lightCullTime = 0.0f;
+#endif
+
     spriteRenderer.DrawString(characterSet24, "Light cull: " + std::to_string(lightCullTime * 1e-6f), glm::vec2(0.0f, screenHeight - 72));
+#ifndef LOAD_WORLD_MODEL
+    float opaqueTime = 0.0f;
+#endif
     spriteRenderer.DrawString(characterSet24, "Opaque: " + std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, screenHeight - 96));
 
     //Logger::LogLine(LOG_TYPE::NONE, std::to_string(lightCullTime * 1e-6f), ", ", std::to_string(opaqueTime * 1e-6f));
 
+#ifdef DO_LIGHT_CULL
     if(drawLightCount)
         lightCull.DrawLightCount(spriteRenderer, characterSet8);
+#endif
 
     guiManager.Draw(&spriteRenderer);
 
@@ -877,12 +1009,16 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
     if(recreateBuffers)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+#ifdef DO_LIGHT_CULL
     lightCull.ResolutionChanged(width, height);
+#endif
 
     if(recompileShaders)
     {
+#ifdef DO_LIGHT_CULL
         sharedVariables->SetValue("WORK_GROUP_COUNT_X", std::to_string(lightCull.GetWorkGroupCount().x));
         sharedVariables->SetValue("WORK_GROUP_COUNT_Y", std::to_string(lightCull.GetWorkGroupCount().x));
+#endif
         sharedVariables->SetValue("MSAA_COUNT", std::to_string(msaaCount));
         sharedVariables->WriteValues();
     }

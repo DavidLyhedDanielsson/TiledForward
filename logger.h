@@ -100,6 +100,7 @@ enum class LOG_TYPE
 		: int
 {
 	NONE = 0
+	, NONE_NOWRITE
 	, INFO
 	, INFO_NOWRITE
 	, WARNING

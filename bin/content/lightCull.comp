@@ -80,13 +80,21 @@ void main()
 
     barrier();
 
-    //int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy);
-    //startIndex[gl_GlobalInvocationID.y * screenWidth + gl_GlobalInvocationID.x] = arrayIndex;
-
     if(gl_LocalInvocationIndex == 0)
     {
         int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy);
         int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+
+        for(int y = 0; y < WORK_GROUP_SIZE_Y; ++y)
+        {
+            for(int x = 0; x < WORK_GROUP_SIZE_X; ++x)
+            {
+                ivec2 position = ivec2(gl_WorkGroupID.xy) * ivec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y) + ivec2(x, y);
+                int index = position.y * screenWidth + position.x;
+
+                pixelTileIndex[index] = arrayIndex;
+            }
+        }
 
         int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
         for(int i = 0; i < cappedLightCount; ++i)
@@ -101,6 +109,4 @@ void main()
 
         tileLightData[arrayIndex] = data;
     }
-
-    barrier();
 }

@@ -1,6 +1,7 @@
 #version 450 core
 
 #include "commonIncludes.glsl"
+#include "tree.glsl"
 
 uniform mat4 viewProjectionMatrix;
 uniform mat4 worldMatrix;
@@ -45,15 +46,19 @@ layout(std430) buffer PixelToTile
     int pixelTileIndex[];
 };
 
+layout(std430) buffer ColorBuffer
+{
+    vec4 colors[];
+};
+
 vec2 ProjectedToTexel(vec2 projectedPosition)
 {
-    //TODO: FIX THIS!
-    return vec2((projectedPosition.x + 1.0f) * 0.5f * 1280, (projectedPosition.y + 1.0f) * 0.5f * 720);
+    return vec2((projectedPosition.x + 1.0f) * 0.5f * screenWidth, (projectedPosition.y + 1.0f) * 0.5f * screenHeight);
 }
 
 ivec2 TexelToGrid(vec2 texelPosition)
 {
-    return ivec2(texelPosition.x / WORK_GROUP_SIZE_X, texelPosition.y / WORK_GROUP_SIZE_Y);
+    return ivec2(texelPosition.x / 64, texelPosition.y / 64);
 }
 
 void main()
@@ -61,16 +66,18 @@ void main()
     vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
 
-    vec2 gridIndex = TexelToGrid(texel);
-    const int arrayIndex = GetArrayIndex(gridIndex);
+    //const int arrayIndex = pixelTileIndex[int(texel.y) * 1280 + int(texel.x)];
+
+    //vec2 gridIndex = TexelToGrid(texel);
+    //const int arrayIndex = GetArrayIndex(gridIndex, 20);
 
     //const int arrayIndex = startIndex[int(texel.y) * screenWidth + int(texel.x)];
 
-    const int lightStart = tileLightData[arrayIndex].start;
-    const int lightCount = tileLightData[arrayIndex].numberOfLights;
+    //const int lightStart = tileLightData[arrayIndex].start;
+    //const int lightCount = tileLightData[arrayIndex].numberOfLights;
 
-    vec3 finalColor = vec3(0.0f);
-    vec3 textureColor = texture(tex, TexCoord).xyz;
+    //vec3 finalColor = vec3(0.0f);
+    /*vec3 textureColor = texture(tex, TexCoord).xyz;
 
     if(lightCount > MAX_LIGHTS_PER_TILE)
         finalColor = vec3(1.0f, 0.0f, 0.0f);
@@ -105,4 +112,8 @@ void main()
     }
 
     outColor = vec4(finalColor, materials[materialIndex].opacity);
+    */
+
+    int treeValue = GetTreeData(int(texel.x), int(texel.y));
+    outColor = vec4(colors[treeValue]);
 }

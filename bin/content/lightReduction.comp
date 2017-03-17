@@ -42,28 +42,27 @@ layout(std430) buffer NewPixelToTile
 shared int lightCount;
 shared int localLightIndices[MAX_LIGHTS_PER_TILE];
 
-//shared int currentStartIndex;
-//shared int currentLightCount;
+shared int currentStartIndex;
+shared int currentLightCount;
 
-//uniform int workGroupCountX;
+uniform int oldWorkGroupCountX;
+uniform int oldWorkGroupCountY;
 
-//layout(std430) buffer CurrentLightIndices
-//{
-//    int currentOccupiedIndices; // Needs to be initialized to 0!
-//    int currentLightIndices[];
-//};
-//
-//layout(std430) buffer CurrentTileLights
-//{
-//    TileLightData currentTileLightData[];
-//};
+uniform int newWorkGroupCountX;
+uniform int newWorkGroupCountY;
+
+uniform int oldTileSizeX;
+uniform int oldTileSizeY;
+
+uniform int newTileSizeX;
+uniform int newTileSizeY;
 
 void AddLightIfPossible(int lightIndex)
 {
     int index = atomicAdd(lightCount, 1);
 
-    //if(index < MAX_LIGHTS_PER_TILE)
-    //    localLightIndices[index] = lightIndex;
+    if(index < MAX_LIGHTS_PER_TILE)
+        localLightIndices[index] = lightIndex;
 }
 
 layout(local_size_x = THREADS_PER_GROUP_X, local_size_y = THREADS_PER_GROUP_Y) in;
@@ -73,23 +72,24 @@ void main()
     {
         lightCount = 0;
 
-        //int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy / 2, 10);
+        int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy / 2, oldWorkGroupCountX);
 
-        //currentStartIndex = currentTileLightData[arrayIndex].start;
-        //currentLightCount = currentTileLightData[arrayIndex].numberOfLights;
+        currentStartIndex = oldTileLightData[arrayIndex].start;
+        currentLightCount = oldTileLightData[arrayIndex].numberOfLights;
     }
 
     barrier();
 
-    //if(currentLightCount > 0)
-    //{
-        //for(int i = int(gl_LocalInvocationIndex); i < currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
-        for(int i = int(gl_LocalInvocationIndex); i < 64; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
+    if(currentLightCount > 200)
+    {
+        // Divide tile, check collision for all lights inside this tile again
+        for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         {
-            //LightData light = lights[currentLightIndices[currentStartIndex + i]];
-            LightData light = lights[i];
+            int lightIndex = oldLightIndices[i];
 
-            vec3 viewPositions[5] = CreateFarPoints(uvec2(64, 64));
+            LightData light = lights[lightIndex];
+
+            vec3 viewPositions[5] = CreateFarPoints(uvec2(newTileSizeX, newTileSizeY));
             vec4 planes[4] = CreatePlanes(viewPositions);
 
             vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
@@ -115,31 +115,134 @@ void main()
                 }
 
                 if(inside)
-                    AddLightIfPossible(i);
+                    AddLightIfPossible(lightIndex);
             }
             else
-                AddLightIfPossible(i);
+                AddLightIfPossible(lightIndex);
         }
-    //}
 
-    barrier();
+        barrier();
 
-    if(gl_LocalInvocationIndex == 0)
+        if(gl_LocalInvocationIndex == 0)
+        {
+            int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy, newWorkGroupCountX);
+            int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+
+            for(int y = 0; y < newTileSizeY; ++y)
+            {
+                for(int x = 0; x < newTileSizeX; ++x)
+                {
+                    ivec2 position = ivec2(gl_WorkGroupID.xy) * ivec2(newTileSizeX, newTileSizeY) + ivec2(x, y);
+                    int index = position.y * screenWidth + position.x;
+
+                    newPixelTileIndex[index] = arrayIndex;
+                }
+            }
+
+            int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
+            for(int i = 0; i < cappedLightCount; ++i)
+                newLightIndices[startIndex + i] = localLightIndices[i];
+            for(int i = cappedLightCount; i < MAX_LIGHTS_PER_TILE; ++i)
+                newLightIndices[startIndex + i] = -1;
+
+            TileLightData data;
+            data.start = startIndex;
+            data.numberOfLights = lightCount;
+            data.padding = ivec2(gl_WorkGroupID) * ivec2(newTileSizeX, newTileSizeY);
+
+            newTileLightData[arrayIndex] = data;
+        }
+    }
+    else
     {
-        int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy, 20);
-        int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+        //Transfer lights indices from old to system
 
-        int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
-        for(int i = 0; i < cappedLightCount; ++i)
-            newLightIndices[startIndex + i] = localLightIndices[i];
-        for(int i = cappedLightCount; i < MAX_LIGHTS_PER_TILE; ++i)
-            newLightIndices[startIndex + i] = -1;
+        int threadID = int(gl_WorkGroupID.y % 2) * 2 + int(gl_WorkGroupID.x % 2);
 
-        TileLightData data;
-        data.start = startIndex;
-        data.numberOfLights = lightCount;
-        data.padding = ivec2(gl_WorkGroupID) * ivec2(64, 64);
+        int prediv = int(ceil(currentLightCount / 4));
 
-        newTileLightData[arrayIndex] = data;
+        int sourceMinValue = currentStartIndex + prediv * threadID;
+
+        ivec2 thread0Start = (ivec2(gl_WorkGroupID) - ivec2(gl_WorkGroupID % 2)) / 2;
+
+        int targetMinValue = GetArrayIndex(thread0Start, oldWorkGroupCountX) * MAX_LIGHTS_PER_TILE + prediv * threadID;
+
+        if(threadID == 3)
+        {
+            for(int i = 0; i < currentLightCount - prediv * 3; ++i)
+                newLightIndices[targetMinValue + i] = oldLightIndices[sourceMinValue + i];
+        }
+        else
+        {
+            for(int i = 0; i < prediv; ++i)
+                newLightIndices[targetMinValue + i] = oldLightIndices[sourceMinValue + i];
+        }
+
+        if(threadID == 0)
+        {
+            int arrayIndex = GetArrayIndex(ivec2(gl_WorkGroupID.xy) / 2, oldWorkGroupCountX);
+            int newStartIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+
+            for(int y = 0; y < oldTileSizeY; ++y)
+            {
+                for(int x = 0; x < oldTileSizeX; ++x)
+                {
+                    ivec2 position = ivec2(gl_WorkGroupID.xy / 2) * ivec2(oldTileSizeX, oldTileSizeY) + ivec2(x, y);
+                    int index = position.y * screenWidth + position.x;
+
+                    newPixelTileIndex[index] = arrayIndex;
+                }
+            }
+
+            /*TileLightData data;
+            data.start = newStartIndex;
+            data.numberOfLights = currentLightCount;
+            data.padding = ivec2(gl_WorkGroupID) * ivec2(newTileSizeX, newTileSizeY);
+
+            newTileLightData[arrayIndex] = data;*/
+        }
+
+        /*if(gl_WorkGroupID.x % 2 == 0
+            && gl_WorkGroupID.y % 2 == 0)
+        {
+            // Add all lights from this tile
+            for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
+            {
+                int index = atomicAdd(lightCount, 1);
+                localLightIndices[index] = i;
+            }
+
+            barrier();
+
+            if(gl_LocalInvocationIndex == 0)
+            {
+                int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy / 2, oldWorkGroupCountX);
+                int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+
+                for(int y = 0; y < oldTileSizeY; ++y)
+                {
+                    for(int x = 0; x < oldTileSizeX; ++x)
+                    {
+                        ivec2 position = ivec2(gl_WorkGroupID.xy / 2) * ivec2(oldTileSizeX, oldTileSizeY) + ivec2(x, y);
+                        int index = position.y * screenWidth + position.x;
+
+                        newPixelTileIndex[index] = startIndex;
+                    }
+                }
+
+                int cappedLightCount = min(currentLightCount, MAX_LIGHTS_PER_TILE);
+                for(int i = 0; i < cappedLightCount; ++i)
+                    newLightIndices[startIndex + i] = localLightIndices[i];
+                for(int i = cappedLightCount; i < MAX_LIGHTS_PER_TILE; ++i)
+                    newLightIndices[startIndex + i] = -1;
+
+                TileLightData data;
+                data.start = startIndex;
+                data.numberOfLights = currentLightCount;
+                data.padding = ivec2(gl_WorkGroupID) * ivec2(newTileSizeX, newTileSizeY);
+
+                newTileLightData[arrayIndex] = data;
+            }
+        }*/
     }
 }

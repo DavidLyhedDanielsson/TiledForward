@@ -3,9 +3,9 @@
 #include "GL/gl3w.h"
 
 LightCull::LightCull()
-        : workGroupSize(128, 128)
+        : workGroupSize(64, 64)
           , threadsPerGroup(16, 16)
-          , maxLightsPerTile(64)
+          , maxLightsPerTile(1)
 {}
 
 LightCull::~LightCull()
@@ -20,8 +20,19 @@ void LightCull::InitShaderConstants(int screenWidth, int screenHeight)
     this->screenHeight = screenHeight;
 }
 
+std::vector<glm::vec4> tileColors;
+
 bool LightCull::Init(ContentManager& contentManager)
 {
+    for(int i = 0; i < screenWidth * screenHeight; ++i)
+    {
+        float r = rand() / (float)RAND_MAX;
+        float g = rand() / (float)RAND_MAX;
+        float b = rand() / (float)RAND_MAX;
+
+        tileColors.push_back(glm::vec4(r, g, b, 0.5f));
+    }
+
     ////////////////////////////////////////////////////////////
     // Make sure there aren't too many lights per tile
 
@@ -55,6 +66,15 @@ bool LightCull::Init(ContentManager& contentManager)
     lightReductionDrawBinds.AddUniform("viewMatrix", glm::mat4());
     lightReductionDrawBinds.AddUniform("projectionInverseMatrix", glm::mat4());
     lightReductionDrawBinds.AddUniform("workGroupCountX", (int)workGroupCount.x);
+
+    lightReductionDrawBinds.AddUniform("oldWorkGroupCountX", (int)workGroupCount.x);
+    lightReductionDrawBinds.AddUniform("oldWorkGroupCountY", (int)workGroupCount.y);
+    lightReductionDrawBinds.AddUniform("newWorkGroupCountX", (int)workGroupCount.x * 2);
+    lightReductionDrawBinds.AddUniform("newWorkGroupCountY", (int)workGroupCount.y * 2);
+    lightReductionDrawBinds.AddUniform("oldTileSizeX", (int)workGroupSize.x);
+    lightReductionDrawBinds.AddUniform("oldTileSizeY", (int)workGroupSize.y);
+    lightReductionDrawBinds.AddUniform("newTileSizeX", (int)workGroupSize.x / 2);
+    lightReductionDrawBinds.AddUniform("newTileSizeY", (int)workGroupSize.y / 2);
     lightReductionDrawBinds.AddShaders(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "lightReduction.comp");
     if(!lightReductionDrawBinds.Init())
         return false;
@@ -135,27 +155,30 @@ void LightCull::Draw()
 
     lightCullDrawBinds.Unbind();
 
-    GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    glClientWaitSync(writeSync, 0, 1000000000);
-    glDeleteSync(writeSync);
+    //GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    //glClientWaitSync(writeSync, 0, 1000000000);
+    //glDeleteSync(writeSync);
 
-    lightReductionDrawBinds.Bind();
+    /*lightReductionDrawBinds.Bind();
 
     glDispatchCompute(workGroupCount.x * 2, workGroupCount.y * 2, 1);
 
     writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glClientWaitSync(writeSync, 0, 1000000000);
-    glDeleteSync(writeSync);
+    glDeleteSync(writeSync);*/
 }
 
 void LightCull::PostDraw()
 {
-    lightReductionDrawBinds.Unbind();
+    //lightReductionDrawBinds.Unbind();
 }
 
 void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* characterSet)
 {
-    auto tileLightsSSBO = lightCullDrawBinds.GetSSBO("TileLights");
+    return;
+
+    //auto tileLightsSSBO = lightCullDrawBinds.GetSSBO("TileLights");
+    auto tileLightsSSBO = lightReductionDrawBinds.GetSSBO("NewTileLights");
     auto data = tileLightsSSBO->GetData();
 
     struct LightData
@@ -172,11 +195,27 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
     float maxWidth = characterSet->GetWidthAtMaxWidth(std::to_string(maxLightsPerTile).c_str(), -1);
     float maxHeight = characterSet->GetLineHeight();
 
-    for(int y = 0; y < workGroupCount.y; ++y)
+    //auto pixelToTile = lightCullDrawBinds.GetSSBO("PixelToTile")->GetData();
+    auto pixelToTile = lightReductionDrawBinds.GetSSBO("NewPixelToTile")->GetData();
+
+    //for(int y = 0; y < workGroupCount.y; ++y)
+    for(int y = 0; y < 720; ++y)
     {
-        for(int x = 0; x < workGroupCount.x; ++x)
+        //for(int x = 0; x < workGroupCount.x; ++x)
+        for(int x = 0; x < 1280; ++x)
         {
-            int numberOfLights = intData[(workGroupCount.y - y - 1) * workGroupCount.x + x].numberOfLights;
+            //int pixelIndex = ((workGroupCount.y - y - 1) * workGroupCount.x * workGroupSize.x * workGroupSize.y) + (x * workGroupSize.x);
+            int pixelIndex = (720 - y - 1) * 1280 + x;
+            int index = static_cast<int*>(pixelToTile.get())[pixelIndex];
+
+            //assert(index >= 0 && index < screenWidth * screenHeight);
+
+            int numberOfLights = intData[index].numberOfLights;
+
+            float color = numberOfLights / (float)maxLightsPerTile;
+            spriteRenderer.Draw(Rect(x, y, 1.0f, 1.0f), tileColors[index]);
+
+            /*
             if(numberOfLights != 0)
             {
                 if((x + y) % 2 == 0)
@@ -194,11 +233,11 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
                     spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSet->GetLineHeight()), glm::vec4(0.0f, 0.0f, 0.0f, 0.85f));
                     spriteRenderer.DrawString(characterSet, lightCountText, drawPosition, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
-            }
+            }*/
         }
     }
 
-    auto oldData = std::move(data);
+    /*auto oldData = std::move(data);
     auto oldIntData = intData;
 
     tileLightsSSBO = lightReductionDrawBinds.GetSSBO("NewTileLights");
@@ -220,7 +259,7 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
             int oldNumberOfLights = oldIntData[(workGroupCount.y - y / 2 - 1) * workGroupCount.x + x / 2].numberOfLights;
             if(numberOfLights != oldNumberOfLights)
             {
-                std::string lightCountText = std::to_string(oldNumberOfLights - numberOfLights);
+                std::string lightCountText = std::to_string(numberOfLights);
 
                 auto textWidth = characterSet->GetWidthAtIndex(lightCountText.c_str(), -1);
 
@@ -232,7 +271,7 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
 
             }
         }
-    }
+    }*/
 }
 
 glm::uvec2 LightCull::GetWorkGroupSize() const

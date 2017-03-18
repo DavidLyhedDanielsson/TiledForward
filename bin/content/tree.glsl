@@ -22,21 +22,26 @@ int GetTreeIndex(int x, int y)
     return index;
 }
 
-void PutTreeData(int screenX, int screenY, int depth, int data)
+void PutTreeDataTile(int x, int y, int depth, int data)
 {
     int depthOffset = -1;
     for(int i = 0; i < depth; ++i)
-        depthOffset += pow(2, i) * pow(2, i);
+        depthOffset += int(pow(2, i) * pow(2, i));
 
+    int index = GetTreeIndex(x, y);
+
+    tree[depthOffset + index] = data;
+}
+
+void PutTreeDataScreen(int screenX, int screenY, int depth, int data)
+{
     vec2 range = vec2(float(screenWidth), float(screenHeight));
     range /= pow(2, depth);
 
     int x = int(screenX / range.x);
     int y = int(screenY / range.y);
 
-    int index = GetTreeIndex(x, y);
-
-    tree[depthOffset + index] = data;
+    PutTreeDataTile(x, y, depth, data);
 }
 
 int GetTreeData(int screenX, int screenY)

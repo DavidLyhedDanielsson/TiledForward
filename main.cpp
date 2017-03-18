@@ -72,20 +72,20 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 1;
+    int lightCount = 32;
 
     const float LIGHT_DEFAULT_AMBIENT = 1.0f;
     float lightMinStrength = 5.0f;
     float lightMaxStrength = 5.0f;
     float lightLifetime = 9999999999999999999.0f;
 
-    //const float LIGHT_RANGE_X = 14.0f;
-    //const float LIGHT_MAX_Y = 8.0f;
-    //const float LIGHT_RANGE_Z = 6.0f;
+    const float LIGHT_RANGE_X = 14.0f;
+    const float LIGHT_MAX_Y = 8.0f;
+    const float LIGHT_RANGE_Z = 6.0f;
 
-    const float LIGHT_RANGE_X = 0.0f;
-    const float LIGHT_MAX_Y = 0.0f;
-    const float LIGHT_RANGE_Z = 0.0f;
+    //const float LIGHT_RANGE_X = 0.0f;
+    //const float LIGHT_MAX_Y = 0.0f;
+    //const float LIGHT_RANGE_Z = 0.0f;
 
     const static int DEFAULT_SCREEN_WIDTH = 1280;
     const static int DEFAULT_SCREEN_HEIGHT = 720;
@@ -100,7 +100,7 @@ private:
         LightData lights[lightCount];
     } lightsBuffer;*/
 
-//#define DO_LIGHT_CULL
+#define DO_LIGHT_CULL
 #ifdef DO_LIGHT_CULL
     LightCull lightCull;
 #endif
@@ -339,6 +339,8 @@ int Main::InitContent()
     worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
     worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
     worldModel->drawBinds["ScreenSize"] = lightCull.lightCullDrawBinds["ScreenSize"];
+    worldModel->drawBinds["Tree"] = tree;
+    worldModel->drawBinds["Tree"] = lightCull.lightCullDrawBinds["Tree"];
 #else
     worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
     worldModel->drawBinds["Tree"] = tree;
@@ -725,7 +727,7 @@ bool Main::InitShaders()
                     , std::make_pair("WORK_GROUP_COUNT_X", std::to_string(lightCull.GetWorkGroupCount().x))
                     , std::make_pair("WORK_GROUP_COUNT_Y", std::to_string(lightCull.GetWorkGroupCount().y))
                     , std::make_pair("WORK_GROUP_SIZE_X", std::to_string(lightCull.GetWorkGroupSize().x))
-                    , std::make_pair("WORK_GROUP_SIZE_Y", std::to_st1ring(lightCull.GetWorkGroupSize().y))
+                    , std::make_pair("WORK_GROUP_SIZE_Y", std::to_string(lightCull.GetWorkGroupSize().y))
             };
     sharedParameters.outPath = std::string(contentManager.GetRootDir());
     sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
@@ -737,12 +739,12 @@ bool Main::InitShaders()
 
     tree = CreateTree(MAX_DIVISIONS);
 
-    for(int y = 0; y < 8; ++y)
+    /*for(int y = 0; y < 8; ++y)
         for(int x = 0; x < 8; ++x)
             SetTreeData(tree, 1280 / 8 * x, 720 / 8 * y, 3, y * 8 + x);
 
     SetTreeData(tree, 0, 0, 1, 0);
-    SetTreeData(tree, 1000, 482, 2, 1);
+    SetTreeData(tree, 1000, 482, 2, 1);*/
 
     ////////////////////////////////////////////////////////////
     // Lines
@@ -808,8 +810,8 @@ void Main::Update(Timer& deltaTimer)
             lightsBuffer.lights[i].padding = 0.0f;
 
             float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y;
-            float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
+            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.01f;
+            float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z ;
 
             lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
             lightsBuffer.lights[i].strength = std::fmod(lightsBuffer.lights[i].padding, lightLifetime);
@@ -839,6 +841,7 @@ void Main::Render(Timer& deltaTimer)
     // Needed to make hot reloading work
     //glm::ivec2 screenSize(screenWidth, screenHeight);
     //lightCull["ScreenSize"] = screenSize;
+    lightCull.lightCullDrawBinds["Tree"] = CreateTree(3);
 
     // Set states
     glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
@@ -1099,7 +1102,7 @@ LightData Main::GetRandomLight()
     LightData light;
 
     float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-    float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y;
+    float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.01f;
     float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
 
     /*if(lightsBuffer.lights.size() == 0)

@@ -28,23 +28,3 @@ int GetArrayIndex(vec2 grid, int workGroupCount)
 {
     return GetArrayIndex(int(grid.x), int(grid.y), workGroupCount);
 }
-
-int GetArrayIndex(int gridX, int gridY)
-{
-    return gridY * WORK_GROUP_COUNT_X + gridX;
-}
-
-int GetArrayIndex(ivec2 grid)
-{
-    return GetArrayIndex(grid.x, grid.y);
-}
-
-int GetArrayIndex(uvec2 grid)
-{
-    return GetArrayIndex(int(grid.x), int(grid.y));
-}
-
-int GetArrayIndex(vec2 grid)
-{
-    return GetArrayIndex(int(grid.x), int(grid.y));
-}

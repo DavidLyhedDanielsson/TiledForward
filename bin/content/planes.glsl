@@ -35,7 +35,7 @@ vec3[5] CreateFarPoints()
     {
         vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy) + offsets[j])
                                         * vec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y))
-                                        / vec2(1280, 720), 1.0f); // TODO: FIX THIS!
+                                        / vec2(screenWidth, screenHeight), 1.0f);
         ndcPosition.x *= 2.0f;
         ndcPosition.x -= 1.0f;
         ndcPosition.y *= 2.0f;
@@ -66,9 +66,8 @@ vec3[5] CreateFarPoints(uvec2 workGroupSize)
     for(int j = 0; j < 5; ++j)
     {
         vec3 ndcPosition = vec3(((vec2(gl_WorkGroupID.xy) + offsets[j])
-                                        //* vec2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y))
                                         * vec2(workGroupSize.x, workGroupSize.y))
-                                        / vec2(1280, 720), 1.0f); // TODO: FIX THIS!
+                                        / vec2(screenWidth, screenHeight), 1.0f);
         ndcPosition.x *= 2.0f;
         ndcPosition.x -= 1.0f;
         ndcPosition.y *= 2.0f;

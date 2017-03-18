@@ -5,7 +5,7 @@
 LightCull::LightCull()
         : workGroupSize(64, 64)
           , threadsPerGroup(16, 16)
-          , maxLightsPerTile(1)
+          , maxLightsPerTile(64)
 {}
 
 LightCull::~LightCull()
@@ -50,6 +50,7 @@ bool LightCull::Init(ContentManager& contentManager)
 
     lightCullDrawBinds.AddUniform("viewMatrix", glm::mat4());
     lightCullDrawBinds.AddUniform("projectionInverseMatrix", glm::mat4());
+    lightCullDrawBinds.AddUniform("treeDepth", 2);
     lightCullDrawBinds.AddShaders(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "lightCull.comp");
     if(!lightCullDrawBinds.Init())
         return false;
@@ -151,7 +152,7 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
 
 void LightCull::Draw()
 {
-    glDispatchCompute(workGroupCount.x, workGroupCount.y, 1);
+    glDispatchCompute(4, 4, 1);
 
     lightCullDrawBinds.Unbind();
 

@@ -198,14 +198,23 @@ bool GLDrawBinds::CreateShaderProgram()
         GLint logLength = 0;
         glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &logLength);
 
-        GLint shaderSourceLength;
-        glGetShaderiv(shaderBinds.front().second->GetShader(), GL_SHADER_SOURCE_LENGTH, &shaderSourceLength);
-        std::string shaderSource(shaderSourceLength, -1);
-        glGetShaderSource(shaderBinds.front().second->GetShader(), shaderSourceLength, nullptr, (GLchar*)shaderSource.data());
+        if(shaderBinds.size() != 0)
+        {
+            GLint shaderSourceLength;
+            glGetShaderiv(shaderBinds.front().second->GetShader(), GL_SHADER_SOURCE_LENGTH, &shaderSourceLength);
+            std::string shaderSource(shaderSourceLength, -1);
+            glGetShaderSource(shaderBinds.front().second->GetShader(), shaderSourceLength, nullptr, (GLchar*)shaderSource.data());
 
-        std::unique_ptr<GLchar> log(new GLchar[logLength]);
-        glGetProgramInfoLog(shaderProgram, logLength, nullptr, log.get());
-        LogWithName(LOG_TYPE::FATAL, std::string("Couldn't link shader program: ") + const_cast<const char*>(log.get()) + "\nShader source:\n" + shaderSource);
+            std::unique_ptr<GLchar> log(new GLchar[logLength]);
+            glGetProgramInfoLog(shaderProgram, logLength, nullptr, log.get());
+            LogWithName(LOG_TYPE::FATAL, std::string("Couldn't link shader program: ") + const_cast<const char*>(log.get()) + "\nShader source:\n" + shaderSource);
+        }
+        else
+        {
+            std::unique_ptr<GLchar> log(new GLchar[logLength]);
+            glGetProgramInfoLog(shaderProgram, logLength, nullptr, log.get());
+            LogWithName(LOG_TYPE::FATAL, std::string("Couldn't link shader program: ") + const_cast<const char*>(log.get()));
+        }
 
         return false;
     }

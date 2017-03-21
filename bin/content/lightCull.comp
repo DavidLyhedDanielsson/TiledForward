@@ -22,8 +22,6 @@ layout(std430) buffer TileLights
 shared int lightCount;
 shared int localLightIndices[MAX_LIGHTS_PER_TILE];
 
-uniform int treeDepth;
-
 void AddLightIfPossible(int lightIndex)
 {
     int index = atomicAdd(lightCount, 1);
@@ -40,8 +38,8 @@ void main()
 
     barrier();
 
-    int workGroupSizeX = screenWidth / int(pow(2, treeDepth));
-    int workGroupSizeY = screenHeight / int(pow(2, treeDepth));
+    int workGroupSizeX = screenWidth / int(pow(2, TREE_START_DEPTH));
+    int workGroupSizeY = screenHeight / int(pow(2, TREE_START_DEPTH));
 
     int workGroupCountX = screenWidth / int(ceil(workGroupSizeX));
 
@@ -85,10 +83,10 @@ void main()
 
     if(gl_LocalInvocationIndex == 0)
     {
-        int arrayIndex = GetArrayIndex(gl_WorkGroupID.xy, workGroupCountX);
+        int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), TREE_START_DEPTH, TREE_MAX_DEPTH);
         int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
 
-        PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), treeDepth, arrayIndex);
+        PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), TREE_START_DEPTH, arrayIndex);
 
         int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
         for(int i = 0; i < cappedLightCount; ++i)

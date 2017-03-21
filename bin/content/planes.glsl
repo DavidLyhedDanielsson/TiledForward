@@ -18,7 +18,7 @@ const int TOP_RIGHT = 2;
 const int TOP_LEFT = 3;
 const int CENTER = 4;
 
-vec3[5] CreateFarPoints()
+/*vec3[5] CreateFarPoints()
 {
     const vec2 offsets[5] =
     {
@@ -48,7 +48,7 @@ vec3[5] CreateFarPoints()
     }
 
     return viewPositions;
-}
+}*/
 
 vec3[5] CreateFarPoints(uvec2 workGroupSize)
 {

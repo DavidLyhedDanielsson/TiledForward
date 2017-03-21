@@ -153,7 +153,39 @@ bool GLShader::CompileFromSource(const std::string& source)
         std::unique_ptr<GLchar> errorLog(new char[logSize]);
         glGetShaderInfoLog(shader, logSize, nullptr, errorLog.get());
 
-        Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader at \"", this->GetPath(), "\": ", const_cast<const char*>(errorLog.get()), "\nShader source:\n" + source);
+        bool trimToLine = false;
+
+        std::string errorLogString(errorLog.get());
+        auto beginIndex = errorLogString.find_first_not_of("0123456789");
+        auto endIndex = beginIndex;
+        if(beginIndex != std::string::npos
+            && errorLogString[beginIndex] == '(')
+        {
+            endIndex = errorLogString.find_first_not_of("0123456789", beginIndex + 1);
+
+            if(errorLogString[endIndex] == ')')
+                trimToLine = true;
+        }
+
+        if(!trimToLine)
+            Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader at \"", this->GetPath(), "\": ", const_cast<const char*>(errorLog.get()), "\nShader source:\n" + source);
+        else
+        {
+            auto lineIndex = std::stoi(errorLogString.substr(beginIndex + 1, endIndex - beginIndex - 1));
+
+            std::stringstream sstream(source);
+            std::string line;
+            int i = 0;
+            while(std::getline(sstream, line))
+            {
+                ++i;
+
+                if(i == lineIndex)
+                    break;
+            }
+
+            Logger::LogLine(LOG_TYPE::FATAL, "Error when compiling shader at \"", this->GetPath(), "\": ", const_cast<const char*>(errorLog.get()), "\nShader source line:\n" + line);
+        }
 
         return false;
     }

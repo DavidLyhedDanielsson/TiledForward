@@ -72,12 +72,12 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 32;
+    int lightCount = 600;
 
     const float LIGHT_DEFAULT_AMBIENT = 1.0f;
     float lightMinStrength = 5.0f;
     float lightMaxStrength = 5.0f;
-    float lightLifetime = 9999999999999999999.0f;
+    float lightLifetime = 2500.0f;
 
     const float LIGHT_RANGE_X = 14.0f;
     const float LIGHT_MAX_Y = 8.0f;
@@ -177,12 +177,6 @@ private:
 
     LightData GetRandomLight();
     void DumpBackBuffer();
-
-    std::vector<int> CreateTree(int maxDivisions);
-    void SetTreeData(std::vector<int>& tree, int screenX, int screenY, int depth, int data);
-
-    std::vector<int> tree;
-    int GetTreeData(std::vector<int>& tree, int screenX, int screenY);
 };
 
 int main(int argc, char* argv[])
@@ -251,6 +245,7 @@ int Main::Run()
 
         InitLights();
         InitQuieries();
+        console.Autoexec();
 
         double frameTime = 0.0;
         unsigned long frameCount = 0;
@@ -339,20 +334,16 @@ int Main::InitContent()
     worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
     worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
     worldModel->drawBinds["ScreenSize"] = lightCull.lightCullDrawBinds["ScreenSize"];
-    worldModel->drawBinds["Tree"] = tree;
     worldModel->drawBinds["Tree"] = lightCull.lightCullDrawBinds["Tree"];
 #else
     worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
     worldModel->drawBinds["Tree"] = tree;
 #endif
 
-    srand(time(nullptr));
     std::vector<glm::vec4> colors;
-    for(int y = 0; y < screenWidth / 2; ++y)
-    {
-        for(int x = 0; x < screenHeight / 2; ++x)
+    for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices(); ++i)
             colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
-    }
+
     worldModel->drawBinds["ColorBuffer"] = colors;
 #endif
 
@@ -476,8 +467,6 @@ void Main::InitConsole()
                 return Argument("Camera set");
             }
     ));
-
-    console.Autoexec();
 
     guiManager.AddContainer(&console);
 
@@ -632,83 +621,6 @@ bool Main::InitFrameBuffers()
     return error == GL_FRAMEBUFFER_COMPLETE;
 }
 
-void Main::SetTreeData(std::vector<int>& tree, int screenX, int screenY, int depth, int data)
-{
-    int depthOffset = -1;
-    for(int i = 0; i < depth; ++i)
-        depthOffset += pow(2, i) * pow(2, i);
-
-    glm::ivec2 range(screenWidth, screenHeight);
-    range /= pow(2, depth);
-
-    int x = screenX / range.x;
-    int y = screenY / range.y;
-
-    uint64_t index = 0;
-
-    for(int i = 0; i < sizeof(int) * 8; ++i)
-    {
-        int extractedBit;
-
-        if(i % 2 == 0)
-            extractedBit = (x >> (i / 2)) & 1;
-        else
-            extractedBit = (y >> (i / 2)) & 1;
-
-        index |= (extractedBit << i);
-    }
-
-    assert(depthOffset + index < tree.size());
-    tree[depthOffset + index] = data;
-
-    Logger::LogLine(LOG_TYPE::NONE_NOWRITE, screenX, ", ", screenY, " <=> ", depthOffset + index);
-}
-
-int Main::GetTreeData(std::vector<int>& tree, int screenX, int screenY)
-{
-    int depthOffset = -1;
-
-    for(int i = 0; i < 3; ++i)
-    {
-        //depthOffset += int(pow(2, i)) * int(pow(2, i));
-        depthOffset += int(pow(4, i));
-
-        glm::vec2 range = glm::vec2(float(screenWidth) / 2.0f, float(screenHeight) / 2.0f);
-
-        int x = int(screenX / range.x);
-        int y = int(screenY / range.y);
-
-        int index = 0;
-
-        for(int j = 0; j < 32; ++j)
-        {
-            int extractedBit;
-
-            if(j % 2 == 0)
-                extractedBit = (x >> (j / 2)) & 1;
-            else
-                extractedBit = (y >> (j / 2)) & 1;
-
-            index |= (extractedBit << j);
-        }
-
-        int potentialIndex = tree[depthOffset + index];
-        if(potentialIndex != -1)
-            return potentialIndex;
-    }
-
-    return 0;
-}
-
-std::vector<int> Main::CreateTree(int maxDivisions)
-{
-    int size = 0;
-    for(int i = 0; i < maxDivisions; ++i)
-        size += pow(2, i + 1) * pow(2, i + 1);
-
-    return std::vector<int>(size, -1);
-}
-
 bool Main::InitShaders()
 {
 #ifdef DO_LIGHT_CULL
@@ -724,10 +636,8 @@ bool Main::InitShaders()
                     , std::make_pair("THREADS_PER_GROUP_Y", std::to_string(lightCull.GetThreadsPerGroup().y))
                     , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(lightCull.GetMaxLightsPerTile()))
                     , std::make_pair("MSAA_COUNT", std::to_string(msaaCount))
-                    , std::make_pair("WORK_GROUP_COUNT_X", std::to_string(lightCull.GetWorkGroupCount().x))
-                    , std::make_pair("WORK_GROUP_COUNT_Y", std::to_string(lightCull.GetWorkGroupCount().y))
-                    , std::make_pair("WORK_GROUP_SIZE_X", std::to_string(lightCull.GetWorkGroupSize().x))
-                    , std::make_pair("WORK_GROUP_SIZE_Y", std::to_string(lightCull.GetWorkGroupSize().y))
+                    , std::make_pair("TREE_START_DEPTH", std::to_string(lightCull.GetTreeStartDepth()))
+                    , std::make_pair("TREE_MAX_DEPTH", std::to_string(lightCull.GetTreeMaxDepth()))
             };
     sharedParameters.outPath = std::string(contentManager.GetRootDir());
     sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
@@ -735,16 +645,6 @@ bool Main::InitShaders()
     if(!lightCull.Init(contentManager))
         return false;
 #endif
-    const int MAX_DIVISIONS = 3;
-
-    tree = CreateTree(MAX_DIVISIONS);
-
-    /*for(int y = 0; y < 8; ++y)
-        for(int x = 0; x < 8; ++x)
-            SetTreeData(tree, 1280 / 8 * x, 720 / 8 * y, 3, y * 8 + x);
-
-    SetTreeData(tree, 0, 0, 1, 0);
-    SetTreeData(tree, 1000, 482, 2, 1);*/
 
     ////////////////////////////////////////////////////////////
     // Lines
@@ -841,7 +741,6 @@ void Main::Render(Timer& deltaTimer)
     // Needed to make hot reloading work
     //glm::ivec2 screenSize(screenWidth, screenHeight);
     //lightCull["ScreenSize"] = screenSize;
-    lightCull.lightCullDrawBinds["Tree"] = CreateTree(3);
 
     // Set states
     glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
@@ -1018,10 +917,6 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
 
     if(recompileShaders)
     {
-#ifdef DO_LIGHT_CULL
-        sharedVariables->SetValue("WORK_GROUP_COUNT_X", std::to_string(lightCull.GetWorkGroupCount().x));
-        sharedVariables->SetValue("WORK_GROUP_COUNT_Y", std::to_string(lightCull.GetWorkGroupCount().x));
-#endif
         sharedVariables->SetValue("MSAA_COUNT", std::to_string(msaaCount));
         sharedVariables->WriteValues();
     }

@@ -3,7 +3,7 @@ layout(std430) buffer Tree
     int tree[];
 };
 
-int GetTreeIndex(int x, int y)
+int GetTreeLinearIndex(int x, int y)
 {
     int index = 0;
 
@@ -22,37 +22,64 @@ int GetTreeIndex(int x, int y)
     return index;
 }
 
-void PutTreeDataTile(int x, int y, int depth, int data)
+int GetTreeLinearIndex(int x, int y, int oldDepth, int newDepth)
+{
+    int oldWidth = screenWidth / int(pow(2, oldDepth));
+    int oldHeight = screenHeight / int(pow(2, oldDepth));
+
+    int oldScreenX = x * oldWidth;
+    int oldScreenY = y * oldHeight;
+
+    int newTileSizeX = screenWidth / int(pow(2, newDepth));
+    int newTileSizeY = screenHeight / int(pow(2, newDepth));
+
+    int newTileX = oldScreenX / newTileSizeX;
+    int newTileY = oldScreenY / newTileSizeY;
+
+    return GetTreeLinearIndex(newTileX, newTileY);
+}
+
+void PutTreeDataTile(int x, int y, int oldDepth, int newDepth, int data)
 {
     int depthOffset = -1;
-    for(int i = 0; i < depth; ++i)
-        depthOffset += int(pow(2, i) * pow(2, i));
+    for(int i = 0; i < newDepth; ++i)
+        depthOffset += int(pow(4, i));
 
-    int index = GetTreeIndex(x, y);
+    int index = GetTreeLinearIndex(x, y, oldDepth, newDepth);
 
     tree[depthOffset + index] = data;
 }
 
-void PutTreeDataScreen(int screenX, int screenY, int depth, int data)
+void PutTreeDataTile(int x, int y, int depth, int data)
 {
-    vec2 range = vec2(float(screenWidth), float(screenHeight));
-    range /= pow(2, depth);
+    int depthOffset = -1;
+    for(int i = 0; i < depth; ++i)
+        depthOffset += int(pow(4, i));
 
-    int x = int(screenX / range.x);
-    int y = int(screenY / range.y);
+    int index = GetTreeLinearIndex(x, y);
 
-    PutTreeDataTile(x, y, depth, data);
+    tree[depthOffset + index] = data;
 }
 
-int GetTreeData(int screenX, int screenY)
+void PutTreeDataTile(int x, int y, int data)
+{
+    int depthOffset = -1;
+    for(int i = 0; i < TREE_MAX_DEPTH; ++i)
+        depthOffset += int(pow(4, i));
+
+    int index = GetTreeLinearIndex(x, y);
+
+    tree[depthOffset + index] = data;
+}
+
+int GetTreeDataScreen(int screenX, int screenY)
 {
     int depthOffset = -1;
 
     vec2 range = vec2(float(screenWidth), float(screenHeight));
 
-    for(int i = 0; i < 3; ++i)
+    for(int i = 0; i < TREE_MAX_DEPTH; ++i)
     {
-        //depthOffset += int(pow(2, i)) * int(pow(2, i));
         depthOffset += int(pow(4, i));
 
         range /= 2.0f;
@@ -60,7 +87,7 @@ int GetTreeData(int screenX, int screenY)
         int x = int(screenX / range.x);
         int y = int(screenY / range.y);
 
-        int index = GetTreeIndex(x, y);
+        int index = GetTreeLinearIndex(x, y);
 
         int potentialIndex = tree[depthOffset + index];
         if(potentialIndex != -1)
@@ -68,4 +95,19 @@ int GetTreeData(int screenX, int screenY)
     }
 
     return 0;
+}
+
+void PutTreeDataScreen(uint x, uint y, int depth, int data)
+{
+    PutTreeDataScreen(int(x), int(y), depth, data);
+}
+
+void PutTreeDataScreen(ivec2 tile, int depth, int data)
+{
+    PutTreeDataScreen(int(tile.x), int(tile.y), depth, data);
+}
+
+void PutTreeDataScreen(uvec2 tile, int depth, int data)
+{
+    PutTreeDataScreen(int(tile.x), int(tile.y), depth, data);
 }

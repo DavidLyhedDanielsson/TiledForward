@@ -3,9 +3,7 @@
 #include "GL/gl3w.h"
 
 LightCull::LightCull()
-        : workGroupSize(64, 64)
-          , threadsPerGroup(16, 16)
-          , maxLightsPerTile(64)
+        : threadsPerGroup(16, 16)
 {}
 
 LightCull::~LightCull()
@@ -13,9 +11,6 @@ LightCull::~LightCull()
 
 void LightCull::InitShaderConstants(int screenWidth, int screenHeight)
 {
-    workGroupCount.x = (GLuint)std::ceil(screenWidth / (float)workGroupSize.x);
-    workGroupCount.y = (GLuint)std::ceil(screenHeight / (float)workGroupSize.y);
-
     this->screenWidth = screenWidth;
     this->screenHeight = screenHeight;
 }
@@ -39,7 +34,7 @@ bool LightCull::Init(ContentManager& contentManager)
     GLint maxSize;
     glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &maxSize);
 
-    if(maxLightsPerTile + 1 > maxSize / sizeof(int))
+    if(MAX_LIGHTS_PER_TILE + 1 > maxSize / sizeof(int))
     {
         Logger::LogLine(LOG_TYPE::FATAL, "GPU only supports a maximum of ", maxSize / sizeof(int), " ints in shared memory");
         return false;
@@ -50,15 +45,14 @@ bool LightCull::Init(ContentManager& contentManager)
 
     lightCullDrawBinds.AddUniform("viewMatrix", glm::mat4());
     lightCullDrawBinds.AddUniform("projectionInverseMatrix", glm::mat4());
-    lightCullDrawBinds.AddUniform("treeDepth", 2);
     lightCullDrawBinds.AddShaders(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "lightCull.comp");
     if(!lightCullDrawBinds.Init())
         return false;
 
     // Light count + light indices
-    lightCullDrawBinds["LightIndices"] = std::vector<int>(1 + workGroupCount.x * workGroupCount.y * maxLightsPerTile, 0);
+    lightCullDrawBinds["LightIndices"] = std::vector<int>(1 + GetMaxNumberOfTiles() * MAX_LIGHTS_PER_TILE, 0);
     // offset + count + padding2
-    lightCullDrawBinds["TileLights"] = std::vector<int>(workGroupCount.x * workGroupCount.y * 4, -1);
+    lightCullDrawBinds["TileLights"] = std::vector<int>(GetMaxNumberOfTiles() * 4, -1);
     lightCullDrawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
 
     ////////////////////////////////////////////////////////////
@@ -66,16 +60,9 @@ bool LightCull::Init(ContentManager& contentManager)
 
     lightReductionDrawBinds.AddUniform("viewMatrix", glm::mat4());
     lightReductionDrawBinds.AddUniform("projectionInverseMatrix", glm::mat4());
-    lightReductionDrawBinds.AddUniform("workGroupCountX", (int)workGroupCount.x);
 
-    lightReductionDrawBinds.AddUniform("oldWorkGroupCountX", (int)workGroupCount.x);
-    lightReductionDrawBinds.AddUniform("oldWorkGroupCountY", (int)workGroupCount.y);
-    lightReductionDrawBinds.AddUniform("newWorkGroupCountX", (int)workGroupCount.x * 2);
-    lightReductionDrawBinds.AddUniform("newWorkGroupCountY", (int)workGroupCount.y * 2);
-    lightReductionDrawBinds.AddUniform("oldTileSizeX", (int)workGroupSize.x);
-    lightReductionDrawBinds.AddUniform("oldTileSizeY", (int)workGroupSize.y);
-    lightReductionDrawBinds.AddUniform("newTileSizeX", (int)workGroupSize.x / 2);
-    lightReductionDrawBinds.AddUniform("newTileSizeY", (int)workGroupSize.y / 2);
+    lightReductionDrawBinds.AddUniform("oldDepth", 1);
+    lightReductionDrawBinds.AddUniform("newDepth", 2);
     lightReductionDrawBinds.AddShaders(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "lightReduction.comp");
     if(!lightReductionDrawBinds.Init())
         return false;
@@ -83,16 +70,9 @@ bool LightCull::Init(ContentManager& contentManager)
     // These are always the same
     lightReductionDrawBinds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
     lightReductionDrawBinds["Lights"] = lightCullDrawBinds["Lights"];
-
-    //These aren't
-    // Light count + light indices * 4 (for reduction)
-    lightReductionDrawBinds["NewLightIndices"] = std::vector<int>(1 + (workGroupCount.x * workGroupCount.y * 4) * maxLightsPerTile, 0);
-    // offset + count + padding2
-    lightReductionDrawBinds["NewTileLights"] = std::vector<int>((workGroupCount.x * workGroupCount.y * 4) * 4, -1);
-
-    lightReductionDrawBinds["OldLightIndices"] = lightCullDrawBinds["LightIndices"];
-    lightReductionDrawBinds["OldTileLights"] = lightCullDrawBinds["TileLights"];
-    lightReductionDrawBinds["OldPixelToTile"] = lightCullDrawBinds["PixelToTile"];
+    lightReductionDrawBinds["LightIndices"] = lightCullDrawBinds["LightIndices"];
+    lightReductionDrawBinds["TileLights"] = lightCullDrawBinds["TileLights"];
+    lightReductionDrawBinds["Tree"] = lightCullDrawBinds["Tree"];
 
     glGenQueries(1, &timeQuery);
 
@@ -141,45 +121,60 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
 
     ////////////////////////////////////////////////////////////
     // Light reduction
-    lightReductionDrawBinds.GetSSBO("NewLightIndices")->UpdateData(0, &zero, sizeof(int));
+    //lightReductionDrawBinds.GetSSBO("NewLightIndices")->UpdateData(0, &zero, sizeof(int));
     //lightReductionDrawBinds.GetSSBO("CurrentTileLights")->SetData(-1);
 
     lightReductionDrawBinds["viewMatrix"] = viewMatrix;
     lightReductionDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
+
+    int size = 0;
+    for(int i = 0; i < GetTreeMaxDepth(); ++i)
+        size += pow(2, i + 1) * pow(2, i + 1);
+
+    lightCullDrawBinds["Tree"] = std::vector<int>(size, -1);
 
     lightCullDrawBinds.Bind();
 }
 
 void LightCull::Draw()
 {
-    glDispatchCompute(4, 4, 1);
+    glDispatchCompute(2, 2, 1);
 
     lightCullDrawBinds.Unbind();
 
-    //GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    //glClientWaitSync(writeSync, 0, 1000000000);
-    //glDeleteSync(writeSync);
-
-    /*lightReductionDrawBinds.Bind();
-
-    glDispatchCompute(workGroupCount.x * 2, workGroupCount.y * 2, 1);
-
-    writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glClientWaitSync(writeSync, 0, 1000000000);
-    glDeleteSync(writeSync);*/
+    glDeleteSync(writeSync);
+
+    lightReductionDrawBinds.Bind();
+
+    const static int TREE_ITERATIONS = 2;
+    for(int depth = 2; depth <= TREE_ITERATIONS + 1; ++depth)
+    {
+        lightReductionDrawBinds["oldDepth"] = depth - 1;
+        lightReductionDrawBinds["newDepth"] = depth;
+
+        GLuint threadGroupCount = (GLuint)std::pow(2, depth);
+
+        glDispatchCompute(threadGroupCount, threadGroupCount, 1);
+
+        writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        glClientWaitSync(writeSync, 0, 1000000000);
+        glDeleteSync(writeSync);
+    }
 }
 
 void LightCull::PostDraw()
 {
-    //lightReductionDrawBinds.Unbind();
+    lightReductionDrawBinds.Unbind();
 }
 
 void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* characterSet)
 {
-    return;
+    //return;
 
     //auto tileLightsSSBO = lightCullDrawBinds.GetSSBO("TileLights");
-    auto tileLightsSSBO = lightReductionDrawBinds.GetSSBO("NewTileLights");
+    /*auto tileLightsSSBO = lightReductionDrawBinds.GetSSBO("NewTileLights");
     auto data = tileLightsSSBO->GetData();
 
     struct LightData
@@ -193,7 +188,7 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
     int xSpacing = workGroupSize.x;
     int ySpacing = workGroupSize.y;
 
-    float maxWidth = characterSet->GetWidthAtMaxWidth(std::to_string(maxLightsPerTile).c_str(), -1);
+    float maxWidth = characterSet->GetWidthAtMaxWidth(std::to_string(MAX_LIGHTS_PER_TILE).c_str(), -1);
     float maxHeight = characterSet->GetLineHeight();
 
     //auto pixelToTile = lightCullDrawBinds.GetSSBO("PixelToTile")->GetData();
@@ -213,10 +208,10 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
 
             int numberOfLights = intData[index].numberOfLights;
 
-            float color = numberOfLights / (float)maxLightsPerTile;
+            float color = numberOfLights / (float)MAX_LIGHTS_PER_TILE;
             spriteRenderer.Draw(Rect(x, y, 1.0f, 1.0f), tileColors[index]);
 
-            /*
+
             if(numberOfLights != 0)
             {
                 if((x + y) % 2 == 0)
@@ -234,50 +229,9 @@ void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* cha
                     spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSet->GetLineHeight()), glm::vec4(0.0f, 0.0f, 0.0f, 0.85f));
                     spriteRenderer.DrawString(characterSet, lightCountText, drawPosition, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
-            }*/
-        }
-    }
-
-    /*auto oldData = std::move(data);
-    auto oldIntData = intData;
-
-    tileLightsSSBO = lightReductionDrawBinds.GetSSBO("NewTileLights");
-    data = tileLightsSSBO->GetData();
-
-    intData = static_cast<LightData*>(data.get());
-
-    glm::uvec2 tempSize = glm::uvec2(workGroupSize.x / 2, workGroupSize.y / 2);
-    glm::uvec2 tempCount = glm::uvec2(workGroupCount.x * 2, workGroupCount.y * 2);
-
-    xSpacing = tempSize.x;
-    ySpacing = tempSize.y;
-
-    for(int y = 0; y < tempCount.y; ++y)
-    {
-        for(int x = 0; x < tempCount.x; ++x)
-        {
-            int numberOfLights = intData[(tempCount.y - y - 1) * tempCount.x + x].numberOfLights;
-            int oldNumberOfLights = oldIntData[(workGroupCount.y - y / 2 - 1) * workGroupCount.x + x / 2].numberOfLights;
-            if(numberOfLights != oldNumberOfLights)
-            {
-                std::string lightCountText = std::to_string(numberOfLights);
-
-                auto textWidth = characterSet->GetWidthAtIndex(lightCountText.c_str(), -1);
-
-                glm::vec2 drawPosition = glm::vec2(x * xSpacing + xSpacing / 2 - textWidth / 2, y * ySpacing + ySpacing / 2 - characterSet->GetLineHeight() / 2);
-                drawPosition = glm::clamp(drawPosition, glm::vec2(0.0f), glm::vec2(screenWidth - textWidth, screenHeight - characterSet->GetLineHeight()));
-
-                spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSet->GetLineHeight()), glm::vec4(1.0f, 0.0f, 0.0f, 0.85f));
-                spriteRenderer.DrawString(characterSet, lightCountText, drawPosition);
-
             }
         }
     }*/
-}
-
-glm::uvec2 LightCull::GetWorkGroupSize() const
-{
-    return workGroupSize;
 }
 
 glm::uvec2 LightCull::GetThreadsPerGroup() const
@@ -285,14 +239,33 @@ glm::uvec2 LightCull::GetThreadsPerGroup() const
     return threadsPerGroup;
 }
 
-glm::uvec2 LightCull::GetWorkGroupCount() const
-{
-    return workGroupCount;
-}
-
 int LightCull::GetMaxLightsPerTile() const
 {
-    return maxLightsPerTile;
+    return MAX_LIGHTS_PER_TILE;
+}
+
+int LightCull::GetMaxNumberOfTreeIndices() const
+{
+    int size = 0;
+    for(int i = 1; i <= TREE_MAX_DEPTH + 1; ++i)
+        size += (int)(std::pow(2, i) * std::pow(2, i));
+
+    return size;
+}
+
+int LightCull::GetMaxNumberOfTiles() const
+{
+    return (int)(std::pow(2, TREE_MAX_DEPTH) * std::pow(2, TREE_MAX_DEPTH));
+}
+
+int LightCull::GetTreeStartDepth() const
+{
+    return TREE_START_DEPTH;
+}
+
+int LightCull::GetTreeMaxDepth() const
+{
+    return TREE_MAX_DEPTH;
 }
 
 void LightCull::ResolutionChanged(int newWidth, int newHeight)
@@ -303,9 +276,9 @@ void LightCull::ResolutionChanged(int newWidth, int newHeight)
     lightCullDrawBinds["ScreenSize"] = glm::ivec2(newWidth, newHeight);
 
     std::vector<int> data((unsigned long)(newWidth * newHeight), -1);
-    lightCullDrawBinds["PixelToTile"] = data;
-    lightReductionDrawBinds["NewPixelToTile"] = data;
+    //lightCullDrawBinds["PixelToTile"] = data;
+    //lightReductionDrawBinds["NewPixelToTile"] = data;
 
-    workGroupCount.x = (GLuint)std::ceil(newWidth / (float)workGroupSize.x);
-    workGroupCount.y = (GLuint)std::ceil(newHeight / (float)workGroupSize.y);
+    //workGroupCount.x = (GLuint)std::ceil(newWidth / (float)workGroupSize.x);
+    //workGroupCount.y = (GLuint)std::ceil(newHeight / (float)workGroupSize.y);
 }

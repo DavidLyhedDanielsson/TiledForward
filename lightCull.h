@@ -22,22 +22,26 @@ public:
 
     void ResolutionChanged(int newWidth, int newHeight);
 
-    glm::uvec2 GetWorkGroupSize() const;
     glm::uvec2 GetThreadsPerGroup() const;
-    glm::uvec2 GetWorkGroupCount() const;
 
     int GetMaxLightsPerTile() const;
+    int GetMaxNumberOfTreeIndices() const;
+    int GetMaxNumberOfTiles() const;
+    int GetTreeStartDepth() const;
+    int GetTreeMaxDepth() const;
 
     GLDrawBinds lightCullDrawBinds;
     GLDrawBinds lightReductionDrawBinds;
 
 protected:
 private:
-    const int maxLightsPerTile;
+    const static int MAX_LIGHTS_PER_TILE = 512;
+    const static int TREE_START_DEPTH = 1;
+    const static int TREE_MAX_DEPTH = 3;
 
-    const glm::uvec2 workGroupSize; // In pixels
+    //const glm::uvec2 workGroupSize; // In pixels
     const glm::uvec2 threadsPerGroup;
-    glm::uvec2 workGroupCount;
+    //glm::uvec2 workGroupCount;
 
     int screenWidth;
     int screenHeight;

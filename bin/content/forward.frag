@@ -66,13 +66,11 @@ void main()
     vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
 
-    const int arrayIndex = GetTreeData(int(texel.x), int(texel.y));
-    //const int arrayIndex = pixelTileIndex[int(texel.y) * 1280 + int(texel.x)];
+    const int arrayIndex = GetTreeDataScreen(int(texel.x), int(texel.y));
 
-    //vec2 gridIndex = TexelToGrid(texel);
-    //const int arrayIndex = GetArrayIndex(gridIndex, 20);
+    /*vec3 textureColor = texture(tex, TexCoord).xyz;
 
-    //const int arrayIndex = startIndex[int(texel.y) * screenWidth + int(texel.x)];
+    outColor = vec4(vec4(textureColor, 1.0f) * colors[arrayIndex]);*/
 
     const int lightStart = tileLightData[arrayIndex].start;
     const int lightCount = tileLightData[arrayIndex].numberOfLights;

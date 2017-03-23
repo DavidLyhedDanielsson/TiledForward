@@ -39,7 +39,10 @@ protected:
 private:
     const static int MAX_LIGHTS_PER_TILE = 1;
     const static int TREE_START_DEPTH = 1;
-    const static int TREE_MAX_DEPTH = 6;
+    const static int TREE_MAX_DEPTH = 8;
+
+    static_assert(TREE_START_DEPTH >= 1, "TREE_START_DEPTH < 1");
+    static_assert(TREE_MAX_DEPTH >= TREE_START_DEPTH, "TREE_MAX_DEPTH < TREE_START_DEPTH");
 
     //const glm::uvec2 workGroupSize; // In pixels
     const glm::uvec2 threadsPerGroup;

@@ -76,14 +76,18 @@ int GetTreeDataScreen(int screenX, int screenY)
 {
     int lastIndex = -1;
 
-    int depthOffset = -1;
+    int depthOffset = 0;
 
     vec2 range = vec2(float(screenWidth), float(screenHeight));
 
-    for(int i = 0; i < TREE_MAX_DEPTH; ++i)
+    for(int i = 1; i < TREE_START_DEPTH; ++i)
     {
+        range /= 2.0f;
         depthOffset += int(pow(4, i));
+    }
 
+    for(int i = TREE_START_DEPTH; i <= TREE_MAX_DEPTH; ++i)
+    {
         range /= 2.0f;
 
         int x = int(screenX / range.x);
@@ -99,6 +103,8 @@ int GetTreeDataScreen(int screenX, int screenY)
                 return lastIndex;
         else
             lastIndex = potentialIndex;
+
+        depthOffset += int(pow(4, i));
     }
 
     return lastIndex;

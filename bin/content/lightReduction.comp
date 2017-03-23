@@ -93,8 +93,8 @@ void main()
                     for(int j = 0; j < 4; ++j)
                     {
                         float dist = dot(zeroPos, vec3(planes[j])) + planes[j].w;
-                        //if(dist < -light.strength)
-                        if(dist < 0.0f)
+                        if(dist < -light.strength)
+                        //if(dist < 0.0f)
                         {
                             inside = false;
                             break;

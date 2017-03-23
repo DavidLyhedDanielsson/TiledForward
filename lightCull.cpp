@@ -159,8 +159,7 @@ void LightCull::Draw()
 
     GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     auto val = glClientWaitSync(writeSync, 0, 1000000000);
-    if(val == GL_ALREADY_SIGNALED
-       || val == GL_TIMEOUT_EXPIRED
+    if(val == GL_TIMEOUT_EXPIRED
        || val == GL_WAIT_FAILED)
     {
         assert(false);
@@ -181,9 +180,8 @@ void LightCull::Draw()
         glDispatchCompute(threadGroupCount, threadGroupCount, 1);
 
         writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        auto val = glClientWaitSync(writeSync, 0, 1000000000);
-        if(val == GL_ALREADY_SIGNALED
-            || val == GL_TIMEOUT_EXPIRED
+        val = glClientWaitSync(writeSync, 0, 1000000000);
+        if(val == GL_TIMEOUT_EXPIRED
             || val == GL_WAIT_FAILED)
         {
             assert(false);

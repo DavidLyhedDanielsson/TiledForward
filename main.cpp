@@ -72,23 +72,23 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 600;
+    int lightCount = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 1.0f;
     float lightMinStrength = 5.0f;
     float lightMaxStrength = 5.0f;
-    float lightLifetime = 2500.0f;
+    float lightLifetime = 999999999999999.0f;
 
-    const float LIGHT_RANGE_X = 14.0f;
-    const float LIGHT_MAX_Y = 8.0f;
-    const float LIGHT_RANGE_Z = 6.0f;
+    //const float LIGHT_RANGE_X = 14.0f;
+    //const float LIGHT_MAX_Y = 8.0f;
+    //const float LIGHT_RANGE_Z = 6.0f;
 
-    //const float LIGHT_RANGE_X = 0.0f;
-    //const float LIGHT_MAX_Y = 0.0f;
-    //const float LIGHT_RANGE_Z = 0.0f;
+    const float LIGHT_RANGE_X = 0.0f;
+    const float LIGHT_MAX_Y = 0.0f;
+    const float LIGHT_RANGE_Z = 0.0f;
 
-    const static int DEFAULT_SCREEN_WIDTH = 1280;
-    const static int DEFAULT_SCREEN_HEIGHT = 720;
+    const static int DEFAULT_SCREEN_WIDTH = 1024;
+    const static int DEFAULT_SCREEN_HEIGHT = 1024;
 
     int screenWidth = DEFAULT_SCREEN_WIDTH;
     int screenHeight = DEFAULT_SCREEN_HEIGHT;
@@ -341,8 +341,10 @@ int Main::InitContent()
 #endif
 
     std::vector<glm::vec4> colors;
-    for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices(); ++i)
-            colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
+    for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices() * 4; ++i)
+//        colors.push_back({1.0f, 1.0f, 1.0f, 1.0f});
+    //colors.push_back({i % 256, (i / 255) % 256, 0.0f , 1.0f});
+    colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
 
     worldModel->drawBinds["ColorBuffer"] = colors;
 #endif
@@ -710,7 +712,7 @@ void Main::Update(Timer& deltaTimer)
             lightsBuffer.lights[i].padding = 0.0f;
 
             float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.01f;
+            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.5f;
             float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z ;
 
             lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
@@ -997,25 +999,15 @@ LightData Main::GetRandomLight()
     LightData light;
 
     float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-    float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.01f;
+    float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.5f;
     float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
-
-    /*if(lightsBuffer.lights.size() == 0)
-    {
-        xPos = 0.0f;
-        yPos = 1.0f;
-        zPos = 0.0f;
-    }
-    else
-    {
-        xPos = 7.5f;
-        yPos = 1.0f;
-        zPos = 0.0f;
-    }*/
 
     light.position = glm::vec3(xPos, yPos, zPos);
     light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
     light.padding = rand() / (float)RAND_MAX * lightLifetime;
+
+    if(lightsBuffer.lights.size() == 0)
+        light.color = { 1.0f, 1.0f, 1.0f };
 
     if(light.padding <= lightLifetime * 0.5f)
         light.strength = (light.padding / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;

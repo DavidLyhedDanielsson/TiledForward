@@ -41,11 +41,6 @@ layout(std430) buffer TileLights
     TileLightData tileLightData[];
 };
 
-layout(std430) buffer PixelToTile
-{
-    int pixelTileIndex[];
-};
-
 layout(std430) buffer ColorBuffer
 {
     vec4 colors[];
@@ -68,17 +63,17 @@ void main()
 
     const int arrayIndex = GetTreeDataScreen(int(texel.x), int(texel.y));
 
-    /*vec3 textureColor = texture(tex, TexCoord).xyz;
+    /*vec3 textureColor = texture(tex, TexCoord).xyz;*/
 
-    outColor = vec4(vec4(textureColor, 1.0f) * colors[arrayIndex]);*/
+    outColor = vec4(colors[arrayIndex]);
 
-    const int lightStart = tileLightData[arrayIndex].start;
+    /*const int lightStart = tileLightData[arrayIndex].start;
     const int lightCount = tileLightData[arrayIndex].numberOfLights;
 
     vec3 finalColor = vec3(0.0f);
     vec3 textureColor = texture(tex, TexCoord).xyz;
 
-    if(lightCount > MAX_LIGHTS_PER_TILE)
+    if(lightCount > MAX_LIGHTS_PER_TILE || lightCount == 0)
         finalColor = vec3(1.0f, 0.0f, 0.0f);
     else
     {
@@ -110,5 +105,5 @@ void main()
         finalColor *= textureColor;
     }
 
-    outColor = vec4(finalColor, materials[materialIndex].opacity);
+    outColor = vec4(finalColor, materials[materialIndex].opacity);*/
 }

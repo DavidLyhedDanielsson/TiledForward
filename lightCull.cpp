@@ -50,9 +50,9 @@ bool LightCull::Init(ContentManager& contentManager)
         return false;
 
     // Light count + light indices
-    lightCullDrawBinds["LightIndices"] = std::vector<int>(1 + GetMaxNumberOfTiles() * MAX_LIGHTS_PER_TILE, 0);
+    lightCullDrawBinds["LightIndices"] = std::vector<int>(1 + GetMaxNumberOfTreeIndices() * MAX_LIGHTS_PER_TILE * 4, 0);
     // offset + count + padding2
-    lightCullDrawBinds["TileLights"] = std::vector<int>(GetMaxNumberOfTiles() * 4, -1);
+    lightCullDrawBinds["TileLights"] = std::vector<int>(GetMaxNumberOfTreeIndices() * 4 * 4, -1);
     lightCullDrawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
 
     ////////////////////////////////////////////////////////////
@@ -115,6 +115,7 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
     ////////////////////////////////////////////////////////////
     // Light culling
     lightCullDrawBinds.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
+    lightCullDrawBinds.GetSSBO("TileLights")->SetData(-1);
 
     lightCullDrawBinds["viewMatrix"] = viewMatrix;
     lightCullDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
@@ -131,7 +132,19 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
     for(int i = 0; i < GetTreeMaxDepth(); ++i)
         size += pow(2, i + 1) * pow(2, i + 1);
 
-    lightCullDrawBinds["Tree"] = std::vector<int>(size, -1);
+    std::vector<int> tree(size, -1);
+    //tree.reserve(size);
+
+    /*// TODO: Remove
+    int offset = 0;
+    for(int i = 1; i <= GetTreeMaxDepth(); ++i)
+    {
+        for(int j = 0; j < pow(4, i); ++j)
+            tree.push_back(-(i + 1));
+        //tree.push_back(-(i + 1));
+    }*/
+
+    lightCullDrawBinds["Tree"] = tree;
 
     lightCullDrawBinds.Bind();
 }
@@ -145,11 +158,12 @@ void LightCull::Draw()
     GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glClientWaitSync(writeSync, 0, 1000000000);
     glDeleteSync(writeSync);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     lightReductionDrawBinds.Bind();
 
-    const static int TREE_ITERATIONS = 2;
-    for(int depth = 2; depth <= TREE_ITERATIONS + 1; ++depth)
+    //const static int TREE_ITERATIONS = 2;
+    for(int depth = TREE_START_DEPTH + 1; depth <= TREE_MAX_DEPTH; ++depth)
     {
         lightReductionDrawBinds["oldDepth"] = depth - 1;
         lightReductionDrawBinds["newDepth"] = depth;
@@ -161,7 +175,10 @@ void LightCull::Draw()
         writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         glClientWaitSync(writeSync, 0, 1000000000);
         glDeleteSync(writeSync);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
     }
+
 }
 
 void LightCull::PostDraw()

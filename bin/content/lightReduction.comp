@@ -66,7 +66,7 @@ void main()
         {
             int lightIndex = lightIndices[i];
 
-            LightData light = lights[lightIndex];
+            /*LightData light = lights[lightIndex];
 
             vec3 viewPositions[5] = CreateFarPoints(uvec2(newTileSizeX, newTileSizeY));
             vec4 planes[4] = CreatePlanes(viewPositions);
@@ -85,7 +85,8 @@ void main()
                     for(int j = 0; j < 4; ++j)
                     {
                         float dist = dot(zeroPos, vec3(planes[j])) + planes[j].w;
-                        if(dist < -light.strength)
+                        //if(dist < -light.strength)
+                        if(dist < 0.0f)
                         {
                             inside = false;
                             break;
@@ -96,7 +97,7 @@ void main()
                 if(inside)
                     AddLightIfPossible(lightIndex);
             }
-            else
+            else*/
                 AddLightIfPossible(lightIndex);
         }
 
@@ -118,9 +119,11 @@ void main()
             TileLightData data;
             data.start = startIndex;
             data.numberOfLights = lightCount;
-            data.padding = ivec2(gl_WorkGroupID) * ivec2(newTileSizeX, newTileSizeY);
+            data.padding = ivec2(gl_WorkGroupID);
 
             tileLightData[arrayIndex] = data;
         }
+                barrier();
+
     }
 }

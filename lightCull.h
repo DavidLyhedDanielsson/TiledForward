@@ -35,9 +35,9 @@ public:
 
 protected:
 private:
-    const static int MAX_LIGHTS_PER_TILE = 512;
+    const static int MAX_LIGHTS_PER_TILE = 1;
     const static int TREE_START_DEPTH = 1;
-    const static int TREE_MAX_DEPTH = 3;
+    const static int TREE_MAX_DEPTH = 7;
 
     //const glm::uvec2 workGroupSize; // In pixels
     const glm::uvec2 threadsPerGroup;

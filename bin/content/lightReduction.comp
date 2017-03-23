@@ -129,7 +129,7 @@ void main()
             data.numberOfLights = lightCount;
             data.padding = ivec2(gl_WorkGroupID);
 
-            tileLightData[arrayIndex] = data;
+            tileLightData[arrayIndex] = data; <------ issue here
         }
     }
     /*else if(currentLightCount == -987654321)

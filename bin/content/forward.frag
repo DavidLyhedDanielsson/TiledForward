@@ -65,7 +65,10 @@ void main()
 
     /*vec3 textureColor = texture(tex, TexCoord).xyz;*/
 
-    outColor = vec4(colors[arrayIndex]);
+    if(arrayIndex >= 0)
+        outColor = vec4(colors[arrayIndex]);
+    else
+        outColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     /*const int lightStart = tileLightData[arrayIndex].start;
     const int lightCount = tileLightData[arrayIndex].numberOfLights;

@@ -18,7 +18,9 @@ public:
     void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
     GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
 
-    void DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* characterSet);
+    void DrawLightCount(SpriteRenderer& spriteRenderer
+                            , CharacterSet* characterSetSmall
+                            , CharacterSet* characterSetBig);
 
     void ResolutionChanged(int newWidth, int newHeight);
 
@@ -37,7 +39,7 @@ protected:
 private:
     const static int MAX_LIGHTS_PER_TILE = 1;
     const static int TREE_START_DEPTH = 1;
-    const static int TREE_MAX_DEPTH = 7;
+    const static int TREE_MAX_DEPTH = 6;
 
     //const glm::uvec2 workGroupSize; // In pixels
     const glm::uvec2 threadsPerGroup;
@@ -51,6 +53,8 @@ private:
     void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
     void Draw();
     void PostDraw();
+    int GetTreeDataScreen(int screenX, int screenY);
+    int GetTreeDataScreen(int screenX, int screenY, int* tree);
 };
 
 #endif // LIGHTCULL_H__

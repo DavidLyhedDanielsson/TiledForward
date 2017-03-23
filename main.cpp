@@ -342,9 +342,9 @@ int Main::InitContent()
 
     std::vector<glm::vec4> colors;
     for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices() * 4; ++i)
+        colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
+        //colors.push_back({(i % 256) / 255.0f, ((i / 255) % 256) / 255.0f, 0.0f , 1.0f});
 //        colors.push_back({1.0f, 1.0f, 1.0f, 1.0f});
-    //colors.push_back({i % 256, (i / 255) % 256, 0.0f , 1.0f});
-    colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
 
     worldModel->drawBinds["ColorBuffer"] = colors;
 #endif
@@ -823,7 +823,7 @@ void Main::Render(Timer& deltaTimer)
 
 #ifdef DO_LIGHT_CULL
     if(drawLightCount)
-        lightCull.DrawLightCount(spriteRenderer, characterSet8);
+        lightCull.DrawLightCount(spriteRenderer, characterSet8, nullptr);
 #endif
 
     guiManager.Draw(&spriteRenderer);

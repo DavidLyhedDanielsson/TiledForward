@@ -151,14 +151,22 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
 
 void LightCull::Draw()
 {
-    glDispatchCompute(2, 2, 1);
+    GLuint threadGroupCount = (GLuint)std::pow(2, TREE_START_DEPTH);
+
+    glDispatchCompute(threadGroupCount, threadGroupCount, 1);
 
     lightCullDrawBinds.Unbind();
 
     GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    glClientWaitSync(writeSync, 0, 1000000000);
+    auto val = glClientWaitSync(writeSync, 0, 1000000000);
+    if(val == GL_ALREADY_SIGNALED
+       || val == GL_TIMEOUT_EXPIRED
+       || val == GL_WAIT_FAILED)
+    {
+        assert(false);
+    }
     glDeleteSync(writeSync);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
     lightReductionDrawBinds.Bind();
 
@@ -168,14 +176,20 @@ void LightCull::Draw()
         lightReductionDrawBinds["oldDepth"] = depth - 1;
         lightReductionDrawBinds["newDepth"] = depth;
 
-        GLuint threadGroupCount = (GLuint)std::pow(2, depth);
+        threadGroupCount = (GLuint)std::pow(2, depth);
 
         glDispatchCompute(threadGroupCount, threadGroupCount, 1);
 
         writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        glClientWaitSync(writeSync, 0, 1000000000);
+        auto val = glClientWaitSync(writeSync, 0, 1000000000);
+        if(val == GL_ALREADY_SIGNALED
+            || val == GL_TIMEOUT_EXPIRED
+            || val == GL_WAIT_FAILED)
+        {
+            assert(false);
+        }
         glDeleteSync(writeSync);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
     }
 
@@ -186,8 +200,86 @@ void LightCull::PostDraw()
     lightReductionDrawBinds.Unbind();
 }
 
-void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer, CharacterSet* characterSet)
+int GetTreeLinearIndex(int x, int y)
 {
+    int index = 0;
+
+    for(int i = 0; i < 32; ++i)
+    {
+        int extractedBit;
+
+        if(i % 2 == 0)
+            extractedBit = ((x >> (i / 2)) & 1);
+        else
+            extractedBit = (y >> (i / 2)) & 1;
+
+        index |= (extractedBit << i);
+    }
+
+    return index;
+}
+
+int LightCull::GetTreeDataScreen(int screenX, int screenY, int* tree)
+{
+    int lastIndex = -1;
+
+    int depthOffset = -1;
+
+    glm::vec2 range = glm::vec2(float(screenWidth), float(screenHeight));
+
+    for(int i = 0; i < TREE_MAX_DEPTH; ++i)
+    {
+        depthOffset += int(pow(4, i));
+
+        range /= 2.0f;
+
+        int x = int(screenX / range.x);
+        int y = int(screenY / range.y);
+
+        int index = GetTreeLinearIndex(x, y);
+
+        int potentialIndex = tree[depthOffset + index];
+        if(potentialIndex < 0)
+            return i;
+        else
+            lastIndex = i;
+    }
+
+    return lastIndex;
+}
+
+void LightCull::DrawLightCount(SpriteRenderer& spriteRenderer
+                               , CharacterSet* characterSetSmall
+                               , CharacterSet* characterSetBig)
+{
+    auto tree = lightCullDrawBinds.GetSSBO("Tree")->GetData();
+
+    int startOffset = -1;
+    for(int i = 0; i < TREE_MAX_DEPTH; ++i)
+        startOffset += std::pow(2, i) * std::pow(2, i);
+
+    int threadCount = (int)(std::pow(2, TREE_MAX_DEPTH));
+    int spacing = screenWidth / threadCount;
+
+    for(int y = 0; y < threadCount; ++y)
+    {
+        for(int x = 0; x < threadCount; ++x)
+        {
+            int data = GetTreeDataScreen(x * spacing, (threadCount - y - 1) * spacing, (int*)tree.get());
+
+            //spriteRenderer.DrawString(characterSet, std::to_string(((int*)tree.get())[startOffset + index]), glm::vec2(spacing * x, spacing * y));
+
+            std::string text = std::to_string(data);
+            auto textWidth = characterSetSmall->GetWidthAtIndex(text.c_str(), -1);
+
+            glm::vec2 drawPosition = glm::vec2(x * spacing + spacing / 2 - textWidth / 2, y * spacing + spacing / 2 - characterSetSmall->GetLineHeight() / 2);
+            drawPosition = glm::clamp(drawPosition, glm::vec2(0.0f), glm::vec2(screenWidth - textWidth, screenHeight - characterSetSmall->GetLineHeight()));
+
+            spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSetSmall->GetLineHeight()), glm::vec4(0.0f, 0.0f, 0.0f, 0.85f));
+            spriteRenderer.DrawString(characterSetSmall, text, drawPosition, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        }
+    }
+
     //return;
 
     //auto tileLightsSSBO = lightCullDrawBinds.GetSSBO("TileLights");

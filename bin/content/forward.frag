@@ -65,24 +65,25 @@ void main()
 
     /*vec3 textureColor = texture(tex, TexCoord).xyz;*/
 
-    if(arrayIndex >= 0)
+    /*if(arrayIndex >= 0)
         outColor = vec4(colors[arrayIndex]);
     else
-        outColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        outColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);*/
 
-    /*const int lightStart = tileLightData[arrayIndex].start;
+    const int lightStart = tileLightData[arrayIndex].start;
     const int lightCount = tileLightData[arrayIndex].numberOfLights;
 
     vec3 finalColor = vec3(0.0f);
     vec3 textureColor = texture(tex, TexCoord).xyz;
 
-    if(lightCount > MAX_LIGHTS_PER_TILE || lightCount == 0)
+    if(lightCount > MAX_LIGHTS_PER_TILE)
         finalColor = vec3(1.0f, 0.0f, 0.0f);
     else
     {
         for(int i = lightStart; i < lightStart + lightCount; ++i)
         {
-            LightData light = lights[lightIndices[i]];
+            LightData light = lights[0];
+            //LightData light = lights[lightIndices[i]];
 
             vec3 lightDirection = WorldPosition - light.position;
             float lightDistance = length(lightDirection);
@@ -108,5 +109,5 @@ void main()
         finalColor *= textureColor;
     }
 
-    outColor = vec4(finalColor, materials[materialIndex].opacity);*/
+    outColor = vec4(finalColor, materials[materialIndex].opacity);
 }

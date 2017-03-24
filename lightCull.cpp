@@ -50,9 +50,8 @@ bool LightCull::Init(ContentManager& contentManager)
         return false;
 
     // Light count + light indices
-    lightCullDrawBinds["LightIndices"] = std::vector<int>(1 + GetMaxNumberOfTreeIndices() * MAX_LIGHTS_PER_TILE * 4, 0);
+    lightCullDrawBinds["LightIndices"] = std::vector<int>(1 + GetMaxNumberOfTreeIndices() * MAX_LIGHTS_PER_TILE, 0);
     // offset + count + padding2
-    lightCullDrawBinds["TileLights"] = std::vector<int>(GetMaxNumberOfTreeIndices() * 4 * 4, -1);
     lightCullDrawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
 
     ////////////////////////////////////////////////////////////
@@ -71,8 +70,17 @@ bool LightCull::Init(ContentManager& contentManager)
     lightReductionDrawBinds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
     lightReductionDrawBinds["Lights"] = lightCullDrawBinds["Lights"];
     lightReductionDrawBinds["LightIndices"] = lightCullDrawBinds["LightIndices"];
-    lightReductionDrawBinds["TileLights"] = lightCullDrawBinds["TileLights"];
+    //lightReductionDrawBinds["TileLights"] = lightCullDrawBinds["TileLights"];
     lightReductionDrawBinds["Tree"] = lightCullDrawBinds["Tree"];
+
+    for(int i = 0; i < 2; ++i)
+    {
+        tileLightData[i].reset(new GLShaderStorageBuffer("", -1, -1, -1));
+        tileLightData[i]->Init(false);
+        tileLightData[i]->SetData(nullptr, GetMaxNumberOfTiles() * sizeof(int) * 4);
+    }
+    lightCullDrawBinds.GetSSBO("TileLights")->Replace(tileLightData[0].get());
+    //lightReductionDrawBinds.GetSSBO("TileLights")->Replace(tileLightData[1].get());
 
     glGenQueries(1, &timeQuery);
 
@@ -112,10 +120,13 @@ GLuint64 LightCull::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixIn
 void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
 {
     int zero = 0;
+    tileLightData[0]->SetData(-1);
+    tileLightData[1]->SetData(-1);
+
     ////////////////////////////////////////////////////////////
     // Light culling
+    //lightCullDrawBinds.GetSSBO("TileLights")->SetData(-1);
     lightCullDrawBinds.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
-    lightCullDrawBinds.GetSSBO("TileLights")->SetData(-1);
 
     lightCullDrawBinds["viewMatrix"] = viewMatrix;
     lightCullDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
@@ -131,20 +142,7 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
     int size = 0;
     for(int i = 0; i < GetTreeMaxDepth(); ++i)
         size += pow(2, i + 1) * pow(2, i + 1);
-
-    std::vector<int> tree(size, -1);
-    //tree.reserve(size);
-
-    /*// TODO: Remove
-    int offset = 0;
-    for(int i = 1; i <= GetTreeMaxDepth(); ++i)
-    {
-        for(int j = 0; j < pow(4, i); ++j)
-            tree.push_back(-(i + 1));
-        //tree.push_back(-(i + 1));
-    }*/
-
-    lightCullDrawBinds["Tree"] = tree;
+    lightCullDrawBinds["Tree"] = std::vector<int>(size, -1);
 
     lightCullDrawBinds.Bind();
 }
@@ -152,6 +150,8 @@ void LightCull::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
 void LightCull::Draw()
 {
     GLuint threadGroupCount = (GLuint)std::pow(2, TREE_START_DEPTH);
+
+    lightCullDrawBinds.GetSSBO("TileLights")->Replace(tileLightData[0].get());
 
     glDispatchCompute(threadGroupCount, threadGroupCount, 1);
 
@@ -170,10 +170,20 @@ void LightCull::Draw()
     lightReductionDrawBinds.Bind();
 
     //const static int TREE_ITERATIONS = 2;
+    activeTileLightsData = 0;
     for(int depth = TREE_START_DEPTH + 1; depth <= TREE_MAX_DEPTH; ++depth)
     {
         lightReductionDrawBinds["oldDepth"] = depth - 1;
         lightReductionDrawBinds["newDepth"] = depth;
+
+        int oldIndex = activeTileLightsData % 2;
+        int newIndex = (activeTileLightsData + 1) % 2;
+
+        lightReductionDrawBinds.GetSSBO("OldTileLights")->Replace(tileLightData[oldIndex].get());
+        lightReductionDrawBinds.GetSSBO("OldTileLights")->Bind();
+        lightReductionDrawBinds.GetSSBO("NewTileLights")->Replace(tileLightData[newIndex].get());
+        lightReductionDrawBinds.GetSSBO("NewTileLights")->Bind();
+        ++activeTileLightsData;
 
         threadGroupCount = (GLuint)std::pow(2, depth);
 
@@ -188,9 +198,9 @@ void LightCull::Draw()
         }
         glDeleteSync(writeSync);
         glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
     }
 
+    activeTileLightsData %= 2;
 }
 
 void LightCull::PostDraw()
@@ -383,9 +393,10 @@ void LightCull::ResolutionChanged(int newWidth, int newHeight)
     lightCullDrawBinds["ScreenSize"] = glm::ivec2(newWidth, newHeight);
 
     std::vector<int> data((unsigned long)(newWidth * newHeight), -1);
-    //lightCullDrawBinds["PixelToTile"] = data;
-    //lightReductionDrawBinds["NewPixelToTile"] = data;
+    //lightCullDrawBinds["PixelToTile"] = data;gh
+}
 
-    //workGroupCount.x = (GLuint)std::ceil(newWidth / (float)workGroupSize.x);
-    //workGroupCount.y = (GLuint)std::ceil(newHeight / (float)workGroupSize.y);
+GLShaderStorageBuffer* LightCull::GetActiveTileLightsData()
+{
+    return tileLightData[activeTileLightsData].get();
 }

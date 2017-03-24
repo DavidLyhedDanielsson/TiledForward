@@ -14,9 +14,14 @@ layout(std430) buffer LightIndices
     int lightIndices[];
 };
 
-layout(std430) buffer TileLights
+layout(std430) buffer OldTileLights
 {
-    TileLightData tileLightData[];
+    TileLightData oldTileLightData[];
+};
+
+layout(std430) buffer NewTileLights
+{
+    TileLightData newTileLightData[];
 };
 
 shared int lightCount;
@@ -52,8 +57,8 @@ void main()
 
         if(arrayIndex >= 0)
         {
-            currentStartIndex = tileLightData[arrayIndex].start;
-            currentLightCount = tileLightData[arrayIndex].numberOfLights;
+            currentStartIndex = oldTileLightData[arrayIndex].start;
+            currentLightCount = oldTileLightData[arrayIndex].numberOfLights;
         }
         else
         {
@@ -71,8 +76,10 @@ void main()
 
         // Divide tile, check collision for all lights inside this tile again
         for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
+        //for(int i = int(gl_LocalInvocationIndex); i < int(lights.length()); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         {
-            int lightIndex = lightIndices[i];
+            //int lightIndex = lightIndices[i];
+            int lightIndex = 0;
 
             LightData light = lights[lightIndex];
 
@@ -120,7 +127,7 @@ void main()
 
             int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
             for(int i = 0; i < cappedLightCount; ++i)
-                lightIndices[startIndex + i] = localLightIndices[i];
+                lightIndices[startIndex + i] = localLightIndices[i]; // Race condition?
             for(int i = cappedLightCount; i < MAX_LIGHTS_PER_TILE; ++i)
                 lightIndices[startIndex + i] = -1;
 
@@ -129,7 +136,7 @@ void main()
             data.numberOfLights = lightCount;
             data.padding = ivec2(gl_WorkGroupID);
 
-            tileLightData[arrayIndex] = data; <------ issue here
+            newTileLightData[arrayIndex] = data;
         }
     }
     /*else if(currentLightCount == -987654321)

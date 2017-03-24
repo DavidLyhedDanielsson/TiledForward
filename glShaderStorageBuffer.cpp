@@ -1,6 +1,7 @@
 #include "glShaderStorageBuffer.h"
 
 #include <cstring>
+#include <assert.h>
 
 GLShaderStorageBuffer::GLShaderStorageBuffer(const std::string& name, GLuint shaderProgram, GLuint blockIndex, GLuint bindingPoint)
         : name(name)
@@ -8,6 +9,7 @@ GLShaderStorageBuffer::GLShaderStorageBuffer(const std::string& name, GLuint sha
           , shaderProgram(shaderProgram)
           , blockIndex(blockIndex)
           , bindingPoint(bindingPoint)
+          , deallocateOnShare(true)
 { }
 
 GLShaderStorageBuffer::~GLShaderStorageBuffer()
@@ -23,11 +25,12 @@ void GLShaderStorageBuffer::Unbind()
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, 0);
 }
 
-bool GLShaderStorageBuffer::Init()
+bool GLShaderStorageBuffer::Init(bool bind)
 {
     glGenBuffers(1, &bufferIndex);
 
-    glShaderStorageBlockBinding(shaderProgram, blockIndex, bindingPoint);
+    if(bind)
+        glShaderStorageBlockBinding(shaderProgram, blockIndex, bindingPoint);
 
     return true;
 }
@@ -122,4 +125,21 @@ std::unique_ptr<void, UniquePtrFree> GLShaderStorageBuffer::GetData() const
 int GLShaderStorageBuffer::GetSize() const
 {
     return size;
+}
+
+void GLShaderStorageBuffer::Replace(GLShaderStorageBuffer* other)
+{
+    assert(this->shaderProgram != -1
+           && blockIndex != -1
+           && bindingPoint != -1);
+
+    if(deallocateOnShare)
+        glDeleteBuffers(1, &bufferIndex);
+
+    deallocateOnShare = false;
+
+    this->bufferIndex = other->bufferIndex;
+    this->size = other->size;
+
+    glShaderStorageBlockBinding(shaderProgram, blockIndex, bindingPoint);
 }

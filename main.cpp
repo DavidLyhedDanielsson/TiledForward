@@ -75,9 +75,9 @@ private:
     int lightCount = 1;
 
     const float LIGHT_DEFAULT_AMBIENT = 1.0f;
-    float lightMinStrength = 5.0f;
-    float lightMaxStrength = 5.0f;
-    float lightLifetime = 999999999999999.0f;
+    float lightMinStrength = 0.0f;
+    float lightMaxStrength = 3.0f;
+    float lightLifetime = 2500.0f;
 
     //const float LIGHT_RANGE_X = 14.0f;
     //const float LIGHT_MAX_Y = 8.0f;
@@ -331,7 +331,7 @@ int Main::InitContent()
 #ifdef DO_LIGHT_CULL
     worldModel->drawBinds["Lights"] = lightCull.lightCullDrawBinds["Lights"];
     worldModel->drawBinds["LightIndices"] = lightCull.lightCullDrawBinds["LightIndices"];
-    worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
+    //worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
     worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
     worldModel->drawBinds["ScreenSize"] = lightCull.lightCullDrawBinds["ScreenSize"];
     worldModel->drawBinds["Tree"] = lightCull.lightCullDrawBinds["Tree"];
@@ -738,6 +738,8 @@ void Main::Render(Timer& deltaTimer)
     worldModel->drawBinds["Lights"] = &lightsBuffer;
 #endif
 
+    //lightCull.lightCullDrawBinds["Lights"] = &lightsBuffer;
+
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
     // Needed to make hot reloading work
@@ -766,6 +768,8 @@ void Main::Render(Timer& deltaTimer)
     auto lightCullTime = lightCull.TimedDraw(viewMatrix, projectionMatrixInverse);
 #endif
 #ifdef LOAD_WORLD_MODEL
+    worldModel->drawBinds.GetSSBO("TileLights")->Replace(lightCull.GetActiveTileLightsData());
+
     // Forward pass (opaque)
     glBeginQuery(GL_TIME_ELAPSED, queries[0]);
     worldModel->DrawOpaque();

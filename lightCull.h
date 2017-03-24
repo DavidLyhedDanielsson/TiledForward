@@ -35,11 +35,13 @@ public:
     GLDrawBinds lightCullDrawBinds;
     GLDrawBinds lightReductionDrawBinds;
 
+    GLShaderStorageBuffer* GetActiveTileLightsData();
+
 protected:
 private:
     const static int MAX_LIGHTS_PER_TILE = 1;
     const static int TREE_START_DEPTH = 1;
-    const static int TREE_MAX_DEPTH = 8;
+    const static int TREE_MAX_DEPTH = 6;
 
     static_assert(TREE_START_DEPTH >= 1, "TREE_START_DEPTH < 1");
     static_assert(TREE_MAX_DEPTH >= TREE_START_DEPTH, "TREE_MAX_DEPTH < TREE_START_DEPTH");
@@ -53,11 +55,13 @@ private:
 
     GLuint timeQuery;
 
+    std::unique_ptr<GLShaderStorageBuffer> tileLightData[2];
+
     void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
     void Draw();
     void PostDraw();
-    int GetTreeDataScreen(int screenX, int screenY);
     int GetTreeDataScreen(int screenX, int screenY, int* tree);
+    int activeTileLightsData;
 };
 
 #endif // LIGHTCULL_H__

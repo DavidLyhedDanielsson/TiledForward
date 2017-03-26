@@ -444,7 +444,10 @@ bool GLDrawBinds::CheckUniforms(const std::vector<GLDrawBinds::Attrib>& activeUn
         }
 
         if(uniformBinds.count(actualName) == 0)
-            LogWithName(LOG_TYPE::DEBUG, "Uniform \"" + actualName + "\" is never used");
+        {
+            // TODO: Uncomment
+            //LogWithName(LOG_TYPE::DEBUG, "Uniform \"" + actualName + "\" is never used");
+        }
         else
         {
             if(!uniformBinds.at(actualName)->VerifyType((GLEnums::UNIFORM_TYPE)uniform.type))
@@ -871,7 +874,20 @@ GLShaderStorageBuffer* GLDrawBinds::GetSSBO(const std::string& name)
     return nullptr;
 }
 
+GLUniformBuffer* GLDrawBinds::GetUBO(const std::string& name)
+{
+    if(uniformBufferBinds.count(name) != 0)
+        return uniformBufferBinds.at(name).get();
+
+    return nullptr;
+}
+
 void GLDrawBinds::Share(GLShaderStorageBuffer* lhs, GLShaderStorageBuffer* rhs)
+{
+    lhs->Share(rhs);
+}
+
+void GLDrawBinds::Share(GLUniformBuffer* lhs, GLUniformBuffer* rhs)
 {
     lhs->Share(rhs);
 }
@@ -880,7 +896,7 @@ void GLVariable::operator=(const GLVariable& rhs)
 {
     if(uniformBuffer != nullptr && rhs.uniformBuffer != nullptr)
     {
-        Logger::LogLine(LOG_TYPE::WARNING, "Not supported");
+        parent->Share(uniformBuffer, rhs.uniformBuffer);
     }
     else if(storageBuffer != nullptr && rhs.storageBuffer != nullptr)
     {

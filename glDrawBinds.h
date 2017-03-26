@@ -178,6 +178,7 @@ public:
     GLVariable operator[](const std::string& name);
 
     GLShaderStorageBuffer* GetSSBO(const std::string& name);
+    GLUniformBuffer* GetUBO(const std::string& name);
 protected:
 private:
     // Also used for uniforms
@@ -284,10 +285,11 @@ private:
         buffer->SetData(data);
     }
 
-    void Share(GLShaderStorageBuffer* lhs, GLShaderStorageBuffer* rhs);
-
     void GetActiveStorageBlocks();
     void GetActiveUniformBlocks();
+    void Share(GLUniformBuffer* lhs, GLUniformBuffer* rhs);
+    void Share(GLShaderStorageBuffer* lhs, GLShaderStorageBuffer* rhs);
+
 };
 
 template<typename T>

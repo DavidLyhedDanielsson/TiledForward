@@ -135,6 +135,35 @@ void GLUniformBuffer::SetData(const void* data, size_t dataSize)
     modifiedSinceCopy = true;
 }
 
+void GLUniformBuffer::Share(GLUniformBuffer* other)
+{
+    if(bufferIndex == other->bufferIndex)
+        return;
+
+    glDeleteBuffers(1, &bufferIndex);
+
+    //this->bindingPoint = other->bindingPoint;
+    this->bufferIndex = other->bufferIndex;
+    this->size = other->size;
+
+    glUniformBlockBinding(shaderProgram, blockIndex, bindingPoint);
+}
+
+void GLUniformBuffer::Update()
+{
+    if(modifiedSinceCopy)
+    {
+        glBindBuffer(GL_UNIFORM_BUFFER, bufferIndex);
+        GLvoid* mappedMemory = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY | GL_MAP_INVALIDATE_BUFFER_BIT);
+        memcpy(mappedMemory, data.get(), size);
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+        modifiedSinceCopy = false;
+    }
+}
+
 void GLUniformBufferVariable::CopyDataToParent(void* data)
 {
     std::memcpy((char*)parent.data.get() + offset, data, GetSize());

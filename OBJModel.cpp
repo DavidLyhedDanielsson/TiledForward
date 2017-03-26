@@ -223,6 +223,10 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     drawBinds.AddUniform("viewProjectionMatrix", glm::mat4x4());
     drawBinds.AddUniform("worldMatrix", worldMatrix);
     drawBinds.AddUniform("materialIndex", 0);
+    //drawBinds.AddUniform("lightIndicesDataReadOffset", 0);
+    //drawBinds.AddUniform("lightIndicesDataWriteOffset", 0);
+    //drawBinds.AddUniform("tileLightDataReadOffset", 0);
+    //drawBinds.AddUniform("tileLightDataWriteOffset", 0);
 
     if(!drawBinds.Init())
         return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;

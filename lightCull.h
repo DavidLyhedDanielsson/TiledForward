@@ -5,6 +5,7 @@
 
 #include "characterSet.h"
 #include "spriteRenderer.h"
+#include "console/console.h"
 
 class LightCull
 {
@@ -13,7 +14,7 @@ public:
     ~LightCull();
 
     void InitShaderConstants(int screenWidth, int screenHeight);
-    bool Init(ContentManager& contentManager);
+    bool Init(ContentManager& contentManager, Console& console);
 
     void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
     GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
@@ -35,33 +36,25 @@ public:
     GLDrawBinds lightCullDrawBinds;
     GLDrawBinds lightReductionDrawBinds;
 
-    GLShaderStorageBuffer* GetActiveTileLightsData();
-
 protected:
 private:
-    const static int MAX_LIGHTS_PER_TILE = 1;
-    const static int TREE_START_DEPTH = 1;
-    const static int TREE_MAX_DEPTH = 6;
+    const static int MAX_LIGHTS_PER_TILE = 512;
+    const static int TREE_MAX_DEPTH = 8;
 
-    static_assert(TREE_START_DEPTH >= 1, "TREE_START_DEPTH < 1");
-    static_assert(TREE_MAX_DEPTH >= TREE_START_DEPTH, "TREE_MAX_DEPTH < TREE_START_DEPTH");
-
-    //const glm::uvec2 workGroupSize; // In pixels
     const glm::uvec2 threadsPerGroup;
-    //glm::uvec2 workGroupCount;
+
+    int treeStartDepth = 1;
+    int treeMaxDepth = 8;
 
     int screenWidth;
     int screenHeight;
 
     GLuint timeQuery;
 
-    std::unique_ptr<GLShaderStorageBuffer> tileLightData[2];
-
     void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
     void Draw();
     void PostDraw();
     int GetTreeDataScreen(int screenX, int screenY, int* tree);
-    int activeTileLightsData;
 };
 
 #endif // LIGHTCULL_H__

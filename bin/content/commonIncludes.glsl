@@ -22,36 +22,3 @@ layout(std430) buffer Lights
     float ambientStrength;
     LightData lights[];
 };
-
-////////////////////////////////////////////////////////////
-// tileLightData keeps track of which indices in lightIndices affect a given tile
-
-// Memory is "allocated" by increasing (atomically) occupiedIndices
-// Accessed once to increase occupiedIndices and then again to put lights into lightIndices
-/*layout(std430) buffer LightIndices
-{
-    int occupiedIndices; // Needs to be initialized to 0!
-    int lightIndices[];
-};*/
-
-struct TileLightData
-{
-    int start;
-    int numberOfLights;
-    ivec2 padding;
-};
-
-// Accessed once per tile
-/*layout(std430) buffer TileLights
-{
-    TileLightData tileLightData[];
-};*/
-
-////////////////////////////////////////////////////////////
-// Maps from a given pixel to an index in tileLightData
-
-// Accessed once per pixel per drawn fragment
-/*layout(std430) buffer PixelToTile
-{
-    int pixelTileIndex[];
-};*/

@@ -3,6 +3,12 @@ layout(std430) buffer Tree
     int tree[];
 };
 
+layout(std140) uniform TreeDepthData
+{
+    int treeStartDepth;
+    int treeMaxDepth;
+};
+
 int GetTreeLinearIndex(int x, int y)
 {
     int index = 0;
@@ -64,7 +70,7 @@ void PutTreeDataTile(int x, int y, int depth, int data)
 void PutTreeDataTile(int x, int y, int data)
 {
     int depthOffset = -1;
-    for(int i = 0; i < TREE_MAX_DEPTH; ++i)
+    for(int i = 0; i < treeMaxDepth; ++i)
         depthOffset += int(pow(4, i));
 
     int index = GetTreeLinearIndex(x, y);
@@ -80,13 +86,13 @@ int GetTreeDataScreen(int screenX, int screenY)
 
     vec2 range = vec2(float(screenWidth), float(screenHeight));
 
-    for(int i = 1; i < TREE_START_DEPTH; ++i)
+    for(int i = 1; i < treeStartDepth; ++i)
     {
         range /= 2.0f;
         depthOffset += int(pow(4, i));
     }
 
-    for(int i = TREE_START_DEPTH; i <= TREE_MAX_DEPTH; ++i)
+    for(int i = treeStartDepth; i <= treeMaxDepth; ++i)
     {
         range /= 2.0f;
 

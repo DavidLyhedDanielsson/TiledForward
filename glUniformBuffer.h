@@ -168,8 +168,8 @@ public:
             return;
         }
 
-        if(sizeof(T) % 16 != 0)
-            Logger::LogLine(LOG_TYPE::DEBUG, "Uniform buffer element size isn't multiple of 16, has padding been added?");
+        //if(sizeof(T) % 16 != 0)
+        //    Logger::LogLine(LOG_TYPE::DEBUG, "Uniform buffer element size isn't multiple of 16, has padding been added?");
 #endif // NDEBUG
 
         SetData(&data, sizeof(T));
@@ -210,6 +210,7 @@ public:
         return name;
     }
 
+    void Update();
 private:
     class Uniform
     {
@@ -264,6 +265,7 @@ private:
     std::map<std::string, GLUniformBufferVariable> uniforms; // Make sure offsets are consecutive
 
     void SetData(const void* data, size_t dataSize);
+    void Share(GLUniformBuffer* other);
 };
 
 #endif // GLUNIFORMBLOCK_H__

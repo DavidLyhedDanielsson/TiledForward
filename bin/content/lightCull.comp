@@ -7,17 +7,7 @@ uniform mat4 projectionInverseMatrix;
 
 #include "planes.glsl"
 #include "tree.glsl"
-
-layout(std430) buffer LightIndices
-{
-    int occupiedIndices; // Needs to be initialized to 0!
-    int lightIndices[];
-};
-
-layout(std430) buffer TileLights
-{
-    TileLightData tileLightData[];
-};
+#include "tileLights.glsl"
 
 shared int lightCount;
 shared int localLightIndices[MAX_LIGHTS_PER_TILE];
@@ -38,8 +28,8 @@ void main()
 
     barrier();
 
-    int workGroupSizeX = screenWidth / int(pow(2, TREE_START_DEPTH));
-    int workGroupSizeY = screenHeight / int(pow(2, TREE_START_DEPTH));
+    int workGroupSizeX = screenWidth / int(pow(2, treeStartDepth));
+    int workGroupSizeY = screenHeight / int(pow(2, treeStartDepth));
 
     int workGroupCountX = screenWidth / int(ceil(workGroupSizeX));
 
@@ -84,22 +74,22 @@ void main()
 
     if(gl_LocalInvocationIndex == 0)
     {
-        int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), TREE_START_DEPTH, TREE_MAX_DEPTH);
+        int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), treeStartDepth, treeMaxDepth);
         int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
 
-        PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), TREE_START_DEPTH, arrayIndex);
+        PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), treeStartDepth, startIndex);
 
         int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
         for(int i = 0; i < cappedLightCount; ++i)
-            lightIndices[startIndex + i] = localLightIndices[i];
+            SetLightIndex(startIndex + i, localLightIndices[i]);
         for(int i = cappedLightCount; i < MAX_LIGHTS_PER_TILE; ++i)
-            lightIndices[startIndex + i] = -1;
+            SetLightIndex(startIndex + i, -1);
 
         TileLightData data;
         data.start = startIndex;
         data.numberOfLights = lightCount;
-        data.padding = ivec2(gl_WorkGroupID) * ivec2(workGroupSizeX, workGroupSizeY);
+        data.padding = ivec2(gl_WorkGroupID);
 
-        tileLightData[arrayIndex] = data;
+        SetTileLightData(startIndex, data);
     }
 }

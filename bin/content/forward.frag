@@ -30,16 +30,7 @@ layout (std140) uniform Materials
     Material materials[MAX_MATERIALS];
 };
 
-layout(std430) buffer LightIndices
-{
-    int occupiedIndices; // Needs to be initialized to 0!
-    int lightIndices[];
-};
-
-layout(std430) buffer TileLights
-{
-    TileLightData tileLightData[];
-};
+#include "tileLights.glsl"
 
 layout(std430) buffer ColorBuffer
 {
@@ -51,11 +42,6 @@ vec2 ProjectedToTexel(vec2 projectedPosition)
     return vec2((projectedPosition.x + 1.0f) * 0.5f * screenWidth, (projectedPosition.y + 1.0f) * 0.5f * screenHeight);
 }
 
-ivec2 TexelToGrid(vec2 texelPosition)
-{
-    return ivec2(texelPosition.x / 64, texelPosition.y / 64);
-}
-
 void main()
 {
     vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
@@ -63,15 +49,20 @@ void main()
 
     const int arrayIndex = GetTreeDataScreen(int(texel.x), int(texel.y));
 
-    /*vec3 textureColor = texture(tex, TexCoord).xyz;*/
+    vec3 textureColor = texture(tex, TexCoord).xyz;
+    float checkersColor = float(arrayIndex % 2);
+    //float checkersColor = 1.0f;
 
-    /*if(arrayIndex >= 0)
-        outColor = vec4(colors[arrayIndex]);
+    if(arrayIndex >= 0)
+        //outColor = vec4(vec4(textureColor * 0.5f + vec3(checkersColor) * 0.5f, 1.0f));
+        outColor = vec4(vec4(checkersColor, checkersColor, checkersColor, 1.0f));
     else
-        outColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);*/
+        outColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
-    const int lightStart = tileLightData[arrayIndex].start;
-    const int lightCount = tileLightData[arrayIndex].numberOfLights;
+    /*const TileLightData data = GetTileLightData(arrayIndex);
+
+    const int lightStart = data.start;
+    const int lightCount = data.numberOfLights;
 
     vec3 finalColor = vec3(0.0f);
     vec3 textureColor = texture(tex, TexCoord).xyz;
@@ -82,8 +73,8 @@ void main()
     {
         for(int i = lightStart; i < lightStart + lightCount; ++i)
         {
-            LightData light = lights[0];
-            //LightData light = lights[lightIndices[i]];
+            //LightData light = lights[0];
+            LightData light = lights[lightIndices[i]];
 
             vec3 lightDirection = WorldPosition - light.position;
             float lightDistance = length(lightDirection);
@@ -109,5 +100,5 @@ void main()
         finalColor *= textureColor;
     }
 
-    outColor = vec4(finalColor, materials[materialIndex].opacity);
+    outColor = vec4(finalColor, materials[materialIndex].opacity);*/
 }

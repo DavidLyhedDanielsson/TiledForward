@@ -72,20 +72,20 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 1;
+    int lightCount = 256;
 
     const float LIGHT_DEFAULT_AMBIENT = 1.0f;
     float lightMinStrength = 0.0f;
-    float lightMaxStrength = 3.0f;
+    float lightMaxStrength = 0.5f;
     float lightLifetime = 2500.0f;
 
-    //const float LIGHT_RANGE_X = 14.0f;
-    //const float LIGHT_MAX_Y = 8.0f;
-    //const float LIGHT_RANGE_Z = 6.0f;
+    const float LIGHT_RANGE_X = 14.0f;
+    const float LIGHT_MAX_Y = 8.0f;
+    const float LIGHT_RANGE_Z = 6.0f;
 
-    const float LIGHT_RANGE_X = 0.0f;
-    const float LIGHT_MAX_Y = 0.0f;
-    const float LIGHT_RANGE_Z = 0.0f;
+    //const float LIGHT_RANGE_X = 0.0f;
+    //const float LIGHT_MAX_Y = 0.0f;
+    //const float LIGHT_RANGE_Z = 0.0f;
 
     const static int DEFAULT_SCREEN_WIDTH = 1024;
     const static int DEFAULT_SCREEN_HEIGHT = 1024;
@@ -331,22 +331,25 @@ int Main::InitContent()
 #ifdef DO_LIGHT_CULL
     worldModel->drawBinds["Lights"] = lightCull.lightCullDrawBinds["Lights"];
     worldModel->drawBinds["LightIndices"] = lightCull.lightCullDrawBinds["LightIndices"];
-    //worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
-    worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
+    worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
+    //worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
     worldModel->drawBinds["ScreenSize"] = lightCull.lightCullDrawBinds["ScreenSize"];
     worldModel->drawBinds["Tree"] = lightCull.lightCullDrawBinds["Tree"];
+    worldModel->drawBinds["ReadWriteOffsets"] = lightCull.lightCullDrawBinds["ReadWriteOffsets"];
+    worldModel->drawBinds["TreeDepthData"] = lightCull.lightCullDrawBinds["TreeDepthData"];
+
 #else
     worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
     worldModel->drawBinds["Tree"] = tree;
 #endif
 
-    std::vector<glm::vec4> colors;
-    for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices() * 4; ++i)
-        colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
+    //std::vector<glm::vec4> colors;
+    //for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices() * lightCull.GetMaxLightsPerTile(); ++i)
+    //    colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
         //colors.push_back({(i % 256) / 255.0f, ((i / 255) % 256) / 255.0f, 0.0f , 1.0f});
 //        colors.push_back({1.0f, 1.0f, 1.0f, 1.0f});
 
-    worldModel->drawBinds["ColorBuffer"] = colors;
+    //worldModel->drawBinds["ColorBuffer"] = colors;
 #endif
 
     return 0;
@@ -638,13 +641,11 @@ bool Main::InitShaders()
                     , std::make_pair("THREADS_PER_GROUP_Y", std::to_string(lightCull.GetThreadsPerGroup().y))
                     , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(lightCull.GetMaxLightsPerTile()))
                     , std::make_pair("MSAA_COUNT", std::to_string(msaaCount))
-                    , std::make_pair("TREE_START_DEPTH", std::to_string(lightCull.GetTreeStartDepth()))
-                    , std::make_pair("TREE_MAX_DEPTH", std::to_string(lightCull.GetTreeMaxDepth()))
             };
     sharedParameters.outPath = std::string(contentManager.GetRootDir());
     sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
 
-    if(!lightCull.Init(contentManager))
+    if(!lightCull.Init(contentManager, console))
         return false;
 #endif
 
@@ -736,7 +737,13 @@ void Main::Render(Timer& deltaTimer)
 #ifdef LOAD_WORLD_MODEL
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["Lights"] = &lightsBuffer;
-#endif
+
+    int indexLength = lightCull.GetMaxNumberOfTreeIndices() * lightCull.GetMaxLightsPerTile();
+    int lightDataLength = lightCull.GetMaxNumberOfTiles();
+
+    //worldModel->drawBinds["lightIndicesDataReadOffset"] = indexLength;
+    //worldModel->drawBinds["tileLightDataReadOffset"] = lightDataLength;
+    #endif
 
     //lightCull.lightCullDrawBinds["Lights"] = &lightsBuffer;
 
@@ -768,7 +775,7 @@ void Main::Render(Timer& deltaTimer)
     auto lightCullTime = lightCull.TimedDraw(viewMatrix, projectionMatrixInverse);
 #endif
 #ifdef LOAD_WORLD_MODEL
-    worldModel->drawBinds.GetSSBO("TileLights")->Replace(lightCull.GetActiveTileLightsData());
+    //worldModel->drawBinds.GetSSBO("TileLights")->Replace(lightCull.GetActiveTileLightsData());
 
     // Forward pass (opaque)
     glBeginQuery(GL_TIME_ELAPSED, queries[0]);
@@ -781,6 +788,8 @@ void Main::Render(Timer& deltaTimer)
 
     GLuint64 opaqueTime;
     glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &opaqueTime);
+
+    primitiveDrawer.End();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

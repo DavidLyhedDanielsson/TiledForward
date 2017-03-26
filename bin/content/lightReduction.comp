@@ -7,22 +7,7 @@ uniform mat4 projectionInverseMatrix;
 
 #include "planes.glsl"
 #include "tree.glsl"
-
-layout(std430) buffer LightIndices
-{
-    int occupiedIndices; // Needs to be initialized to 0!
-    int lightIndices[];
-};
-
-layout(std430) buffer OldTileLights
-{
-    TileLightData oldTileLightData[];
-};
-
-layout(std430) buffer NewTileLights
-{
-    TileLightData newTileLightData[];
-};
+#include "tileLights.glsl"
 
 shared int lightCount;
 shared int localLightIndices[MAX_LIGHTS_PER_TILE];
@@ -44,8 +29,6 @@ void AddLightIfPossible(int lightIndex)
 layout(local_size_x = THREADS_PER_GROUP_X, local_size_y = THREADS_PER_GROUP_Y) in;
 void main()
 {
-    int oldTileSizeX = screenWidth / int(pow(2, oldDepth));
-    int oldTileSizeY = screenHeight / int(pow(2, oldDepth));
     int newTileSizeX = screenWidth / int(pow(2, newDepth));
     int newTileSizeY = screenHeight / int(pow(2, newDepth));
 
@@ -57,8 +40,10 @@ void main()
 
         if(arrayIndex >= 0)
         {
-            currentStartIndex = oldTileLightData[arrayIndex].start;
-            currentLightCount = oldTileLightData[arrayIndex].numberOfLights;
+            TileLightData tileData = GetTileLightData(arrayIndex);
+
+            currentStartIndex = tileData.start;
+            currentLightCount = tileData.numberOfLights;
         }
         else
         {
@@ -67,19 +52,17 @@ void main()
         }
     }
 
+    memoryBarrier();
     barrier();
 
     if(currentLightCount > 0)
     {
-        //if(gl_LocalInvocationIndex == 0)
-         //   PutTreeDataTile(int(gl_WorkGroupID.x) / 2, int(gl_WorkGroupID.y) / 2, oldDepth, -54321);
-
         // Divide tile, check collision for all lights inside this tile again
         for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         //for(int i = int(gl_LocalInvocationIndex); i < int(lights.length()); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         {
-            //int lightIndex = lightIndices[i];
-            int lightIndex = 0;
+            int lightIndex = GetLightIndex(i);
+            //int lightIndex = 0;
 
             LightData light = lights[lightIndex];
 
@@ -120,36 +103,28 @@ void main()
 
         if(gl_LocalInvocationIndex == 0)
         {
-            int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, TREE_MAX_DEPTH);
+            int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, treeMaxDepth);
             int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
 
             PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, startIndex);
 
             int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
             for(int i = 0; i < cappedLightCount; ++i)
-                lightIndices[startIndex + i] = localLightIndices[i]; // Race condition?
+                SetLightIndex(startIndex + i, localLightIndices[i]);
             for(int i = cappedLightCount; i < MAX_LIGHTS_PER_TILE; ++i)
-                lightIndices[startIndex + i] = -1;
+                SetLightIndex(startIndex + i, -1);
 
             TileLightData data;
             data.start = startIndex;
             data.numberOfLights = lightCount;
             data.padding = ivec2(gl_WorkGroupID);
 
-            newTileLightData[arrayIndex] = data;
+            SetTileLightData(startIndex, data);
         }
     }
-    /*else if(currentLightCount == -987654321)
+    /*else
     {
         if(gl_LocalInvocationIndex == 0)
-        {
-            int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, TREE_MAX_DEPTH);
-            int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
-
             PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, -987654321);
-        }
     }*/
-
-    barrier(); // TODO: Remove
-    memoryBarrier();
 }

@@ -3,7 +3,7 @@ cconst THREADS_PER_GROUP_Y;
 
 cconst MAX_LIGHTS_PER_TILE;
 
-cconst TREE_START_DEPTH;
-cconst TREE_MAX_DEPTH;
+//cconst TREE_START_DEPTH;
+//cconst TREE_MAX_DEPTH;
 
 cconst MSAA_COUNT;

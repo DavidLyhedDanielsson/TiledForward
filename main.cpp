@@ -343,13 +343,13 @@ int Main::InitContent()
     worldModel->drawBinds["Tree"] = tree;
 #endif
 
-    //std::vector<glm::vec4> colors;
-    //for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices() * lightCull.GetMaxLightsPerTile(); ++i)
-    //    colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
+    std::vector<glm::vec4> colors;
+    for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices(); ++i)
+        colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
         //colors.push_back({(i % 256) / 255.0f, ((i / 255) % 256) / 255.0f, 0.0f , 1.0f});
 //        colors.push_back({1.0f, 1.0f, 1.0f, 1.0f});
 
-    //worldModel->drawBinds["ColorBuffer"] = colors;
+    worldModel->drawBinds["ColorBuffer"] = colors;
 #endif
 
     return 0;

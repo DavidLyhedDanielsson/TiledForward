@@ -50,12 +50,12 @@ void main()
     const int arrayIndex = GetTreeDataScreen(int(texel.x), int(texel.y));
 
     vec3 textureColor = texture(tex, TexCoord).xyz;
-    float checkersColor = float(arrayIndex % 2);
+    int index = arrayIndex / MAX_LIGHTS_PER_TILE;
     //float checkersColor = 1.0f;
 
     if(arrayIndex >= 0)
         //outColor = vec4(vec4(textureColor * 0.5f + vec3(checkersColor) * 0.5f, 1.0f));
-        outColor = vec4(vec4(checkersColor, checkersColor, checkersColor, 1.0f));
+        outColor = vec4(vec4(textureColor, 1.0f) * 0.5f + colors[index] * 0.5f);
     else
         outColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 

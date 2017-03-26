@@ -58,6 +58,9 @@ void main()
     if(currentLightCount > 0)
     {
         // Divide tile, check collision for all lights inside this tile again
+        vec3 viewPositions[5] = CreateFarPoints(uvec2(newTileSizeX, newTileSizeY));
+        vec4 planes[4] = CreatePlanes(viewPositions);
+
         for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         //for(int i = int(gl_LocalInvocationIndex); i < int(lights.length()); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         {
@@ -65,9 +68,6 @@ void main()
             //int lightIndex = 0;
 
             LightData light = lights[lightIndex];
-
-            vec3 viewPositions[5] = CreateFarPoints(uvec2(newTileSizeX, newTileSizeY));
-            vec4 planes[4] = CreatePlanes(viewPositions);
 
             vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
 

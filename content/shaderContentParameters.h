@@ -3,7 +3,7 @@
 
 #include "content.h"
 
-#include "glEnums.h"
+#include "../gl/glEnums.h"
 
 struct ShaderContentParameters
         : public ContentParameters

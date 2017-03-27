@@ -1,5 +1,5 @@
 #include "list.h"
-#include "../input.h"
+#include "../os/input.h"
 
 #include "colors.h"
 #include "outlineBackground.h"

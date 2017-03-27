@@ -1,8 +1,8 @@
 #include <fstream>
 #include <memory>
 #include "glShader.h"
-#include "logger.h"
-#include "shaderContentParameters.h"
+#include "../logger.h"
+#include "../content/shaderContentParameters.h"
 
 #include "glDrawBinds.h"
 #include "glUniformBuffer.h"

@@ -1,6 +1,6 @@
 #include "input.h"
 
-#include "logger.h"
+#include "../logger.h"
 #include "window.h"
 
 #if !defined(USE_DX) || defined(USE_GLM)

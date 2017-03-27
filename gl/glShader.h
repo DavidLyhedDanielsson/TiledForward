@@ -1,14 +1,14 @@
 #ifndef GLSHADER_H__
 #define GLSHADER_H__
 
-#include "content.h"
+#include "../content/content.h"
 
 #include <string>
 #include <vector>
 #include <memory>
 
 #include "glEnums.h"
-#include "contentManager.h"
+#include "../content/contentManager.h"
 
 class GLUniformBuffer;
 

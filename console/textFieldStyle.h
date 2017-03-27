@@ -4,7 +4,7 @@
 #include "guiStyle.h"
 
 #include "scrollbarStyle.h"
-#include "../characterSet.h"
+#include "../content/characterSet.h"
 
 struct TextFieldStyle
 	: public GUIStyle

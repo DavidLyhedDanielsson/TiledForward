@@ -3,7 +3,7 @@
 
 #include "glEnums.h"
 
-#include "logger.h"
+#include "../logger.h"
 
 #include <vector>
 

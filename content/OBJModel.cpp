@@ -56,7 +56,9 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     if((scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0)
         return CONTENT_ERROR_CODES::COULDNT_OPEN_DEPENDENCY_FILE;
 
-
+    std::string directoryPrefix = std::string(filePath);
+    directoryPrefix.erase(0, std::string(contentManager->GetRootDir()).size() + 1);
+    directoryPrefix.erase(directoryPrefix.find_last_of('/') + 1);
     for(int i = 0; i < scene->mNumMaterials; ++i)
     {
         Material newMaterial;
@@ -92,7 +94,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         }
         else
         {
-            newTexture = contentManager->Load<Texture>(textureName.data);
+            newTexture = contentManager->Load<Texture>(directoryPrefix + textureName.data);
             if(newTexture == nullptr)
                 return CONTENT_ERROR_CODES::COULDNT_OPEN_DEPENDENCY_FILE;
         }
@@ -102,7 +104,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
         materials.push_back(newMaterial);
     }
 
-    std::vector<LibOBJ::Vertex> vertices;
+    std::vector<Vertex> vertices;
     std::vector<GLint> indices;
 
     std::vector<aiMesh*> opaqueMeshes;
@@ -127,7 +129,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
 
         for(int j = 0; j < mesh->mNumVertices; ++j)
         {
-            LibOBJ::Vertex newVertex;
+            Vertex newVertex;
 
             newVertex.position.x = mesh->mVertices[j].x;
             newVertex.position.y = mesh->mVertices[j].y;
@@ -171,7 +173,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
 
         for(int j = 0; j < mesh->mNumVertices; ++j)
         {
-            LibOBJ::Vertex newVertex;
+            Vertex newVertex;
 
             newVertex.position.x = mesh->mVertices[j].x;
             newVertex.position.y = mesh->mVertices[j].y;
@@ -205,13 +207,13 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     }
 
     // Set up buffers
-    vertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
+    vertexBuffer.Init<Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
     indexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC_DRAW, indices);
 
     // Normal draw binds
     if(!drawBinds.AddShaders(*contentManager
-                             , GLEnums::SHADER_TYPE::VERTEX, "forward.vert"
-                             , GLEnums::SHADER_TYPE::FRAGMENT, "forward.frag"))
+                             , GLEnums::SHADER_TYPE::VERTEX, "lightCullAdaptive/forward.vert"
+                             , GLEnums::SHADER_TYPE::FRAGMENT, "lightCullAdaptive/forward.frag"))
         return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
 
     GLInputLayout vertexBufferLayout;
@@ -239,23 +241,6 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
 
     drawBinds["Materials"] = gpuMaterials;
 
-    // Z-prepass draw binds
-    if(!zPrepassBinds.AddShaders(*contentManager
-                             , GLEnums::SHADER_TYPE::VERTEX, "zPrepass.vert"))
-        return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
-
-    GLInputLayout zPrepassVertexBufferLayout;
-    zPrepassVertexBufferLayout.AddInputLayout("position", 3, GLEnums::DATA_TYPE::FLOAT, GL_FALSE, sizeof(LibOBJ::Vertex), 0, -1);
-
-    zPrepassBinds.AddBuffers(&indexBuffer
-                             , &vertexBuffer, zPrepassVertexBufferLayout);
-
-    zPrepassBinds.AddUniform("viewProjectionMatrix", glm::mat4x4());
-    zPrepassBinds.AddUniform("worldMatrix", worldMatrix);
-
-    if(!zPrepassBinds.Init())
-        return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
-
     return CONTENT_ERROR_CODES::NONE;
 }
 
@@ -282,16 +267,6 @@ bool OBJModel::Apply(Content* content)
 DiskContent* OBJModel::CreateInstance() const
 {
     return new OBJModel;
-}
-
-void OBJModel::DrawZPrepass()
-{
-    zPrepassBinds.Bind();
-
-    for(const auto& data : opaqueDrawData)
-        zPrepassBinds.DrawElements(data.indexCount, data.indexOffset);
-
-    zPrepassBinds.Unbind();
 }
 
 void OBJModel::DrawOpaque()

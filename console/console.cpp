@@ -5,9 +5,9 @@
 #include <memory>
 
 #include "button.h"
-#include "../window.h"
-#include "../input.h"
-#include "../contentManager.h"
+#include "../os/window.h"
+#include "../os/input.h"
+#include "../content/contentManager.h"
 #include "colors.h"
 #include "outlineBackground.h"
 #include "emptyBackground.h"

@@ -1,8 +1,7 @@
 #ifndef PRIMITIVEDRAWER_H__
 #define PRIMITIVEDRAWER_H__
 
-#include "glDrawBinds.h"
-#include "libobj.h"
+#include "gl/glDrawBinds.h"
 
 class PrimitiveDrawer
 {
@@ -21,6 +20,20 @@ public:
 
 protected:
 private:
+    struct Vertex
+    {
+        Vertex()
+        {}
+
+        Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& texCoord)
+                : position(position), normal(normal), texCoord(texCoord)
+        {}
+
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec2 texCoord;
+    };
+
     const static int MAX_SPHERES = 2048;
 
     struct InstanceData

@@ -4,7 +4,7 @@
 #include <chrono>
 
 #include "../rect.h"
-#include "../keyState.h"
+#include "../os/keyState.h"
 
 #include "../logger.h"
 #include <glm/glm.hpp>

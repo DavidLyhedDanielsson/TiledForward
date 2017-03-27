@@ -1,7 +1,6 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "primitiveDrawer.h"
-#include "libobj.h"
 
 PrimitiveDrawer::PrimitiveDrawer()
 {}
@@ -21,7 +20,7 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
                                      , int widthSegments
                                      , int heightSegments)
 {
-    std::vector<LibOBJ::Vertex> vertices;
+    std::vector<Vertex> vertices;
     std::vector<GLint> indices;
 
     //////////////////////////////////////////////////
@@ -31,7 +30,7 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
     float heightSegmentInc = radius * 2.0f / static_cast<float>(heightSegments + 1);
 
     //Top
-    vertices.push_back(LibOBJ::Vertex(glm::vec3(0.0f, radius, 0.0f), glm::vec3(0,0,0), glm::vec2(0,0)));
+    vertices.push_back(Vertex(glm::vec3(0.0f, radius, 0.0f), glm::vec3(0,0,0), glm::vec2(0,0)));
 
     float yPos = radius - heightSegmentInc;
 
@@ -73,7 +72,7 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
             //          \ |
             //           \|
 
-            vertices.push_back(LibOBJ::Vertex(newPos, glm::vec3(0, 0, 0), glm::vec2(0, 0)));
+            vertices.push_back(Vertex(newPos, glm::vec3(0, 0, 0), glm::vec2(0, 0)));
         }
 
         yPos -= heightSegmentInc;
@@ -96,14 +95,14 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
 
             glm::vec3 newPos(normalizedXZ.x * wantedXZDist, actualYPos, normalizedXZ.y * wantedXZDist);
 
-            vertices.push_back(LibOBJ::Vertex(newPos, glm::vec3(0.0f), glm::vec2(0.0f)));
+            vertices.push_back(Vertex(newPos, glm::vec3(0.0f), glm::vec2(0.0f)));
         }
 
         yPos -= heightSegmentInc;
     }
 
     //Bottom
-    vertices.push_back(LibOBJ::Vertex(glm::vec3(0.0f, -radius, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f)));
+    vertices.push_back(Vertex(glm::vec3(0.0f, -radius, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f)));
 
     //////////////////////////////////////////////////
     //Generate indicies
@@ -157,10 +156,10 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
     //////////////////////////////////////////////////
     //Normals
     //////////////////////////////////////////////////
-    for(LibOBJ::Vertex& vertex : vertices)
+    for(Vertex& vertex : vertices)
         vertex.normal = glm::normalize(vertex.position);
 
-    sphereVertexBuffer.Init<LibOBJ::Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
+    sphereVertexBuffer.Init<Vertex, glm::vec3, glm::vec3, glm::vec2>(GLEnums::BUFFER_USAGE::STATIC_DRAW, vertices);
     sphereIndexBuffer.Init(GLEnums::BUFFER_USAGE::STATIC_DRAW, indices);
 
     GLInputLayout vertexInputLayout;
@@ -183,8 +182,8 @@ void PrimitiveDrawer::GenerateSphere(ContentManager& contentManager
                          , &sphereIndexBuffer);
 
     sphereBinds.AddShaders(contentManager
-                         , GLEnums::SHADER_TYPE::VERTEX, "instance.vert"
-                         , GLEnums::SHADER_TYPE::FRAGMENT, "instance.frag");
+                         , GLEnums::SHADER_TYPE::VERTEX, "rendering/instance.vert"
+                         , GLEnums::SHADER_TYPE::FRAGMENT, "rendering/instance.frag");
 
     sphereBinds.AddUniform("viewProjectionMatrix", glm::mat4());
 

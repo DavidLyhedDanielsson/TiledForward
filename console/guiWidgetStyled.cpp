@@ -1,6 +1,6 @@
 #include "guiWidgetStyled.h"
 
-#include "../contentManager.h"
+#include "../content/contentManager.h"
 
 
 using floatLimits = std::numeric_limits<float>;

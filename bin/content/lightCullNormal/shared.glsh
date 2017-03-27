@@ -1,0 +1,39 @@
+#define THREADS_PER_GROUP_X 2
+#define THREADS_PER_GROUP_Y 2
+
+#define MAX_LIGHTS_PER_TILE 512
+
+struct LightData
+{
+    vec3 position;
+    float strength;
+    vec3 color;
+    float padding;
+};
+
+struct TileLightData
+{
+    int start;
+    int numberOfLights;
+    ivec2 padding;
+};
+
+int GetArrayIndex(int gridX, int gridY)
+{
+    return gridY * 256 + gridX; // TODO
+}
+
+int GetArrayIndex(ivec2 grid)
+{
+    return GetArrayIndex(grid.x, grid.y);
+}
+
+int GetArrayIndex(uvec2 grid)
+{
+    return GetArrayIndex(int(grid.x), int(grid.y));
+}
+
+int GetArrayIndex(vec2 grid)
+{
+    return GetArrayIndex(int(grid.x), int(grid.y));
+}

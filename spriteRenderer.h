@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-#include "contentManager.h"
-#include "characterSet.h"
+#include "content/contentManager.h"
+#include "content/characterSet.h"
 
 #include "rect.h"
-#include "glDrawBinds.h"
+#include "gl/glDrawBinds.h"
 
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>

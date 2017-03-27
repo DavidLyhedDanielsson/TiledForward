@@ -5,7 +5,7 @@
 #include "colors.h"
 #include "outlineBackground.h"
 
-#include "../input.h"
+#include "../os/input.h"
 #include "../spriteRenderer.h"
 
 Slider::Slider()

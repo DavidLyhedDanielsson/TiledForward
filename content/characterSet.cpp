@@ -1,6 +1,6 @@
 #include "characterSet.h"
 
-#include "logger.h"
+#include "../logger.h"
 #include "contentManager.h"
 #include "memoryTexture.h"
 #include "textureCreationParameters.h"

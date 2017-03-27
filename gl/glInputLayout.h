@@ -7,7 +7,7 @@
 #include <GL/gl3w.h>
 
 #include "glEnums.h"
-#include "logger.h"
+#include "../logger.h"
 #include "glHelpers.h"
 
 struct InputLayout

@@ -5,29 +5,29 @@
 #include <X11/Xlib.h>
 #include <random>
 
-#include "window.h"
+#include "os/window.h"
 #include "timer.h"
 #include "logger.h"
-#include "input.h"
+#include "os/input.h"
 #include "perspectiveCamera.h"
-#include "glVertexBuffer.h"
-#include "glDrawBinds.h"
-#include "texture.h"
-#include "contentManager.h"
+#include "gl/glVertexBuffer.h"
+#include "gl/glDrawBinds.h"
+#include "content/texture.h"
+#include "content/contentManager.h"
 #include "spriteRenderer.h"
 #include "console/guiManager.h"
 #include "console/console.h"
 
-#include "libobj.h"
 #include "console/commandGetSet.h"
-#include "OBJModel.h"
+#include "content/OBJModel.h"
 #include "console/colors.h"
-#include "glPixelShader.h"
-#include "shaderContentParameters.h"
+#include "gl/glPixelShader.h"
+#include "content/shaderContentParameters.h"
 #include "console/commandCallMethod.h"
 #include "primitiveDrawer.h"
-#include "glCPPShared.h"
-#include "lightCull.h"
+#include "gl/glCPPShared.h"
+#include "lightCullAdaptive.h"
+#include "lightCullNormal.h"
 
 #include <glm/gtx/component_wise.hpp>
 #include <IL/il.h>
@@ -93,17 +93,10 @@ private:
     int screenWidth = DEFAULT_SCREEN_WIDTH;
     int screenHeight = DEFAULT_SCREEN_HEIGHT;
 
-    /*struct Lights
-    {
-        glm::vec3 padding;
-        float ambientStrength;
-        LightData lights[lightCount];
-    } lightsBuffer;*/
+    LightCullNormal lightCullNormal;
+    LightCullAdaptive lightCullAdaptive;
+    LightCull* currentLightCull;
 
-#define DO_LIGHT_CULL
-#ifdef DO_LIGHT_CULL
-    LightCull lightCull;
-#endif
     LightsBuffer lightsBuffer;
 
     OSWindow window;
@@ -121,10 +114,7 @@ private:
     CharacterSet* characterSet24;
     CharacterSet* characterSet8;
 
-#define LOAD_WORLD_MODEL
-#ifdef LOAD_WORLD_MODEL
     OBJModel* worldModel;
-#endif
 
     PerspectiveCamera camera;
     PerspectiveCamera snapshotCamera;
@@ -156,7 +146,6 @@ private:
     int msaaCount;
 
     bool recompileShaders;
-    GLCPPShared* sharedVariables;
 
     bool drawLightCount;
     bool dumpPreBackBuffer;
@@ -323,34 +312,13 @@ int Main::InitContent()
     characterSet24 = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
     characterSet8 = contentManager.Load<CharacterSet>("UbuntuMono-R8.ttf");
 
-#ifdef LOAD_WORLD_MODEL
-    worldModel = contentManager.Load<OBJModel>("sponza.obj");
+    worldModel = contentManager.Load<OBJModel>("models/sponza.obj");
     if(worldModel == nullptr)
         return 3;
 
-#ifdef DO_LIGHT_CULL
-    worldModel->drawBinds["Lights"] = lightCull.lightCullDrawBinds["Lights"];
-    worldModel->drawBinds["LightIndices"] = lightCull.lightCullDrawBinds["LightIndices"];
-    worldModel->drawBinds["TileLights"] = lightCull.lightCullDrawBinds["TileLights"];
-    //worldModel->drawBinds["PixelToTile"] = lightCull.lightCullDrawBinds["PixelToTile"];
-    worldModel->drawBinds["ScreenSize"] = lightCull.lightCullDrawBinds["ScreenSize"];
-    worldModel->drawBinds["Tree"] = lightCull.lightCullDrawBinds["Tree"];
-    worldModel->drawBinds["ReadWriteOffsets"] = lightCull.lightCullDrawBinds["ReadWriteOffsets"];
-    worldModel->drawBinds["TreeDepthData"] = lightCull.lightCullDrawBinds["TreeDepthData"];
-
-#else
-    worldModel->drawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
-    worldModel->drawBinds["Tree"] = tree;
-#endif
-
-    std::vector<glm::vec4> colors;
-    for(int i = 0; i < lightCull.GetMaxNumberOfTreeIndices(); ++i)
-        colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
-        //colors.push_back({(i % 256) / 255.0f, ((i / 255) % 256) / 255.0f, 0.0f , 1.0f});
-//        colors.push_back({1.0f, 1.0f, 1.0f, 1.0f});
-
-    worldModel->drawBinds["ColorBuffer"] = colors;
-#endif
+    currentLightCull->SetDrawBindData(worldModel->drawBinds);
+    //lightCullAdaptive.SetDrawBindData(worldModel->drawBinds);
+    //lightCullNormal.SetDrawBindData(worldModel->drawBinds);
 
     return 0;
 }
@@ -628,26 +596,15 @@ bool Main::InitFrameBuffers()
 
 bool Main::InitShaders()
 {
-#ifdef DO_LIGHT_CULL
-    lightCull.InitShaderConstants(screenWidth, screenHeight);
-
-    ////////////////////////////////////////////////////////////
-    // Shared variables
-
-    GLCPPSharedContentParameters sharedParameters;
-    sharedParameters.variables =
-            {
-                    std::make_pair("THREADS_PER_GROUP_X", std::to_string(lightCull.GetThreadsPerGroup().x))
-                    , std::make_pair("THREADS_PER_GROUP_Y", std::to_string(lightCull.GetThreadsPerGroup().y))
-                    , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(lightCull.GetMaxLightsPerTile()))
-                    , std::make_pair("MSAA_COUNT", std::to_string(msaaCount))
-            };
-    sharedParameters.outPath = std::string(contentManager.GetRootDir());
-    sharedVariables = contentManager.Load<GLCPPShared>("shared.h", &sharedParameters);
-
-    if(!lightCull.Init(contentManager, console))
+    lightCullAdaptive.InitShaderConstants(screenWidth, screenHeight);
+    if(!lightCullAdaptive.Init(contentManager, console))
         return false;
-#endif
+
+    lightCullNormal.InitShaderConstants(screenWidth, screenHeight);
+    if(!lightCullNormal.Init(contentManager, console))
+        return false;
+
+    currentLightCull = &lightCullAdaptive;
 
     ////////////////////////////////////////////////////////////
     // Lines
@@ -659,8 +616,8 @@ bool Main::InitShaders()
 
     lineDrawBinds.AddBuffers(&lineVertexBuffer, &lineIndexBuffer);
     lineDrawBinds.AddShaders(contentManager
-                             , GLEnums::SHADER_TYPE::VERTEX, "line.vert"
-                             , GLEnums::SHADER_TYPE::FRAGMENT, "line.frag");
+                             , GLEnums::SHADER_TYPE::VERTEX, "rendering/line.vert"
+                             , GLEnums::SHADER_TYPE::FRAGMENT, "rendering/line.frag");
     lineDrawBinds.AddUniform("viewProjectionMatrix", glm::mat4());
     lineDrawBinds.Init();
 
@@ -734,18 +691,8 @@ void Main::Render(Timer& deltaTimer)
     auto viewProjectionMatrix = projectionMatrix * viewMatrix;
 
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
-#ifdef LOAD_WORLD_MODEL
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["Lights"] = &lightsBuffer;
-
-    int indexLength = lightCull.GetMaxNumberOfTreeIndices() * lightCull.GetMaxLightsPerTile();
-    int lightDataLength = lightCull.GetMaxNumberOfTiles();
-
-    //worldModel->drawBinds["lightIndicesDataReadOffset"] = indexLength;
-    //worldModel->drawBinds["tileLightDataReadOffset"] = lightDataLength;
-    #endif
-
-    //lightCull.lightCullDrawBinds["Lights"] = &lightsBuffer;
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
@@ -771,10 +718,8 @@ void Main::Render(Timer& deltaTimer)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Light pass
-#ifdef DO_LIGHT_CULL
-    auto lightCullTime = lightCull.TimedDraw(viewMatrix, projectionMatrixInverse);
-#endif
-#ifdef LOAD_WORLD_MODEL
+    auto lightCullTime = currentLightCull->TimedDraw(viewMatrix, projectionMatrixInverse);
+
     //worldModel->drawBinds.GetSSBO("TileLights")->Replace(lightCull.GetActiveTileLightsData());
 
     // Forward pass (opaque)
@@ -798,7 +743,6 @@ void Main::Render(Timer& deltaTimer)
 
     // Forward pass (transparent)
     worldModel->DrawTransparent(camera.GetPosition());
-#endif
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
@@ -822,22 +766,14 @@ void Main::Render(Timer& deltaTimer)
     spriteRenderer.DrawString(characterSet24, frameString, glm::vec2(0.0f, screenHeight - 48));
     spriteRenderer.DrawString(characterSet24, std::to_string(currentFrameTime), glm::vec2(0.0f, screenHeight - 24));
 
-#ifndef DO_LIGHT_CULL
-    float lightCullTime = 0.0f;
-#endif
 
     spriteRenderer.DrawString(characterSet24, "Light cull: " + std::to_string(lightCullTime * 1e-6f), glm::vec2(0.0f, screenHeight - 72));
-#ifndef LOAD_WORLD_MODEL
-    float opaqueTime = 0.0f;
-#endif
     spriteRenderer.DrawString(characterSet24, "Opaque: " + std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, screenHeight - 96));
 
     //Logger::LogLine(LOG_TYPE::NONE, std::to_string(lightCullTime * 1e-6f), ", ", std::to_string(opaqueTime * 1e-6f));
 
-#ifdef DO_LIGHT_CULL
     if(drawLightCount)
-        lightCull.DrawLightCount(spriteRenderer, characterSet8, nullptr);
-#endif
+        currentLightCull->DrawLightCount(spriteRenderer, characterSet8, nullptr);
 
     guiManager.Draw(&spriteRenderer);
 
@@ -926,15 +862,8 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
     if(recreateBuffers)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-#ifdef DO_LIGHT_CULL
-    lightCull.ResolutionChanged(width, height);
-#endif
-
-    if(recompileShaders)
-    {
-        sharedVariables->SetValue("MSAA_COUNT", std::to_string(msaaCount));
-        sharedVariables->WriteValues();
-    }
+    lightCullAdaptive.ResolutionChanged(width, height);
+    lightCullNormal.ResolutionChanged(width, height);
 
     return true;
 }

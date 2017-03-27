@@ -3,8 +3,8 @@
 
 #include "guiContainerStyled.h"
 
-#include "../characterSet.h"
-#include "../constructedString.h"
+#include "../content/characterSet.h"
+#include "../content/constructedString.h"
 #include "../timer.h"
 
 #include "textBoxStyle.h"

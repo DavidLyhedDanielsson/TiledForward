@@ -8,7 +8,7 @@
 #include <GL/gl3w.h>
 #include <memory>
 
-#include "logger.h"
+#include "../logger.h"
 #include "glEnums.h"
 
 class GLUniformBuffer;

@@ -2,8 +2,7 @@
 #define OBJMODEL_H__
 
 #include "content.h"
-#include "glDrawBinds.h"
-#include "libobj.h"
+#include "../gl/glDrawBinds.h"
 
 class Texture;
 
@@ -22,9 +21,7 @@ public:
 
     // FIXME
     GLDrawBinds drawBinds; // TODO
-    GLDrawBinds zPrepassBinds;
 
-    void DrawZPrepass();
     void DrawOpaque();
     void DrawTransparent(const glm::vec3 cameraPosition);
 
@@ -40,6 +37,20 @@ protected:
     DiskContent* CreateInstance() const override;
 
 private:
+    struct Vertex
+    {
+        Vertex()
+        {}
+
+        Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& texCoord)
+                : position(position), normal(normal), texCoord(texCoord)
+        {}
+
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec2 texCoord;
+    };
+
     struct Material
     {
         glm::vec3 ambientColor; // Ka

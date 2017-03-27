@@ -13,10 +13,10 @@
 #include "glIndexBuffer.h"
 #include "glUniform.h"
 #include "glInputLayout.h"
-#include "contentManager.h"
+#include "../content/contentManager.h"
 #include "glUniformBuffer.h"
 #include "glShaderStorageBuffer.h"
-#include "shaderContentParameters.h"
+#include "../content/shaderContentParameters.h"
 #include "glDynamicBuffer.h"
 
 class GLVariable

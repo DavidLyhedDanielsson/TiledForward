@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include "content.h"
-#include "logger.h"
+#include "../logger.h"
 #include "fileManager.h"
 
 #include <string>

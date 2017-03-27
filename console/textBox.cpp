@@ -5,7 +5,7 @@
 
 #include "../logger.h"
 
-#include "../input.h"
+#include "../os/input.h"
 #include "../spriteRenderer.h"
 #include <algorithm>
 

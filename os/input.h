@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 #include "keyState.h"
-#include "timer.h"
+#include "../timer.h"
 
 #if defined(USE_DX) && !defined(USE_GLM)
 #include <windows.h>

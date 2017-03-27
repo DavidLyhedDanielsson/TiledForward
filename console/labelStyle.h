@@ -3,7 +3,7 @@
 
 #include "guiStyle.h"
 
-#include "../characterSet.h"
+#include "../content/characterSet.h"
 
 struct LabelStyle
 	: public GUIStyle

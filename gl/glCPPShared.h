@@ -2,7 +2,7 @@
 #define GLCPPSHARED_H__
 
 #include <map>
-#include "content.h"
+#include "../content/content.h"
 #include "glShader.h"
 
 struct GLCPPSharedContentParameters

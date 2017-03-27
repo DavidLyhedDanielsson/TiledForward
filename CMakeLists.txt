@@ -35,7 +35,7 @@ add_definitions(-DGL_ERROR_CALLBACK -DUSE_LOGGER -DGL_VERTEX_NO_WARNING -DGL_IND
 
 include_directories(/usr/include/freetype2/)
 
-file(GLOB SOURCE_FILES *.h *.hpp *.cpp *.c console/*)
+file(GLOB SOURCE_FILES *.h *.hpp *.cpp *.c console/* gl/* content/* os/*)
 add_executable(opengl ${SOURCE_FILES})
 
 target_link_libraries(opengl GLEW GL X11 pthread stdc++fs dl IL freetype assimp)
@@ -49,4 +49,4 @@ endif()
 
 project(${PNG_LIBRARY_NAME})
 
-add_library(${PNG_LIBRARY_NAME} SHARED pngTexture.cpp)
+add_library(${PNG_LIBRARY_NAME} SHARED content/pngTexture.cpp)

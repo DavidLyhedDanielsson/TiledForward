@@ -3,10 +3,10 @@
 #include "outlineBackgroundStyle.h"
 #include "outlineBackground.h"
 
-#include "../input.h"
+#include "../os/input.h"
 #include "../spriteRenderer.h"
 
-#include "../constructedString.h"
+#include "../content/constructedString.h"
 
 #include <algorithm>
 //#include <windows.h>

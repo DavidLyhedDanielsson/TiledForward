@@ -1,6 +1,6 @@
 #include "fileManager.h"
 
-#include "logger.h"
+#include "../logger.h"
 
 namespace fs = std::experimental::filesystem;
 

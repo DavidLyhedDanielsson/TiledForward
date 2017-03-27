@@ -8,7 +8,7 @@
 #include "input.h"
 
 #ifdef USE_LOGGER
-#include "logger.h"
+#include "../logger.h"
 
 #define LOG_DEBUG(message) Logger::LogLine(LOG_TYPE::DEBUG, message);
 #define LOG_INFO(message) Logger::LogLine(LOG_TYPE::INFO, message);

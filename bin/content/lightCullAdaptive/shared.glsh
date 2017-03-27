@@ -1,0 +1,7 @@
+#define THREADS_PER_GROUP_X 2
+#define THREADS_PER_GROUP_Y 2
+
+#define MAX_LIGHTS_PER_TILE 512
+
+//cconst TREE_START_DEPTH;
+//cconst TREE_MAX_DEPTH;

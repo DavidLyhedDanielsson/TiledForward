@@ -1,8 +1,8 @@
 #include "guiWidget.h"
 
-#include "../input.h"
+#include "../os/input.h"
 
-#include "../contentManager.h"
+#include "../content/contentManager.h"
 
 #include <limits>
 #include <algorithm>

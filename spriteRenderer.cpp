@@ -2,11 +2,11 @@
 
 #include "logger.h"
 
-#include "textureCreationParameters.h"
-#include "shaderContentParameters.h"
+#include "content/textureCreationParameters.h"
+#include "content/shaderContentParameters.h"
 
-#include "memoryTexture.h"
-#include "textureCreationParameters.h"
+#include "content/memoryTexture.h"
+#include "content/textureCreationParameters.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -55,8 +55,8 @@ bool SpriteRenderer::Init(ContentManager& contentManager, int screenWidth, int s
 	//Shaders
 	//////////////////////////////////////////////////////////////////////////
     drawBinds.AddShaders(contentManager
-                     , GLEnums::SHADER_TYPE::VERTEX, "spriteVertex.glsl"
-                     , GLEnums::SHADER_TYPE::FRAGMENT, "spritePixel.glsl");
+                     , GLEnums::SHADER_TYPE::VERTEX, "rendering/spriteVertex.glsl"
+                     , GLEnums::SHADER_TYPE::FRAGMENT, "rendering/spritePixel.glsl");
 
     drawBinds.AddBuffers(&vertexBuffer, &indexBuffer);
 

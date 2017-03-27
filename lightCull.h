@@ -1,60 +1,39 @@
 #ifndef LIGHTCULL_H__
 #define LIGHTCULL_H__
 
-#include "glDrawBinds.h"
+#include <GL/gl3w.h>
 
-#include "characterSet.h"
-#include "spriteRenderer.h"
+#include "content/contentManager.h"
 #include "console/console.h"
+#include "gl/glDrawBinds.h"
 
 class LightCull
 {
 public:
     LightCull();
-    ~LightCull();
+    virtual ~LightCull();
 
-    void InitShaderConstants(int screenWidth, int screenHeight);
-    bool Init(ContentManager& contentManager, Console& console);
+    virtual void InitShaderConstants(int screenWidth, int screenHeight) = 0;
+    virtual bool Init(ContentManager& contentManager, Console& console) = 0;
 
-    void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
-    GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
+    virtual void SetDrawBindData(GLDrawBinds& binds) = 0;
 
-    void DrawLightCount(SpriteRenderer& spriteRenderer
-                            , CharacterSet* characterSetSmall
-                            , CharacterSet* characterSetBig);
+    virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse) = 0;
+    virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse) = 0;
 
-    void ResolutionChanged(int newWidth, int newHeight);
+    virtual void DrawLightCount(SpriteRenderer& spriteRenderer
+                                , CharacterSet* characterSetSmall
+                                , CharacterSet* characterSetBig) = 0;
 
-    glm::uvec2 GetThreadsPerGroup() const;
-
-    int GetMaxLightsPerTile() const;
-    int GetMaxNumberOfTreeIndices() const;
-    int GetMaxNumberOfTiles() const;
-    int GetTreeStartDepth() const;
-    int GetTreeMaxDepth() const;
-
-    GLDrawBinds lightCullDrawBinds;
-    GLDrawBinds lightReductionDrawBinds;
-
+    virtual void ResolutionChanged(int newWidth, int newHeight) = 0;
 protected:
-private:
-    const static int MAX_LIGHTS_PER_TILE = 512;
-    const static int TREE_MAX_DEPTH = 8;
-
-    const glm::uvec2 threadsPerGroup;
-
-    int treeStartDepth = 1;
-    int treeMaxDepth = 8;
-
     int screenWidth;
     int screenHeight;
 
     GLuint timeQuery;
 
-    void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
-    void Draw();
-    void PostDraw();
-    int GetTreeDataScreen(int screenX, int screenY, int* tree);
+    const static int MAX_LIGHTS_PER_TILE = 512;
+    const glm::uvec2 threadsPerGroup;
 };
 
 #endif // LIGHTCULL_H__

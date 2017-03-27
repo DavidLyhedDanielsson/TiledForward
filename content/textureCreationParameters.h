@@ -2,7 +2,7 @@
 #define TEXTURECREATIONPARAMETERS_H__
 
 #include "content.h"
-#include "glEnums.h"
+#include "../gl/glEnums.h"
 
 #include <GL/gl3w.h>
 

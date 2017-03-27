@@ -1,8 +1,8 @@
 #include "glDrawBinds.h"
 #include "glVertexShader.h"
 #include "glPixelShader.h"
-#include "logger.h"
-#include "shaderContentParameters.h"
+#include "../logger.h"
+#include "../content/shaderContentParameters.h"
 
 #include <cstring>
 #include <set>
@@ -280,8 +280,8 @@ bool GLDrawBinds::CreateShaderProgram()
             for(const auto& attrib : attributes)
                 numberOfFloats += GetNumberOfFloats(attrib.type);
 
-            if(vertexBuffers[0]->GetStride() != numberOfFloats * sizeof(float)) // TODO: Multiple buffers
-                LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes (" + std::to_string(vertexBuffers[0]->GetStride()) + " != " + std::to_string(numberOfFloats * sizeof(float)) + ") is this intended?");
+            //if(vertexBuffers[0]->GetStride() != numberOfFloats * sizeof(float)) // TODO: Multiple buffers
+            //    LogWithName(LOG_TYPE::DEBUG, "Vertex buffer stride isn't equal to the size of all attributes (" + std::to_string(vertexBuffers[0]->GetStride()) + " != " + std::to_string(numberOfFloats * sizeof(float)) + ") is this intended?");
 
             // TODO: Count size of input layouts?
 #endif // NDEBUG

@@ -2,8 +2,8 @@
 #include <vector>
 #include <sstream>
 #include "glCPPShared.h"
-#include "logger.h"
-#include "contentManager.h"
+#include "../logger.h"
+#include "../content/contentManager.h"
 
 GLCPPShared::GLCPPShared()
 {}

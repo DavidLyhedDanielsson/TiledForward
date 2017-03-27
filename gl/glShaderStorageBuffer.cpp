@@ -37,6 +37,12 @@ bool GLShaderStorageBuffer::Init(bool bind)
 
 void GLShaderStorageBuffer::SetData(const void* data, size_t dataSize)
 {
+    if(dataSize == 0)
+    {
+        Logger::LogLine(LOG_TYPE::WARNING, "Tryint to update buffer with dataSize of 0");
+        return;
+    }
+
     if(dataSize > this->size)
     {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferIndex);

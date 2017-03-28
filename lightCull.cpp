@@ -1,7 +1,6 @@
 #include "lightCull.h"
 
 LightCull::LightCull()
-    : threadsPerGroup(2, 2)
 {}
 
 LightCull::~LightCull()

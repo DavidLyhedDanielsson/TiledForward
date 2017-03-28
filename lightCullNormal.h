@@ -31,9 +31,12 @@ public:
 
     GLDrawBinds lightCullDrawBinds;
 
+    std::string GetForwardShaderPath() override;
+
 protected:
 private:
     const static int MAX_DEPTH = 8;
+    const glm::uvec2 threadsPerGroup;
 
     int maxDepth = 2;
     glm::ivec2 threadGroupCount;
@@ -41,6 +44,8 @@ private:
     void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
     void Draw();
     void PostDraw();
+
+    std::vector<glm::vec4> colors;
 
     GLCPPShared* sharedVariables;
 };

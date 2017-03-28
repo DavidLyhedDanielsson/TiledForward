@@ -1,6 +1,7 @@
 #include "lightCullNormal.h"
 
 LightCullNormal::LightCullNormal()
+        : threadsPerGroup(16, 16)
 {}
 
 LightCullNormal::~LightCullNormal()
@@ -13,17 +14,24 @@ void LightCullNormal::InitShaderConstants(int screenWidth, int screenHeight)
 
 bool LightCullNormal::Init(ContentManager& contentManager, Console& console)
 {
+    threadGroupCount = glm::ivec2((int)std::pow(2, MAX_DEPTH));
+
+    for(int i = 0; i < GetMaxNumberOfTiles(); ++i)
+        colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
+
     GLCPPSharedContentParameters sharedParameters;
     sharedParameters.variables =
             {
                     std::make_pair("THREADS_PER_GROUP_X", std::to_string(GetThreadsPerGroup().x))
                     , std::make_pair("THREADS_PER_GROUP_Y", std::to_string(GetThreadsPerGroup().y))
                     , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(GetMaxLightsPerTile()))
+                    , std::make_pair("THREAD_GROUP_SIZE_X", std::to_string(screenWidth / threadGroupCount.x))
+                    , std::make_pair("THREAD_GROUP_SIZE_Y", std::to_string(screenHeight / threadGroupCount.y))
+                    , std::make_pair("THREAD_GROUP_COUNT_X", std::to_string(threadGroupCount.x))
+                    , std::make_pair("THREAD_GROUP_COUNT_Y", std::to_string(threadGroupCount.y))
             };
     sharedParameters.outPath = std::string(contentManager.GetRootDir()) + "/lightCullNormal";
     sharedVariables = contentManager.Load<GLCPPShared>("lightCullNormal/shared.h", &sharedParameters);
-
-    threadGroupCount = glm::ivec2((int)std::pow(2, MAX_DEPTH));
 
     ////////////////////////////////////////////////////////////
     // Make sure there aren't too many lights per tile
@@ -80,7 +88,10 @@ GLuint64 LightCullNormal::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMa
 
     GLint timeAvailable = 0;
     while(!timeAvailable)
+    {
         glGetQueryObjectiv(timeQuery,  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
+        std::this_thread::sleep_for(std::chrono::nanoseconds(500));
+    }
 
     glGetQueryObjectui64v(timeQuery, GL_QUERY_RESULT, &lightCullTime);
 
@@ -141,11 +152,6 @@ void LightCullNormal::SetDrawBindData(GLDrawBinds& binds)
     binds["LightIndices"] = lightCullDrawBinds["LightIndices"];
     binds["TileLights"] = lightCullDrawBinds["TileLights"];
     binds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
-
-    std::vector<glm::vec4> colors;
-    for(int i = 0; i < GetMaxNumberOfTiles(); ++i)
-        colors.push_back({rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), 1.0f});
-
     binds["ColorBuffer"] = colors;
 }
 
@@ -159,4 +165,9 @@ void LightCullNormal::DrawLightCount(SpriteRenderer& spriteRenderer
                                      , CharacterSet* characterSetBig)
 {
 
+}
+
+std::string LightCullNormal::GetForwardShaderPath()
+{
+    return "lightCullNormal/forward.frag";
 }

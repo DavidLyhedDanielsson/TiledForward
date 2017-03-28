@@ -177,6 +177,8 @@ public:
 
     GLVariable operator[](const std::string& name);
 
+    bool ChangeShader(ContentManager& contentManager, GLEnums::SHADER_TYPE shaderType, const std::string& newShaderPath);
+
     GLShaderStorageBuffer* GetSSBO(const std::string& name);
     GLUniformBuffer* GetUBO(const std::string& name);
 protected:

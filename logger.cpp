@@ -207,13 +207,13 @@ void Logger::Log(LOG_TYPE logType, const std::string& text)
 #endif //_WIN32
 	}
 
-	if(callOnLog != nullptr)
-		callOnLog(message);
-
 	if((consoleLogLevel &= CONSOLE_LOG_LEVEL::FULL)
 	   || (consoleLogLevel &= CONSOLE_LOG_LEVEL::EXCLUSIVE))
 	{
 		Print(message);
+
+		if(callOnLog != nullptr)
+			callOnLog(message);
 
 		if(consoleLogLevel &= CONSOLE_LOG_LEVEL::EXCLUSIVE)
 			return; //Don't write anything to file
@@ -244,6 +244,9 @@ void Logger::Log(LOG_TYPE logType, const std::string& text)
 		out.write(&message[0], message.size());
 		out.close();
 	}
+
+    if(callOnLog != nullptr)
+        callOnLog(message);
 
 	if(message.back() == '\n')
 		message.pop_back();

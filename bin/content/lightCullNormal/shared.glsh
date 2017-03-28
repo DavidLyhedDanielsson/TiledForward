@@ -1,5 +1,11 @@
-#define THREADS_PER_GROUP_X 2
-#define THREADS_PER_GROUP_Y 2
+#define THREADS_PER_GROUP_X 16
+#define THREADS_PER_GROUP_Y 16
+
+#define THREAD_GROUP_SIZE_X 4
+#define THREAD_GROUP_SIZE_Y 4
+
+#define THREAD_GROUP_COUNT_X 256
+#define THREAD_GROUP_COUNT_Y 256
 
 #define MAX_LIGHTS_PER_TILE 512
 
@@ -20,7 +26,7 @@ struct TileLightData
 
 int GetArrayIndex(int gridX, int gridY)
 {
-    return gridY * 256 + gridX; // TODO
+    return gridY * THREAD_GROUP_COUNT_X + gridX;
 }
 
 int GetArrayIndex(ivec2 grid)

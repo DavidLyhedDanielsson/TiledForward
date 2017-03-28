@@ -84,7 +84,11 @@ void GLShaderStorageBuffer::Share(GLShaderStorageBuffer* other)
     if(bufferIndex == other->bufferIndex)
         return;
 
-    glDeleteBuffers(1, &bufferIndex);
+    if(deallocateOnShare)
+    {
+        glDeleteBuffers(1, &bufferIndex);
+        deallocateOnShare = false;
+    }
 
     //this->bindingPoint = other->bindingPoint;
     this->bufferIndex = other->bufferIndex;
@@ -133,7 +137,7 @@ int GLShaderStorageBuffer::GetSize() const
     return size;
 }
 
-void GLShaderStorageBuffer::Replace(GLShaderStorageBuffer* other)
+/*void GLShaderStorageBuffer::Replace(GLShaderStorageBuffer* other)
 {
     assert(this->shaderProgram != -1
            && blockIndex != -1
@@ -148,4 +152,4 @@ void GLShaderStorageBuffer::Replace(GLShaderStorageBuffer* other)
     this->size = other->size;
 
     glShaderStorageBlockBinding(shaderProgram, blockIndex, bindingPoint);
-}
+}*/

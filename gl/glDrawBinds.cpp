@@ -892,6 +892,59 @@ void GLDrawBinds::Share(GLUniformBuffer* lhs, GLUniformBuffer* rhs)
     lhs->Share(rhs);
 }
 
+bool GLDrawBinds::ChangeShader(ContentManager& contentManager
+                               , GLEnums::SHADER_TYPE shaderType
+                               , const std::string& newShaderPath)
+{
+    ShaderContentParameters parameters(shaderType);
+    GLShader* newShader = contentManager.Load<GLShader>(newShaderPath, &parameters);
+    if(newShader == nullptr)
+        return false;
+
+    for(auto& pair : shaderBinds)
+    {
+        if(pair.first == shaderType)
+        {
+            auto shaderPrograms = pair.second->shaderPrograms;
+
+            for(int i = 0; i < shaderPrograms.size(); ++i)
+            {
+                if(shaderPrograms[i] == this)
+                {
+                    glDetachShader(GetShaderProgram(), pair.second->GetShader());
+                    shaderPrograms.erase(shaderPrograms.begin() + i);
+                    break;
+                }
+            }
+
+            pair.second = newShader;
+            pair.second->shaderPrograms.push_back(this);
+        }
+    }
+
+    Unbind();
+
+    if(shaderProgram != 0)
+    {
+        // If the shaders are unloaded first glDetachShader will be called from there
+        // and the shader will be set to 0
+        for(const auto& pair : shaderBinds)
+            if(pair.second->GetShader() != 0)
+                glDetachShader(shaderProgram, pair.second->GetShader());
+
+        glDeleteProgram(shaderProgram);
+        shaderProgram = 0;
+    }
+
+    if(vao != 0)
+    {
+        glDeleteVertexArrays(1, &vao);
+        vao = 0;
+    }
+
+    return Init();
+}
+
 void GLVariable::operator=(const GLVariable& rhs)
 {
     if(uniformBuffer != nullptr && rhs.uniformBuffer != nullptr)

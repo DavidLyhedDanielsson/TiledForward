@@ -25,7 +25,7 @@ public:
     void Unbind();
 
     void Share(GLShaderStorageBuffer* other);
-    void Replace(GLShaderStorageBuffer* other);
+    //void Replace(GLShaderStorageBuffer* other);
     void UpdateData(const size_t offset, void* data, int dataSize);
     void SetData(int value);
     void SetData(const void* data, size_t dataSize);

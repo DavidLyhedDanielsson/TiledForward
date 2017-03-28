@@ -26,6 +26,8 @@ public:
                                 , CharacterSet* characterSetBig) = 0;
 
     virtual void ResolutionChanged(int newWidth, int newHeight) = 0;
+
+    virtual std::string GetForwardShaderPath() = 0;
 protected:
     int screenWidth;
     int screenHeight;
@@ -33,7 +35,6 @@ protected:
     GLuint timeQuery;
 
     const static int MAX_LIGHTS_PER_TILE = 512;
-    const glm::uvec2 threadsPerGroup;
 };
 
 #endif // LIGHTCULL_H__

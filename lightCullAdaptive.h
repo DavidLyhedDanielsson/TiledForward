@@ -40,6 +40,7 @@ public:
     GLDrawBinds lightCullDrawBinds;
     GLDrawBinds lightReductionDrawBinds;
 
+    std::string GetForwardShaderPath() override;
 protected:
 private:
     const static int TREE_MAX_DEPTH = 8;

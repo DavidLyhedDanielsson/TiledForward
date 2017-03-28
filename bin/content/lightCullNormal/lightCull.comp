@@ -30,7 +30,7 @@ void main()
     {
         LightData light = lights[i];
 
-        vec3 viewPositions[5] = CreateFarPoints(uvec2(4, 4)); // TODO
+        vec3 viewPositions[5] = CreateFarPoints(uvec2(THREAD_GROUP_SIZE_X, THREAD_GROUP_SIZE_Y));
         vec4 planes[4] = CreatePlanes(viewPositions);
 
         vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
@@ -78,7 +78,7 @@ void main()
         TileLightData data;
         data.start = startIndex;
         data.numberOfLights = lightCount;
-        data.padding = ivec2(gl_GlobalInvocationID);
+        data.padding = ivec2(gl_WorkGroupID.xy);
 
         tileLightData[arrayIndex] = data;
     }

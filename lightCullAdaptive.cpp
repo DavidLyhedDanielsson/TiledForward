@@ -24,8 +24,8 @@ bool LightCullAdaptive::Init(ContentManager& contentManager, Console& console)
     GLCPPSharedContentParameters sharedParameters;
     sharedParameters.variables =
             {
-                    std::make_pair("THREADS_PER_GROUP_X", std::to_string(GetThreadsPerGroup().x))
-                    , std::make_pair("THREADS_PER_GROUP_Y", std::to_string(GetThreadsPerGroup().y))
+                    std::make_pair("THREADS_PER_GROUP_X", "2")
+                    , std::make_pair("THREADS_PER_GROUP_Y", "2")
                     , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(GetMaxLightsPerTile()))
             };
     sharedParameters.outPath = std::string(contentManager.GetRootDir()) + "/lightCullAdaptive";
@@ -285,11 +285,6 @@ void LightCullAdaptive::DrawLightCount(SpriteRenderer& spriteRenderer
     }
 }
 
-glm::uvec2 LightCullAdaptive::GetThreadsPerGroup() const
-{
-    return threadsPerGroup;
-}
-
 int LightCullAdaptive::GetMaxLightsPerTile() const
 {
     return MAX_LIGHTS_PER_TILE;
@@ -339,4 +334,9 @@ void LightCullAdaptive::SetDrawBindData(GLDrawBinds& binds)
     binds["ReadWriteOffsets"] = lightCullDrawBinds["ReadWriteOffsets"];
     binds["TreeDepthData"] = lightCullDrawBinds["TreeDepthData"];
     binds["ColorBuffer"] = colors;
+}
+
+std::string LightCullAdaptive::GetForwardShaderPath()
+{
+    return "lightCullAdaptive/forward.frag";
 }

@@ -6,6 +6,12 @@
 
 class Texture;
 
+struct OBJModelParameters
+        : ContentParameters
+{
+    std::string shaderPath;
+};
+
 class OBJModel
         : public DiskContent
 {

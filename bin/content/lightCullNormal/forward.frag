@@ -29,10 +29,9 @@ layout (std140) uniform Materials
     Material materials[MAX_MATERIALS];
 };
 
-layout(std140) buffer ScreenSize
+layout(std430) buffer ColorBuffer
 {
-    int screenWidth;
-    int screenHeight;
+    vec4 colors[];
 };
 
 vec2 ProjectedToTexel(vec2 projectedPosition)
@@ -42,7 +41,7 @@ vec2 ProjectedToTexel(vec2 projectedPosition)
 
 ivec2 TexelToGrid(vec2 texelPosition)
 {
-    return ivec2(texelPosition.x / WORK_GROUP_WIDTH, texelPosition.y / WORK_GROUP_HEIGHT);
+    return ivec2(texelPosition.x / THREAD_GROUP_SIZE_X, texelPosition.y / THREAD_GROUP_SIZE_Y);
 }
 
 void main()
@@ -60,10 +59,6 @@ void main()
 
     int lightStart = tileLightData[arrayIndex].start;
     int lightCount = tileLightData[arrayIndex].numberOfLights;
-
-    //float interpValue = clamp(lightCount / float(MAX_LIGHTS_PER_TILE), 0.0f, 1.0f);
-    //finalColor = vec3(1.0f * interpValue, 0.0f, 1.0f * (1.0f - interpValue));
-    //finalColor = 0.1f * ceil(finalColor / 0.1f);
 
     if(lightCount > MAX_LIGHTS_PER_TILE)
         finalColor = vec3(1.0f, 0.0f, 0.0f);
@@ -97,5 +92,5 @@ void main()
         finalColor *= textureColor;
     }
 
-    outColor = vec4(finalColor, materials[materialIndex].opacity);
+    outColor = vec4(finalColor * 0.75f + colors[arrayIndex].xyz * 0.25f, materials[materialIndex].opacity);
 }

@@ -72,16 +72,20 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 256;
+    int lightCount = 512;
 
     const float LIGHT_DEFAULT_AMBIENT = 1.0f;
     float lightMinStrength = 0.0f;
-    float lightMaxStrength = 0.5f;
+    float lightMaxStrength = 2.0f;
     float lightLifetime = 2500.0f;
 
     const float LIGHT_RANGE_X = 14.0f;
-    const float LIGHT_MAX_Y = 8.0f;
+    const float LIGHT_MAX_Y = 2.0f;
     const float LIGHT_RANGE_Z = 6.0f;
+
+    //const float LIGHT_RANGE_X = 14.0f;
+    //const float LIGHT_MAX_Y = 8.0f;
+    //const float LIGHT_RANGE_Z = 6.0f;
 
     //const float LIGHT_RANGE_X = 0.0f;
     //const float LIGHT_MAX_Y = 0.0f;
@@ -297,6 +301,8 @@ int Main::Run()
     else
         Logger::LogLine(LOG_TYPE::FATAL, "Couldn't create window");
 
+    Logger::SetCallOnLog(nullptr);
+
     return 0;
 }
 
@@ -312,13 +318,13 @@ int Main::InitContent()
     characterSet24 = contentManager.Load<CharacterSet>("UbuntuMono-R24.ttf");
     characterSet8 = contentManager.Load<CharacterSet>("UbuntuMono-R8.ttf");
 
-    worldModel = contentManager.Load<OBJModel>("models/sponza.obj");
+    OBJModelParameters parameters;
+    parameters.shaderPath = currentLightCull->GetForwardShaderPath();
+    worldModel = contentManager.Load<OBJModel>("models/sponza.obj", &parameters);
     if(worldModel == nullptr)
         return 3;
 
     currentLightCull->SetDrawBindData(worldModel->drawBinds);
-    //lightCullAdaptive.SetDrawBindData(worldModel->drawBinds);
-    //lightCullNormal.SetDrawBindData(worldModel->drawBinds);
 
     return 0;
 }
@@ -341,6 +347,38 @@ void Main::InitConsole()
     console.AddCommand(new CommandGetSet<float>("light_maxStrength", &lightMaxStrength));
     console.AddCommand(new CommandGetSet<float>("light_lifetime", &lightLifetime));
 
+    console.AddCommand(new CommandCallMethod("LightCullNormal"
+                                             , [&](const std::vector<Argument>& args)
+            {
+                if(currentLightCull == &lightCullNormal)
+                    return Argument("Already set to normal");
+
+                currentLightCull = &lightCullNormal;
+
+                if(!worldModel->drawBinds.ChangeShader(contentManager, GLEnums::SHADER_TYPE::FRAGMENT, currentLightCull->GetForwardShaderPath()))
+                    throw "Oh no";
+
+                currentLightCull->SetDrawBindData(worldModel->drawBinds);
+
+                return Argument("Set to normal");
+            }
+    ));
+    console.AddCommand(new CommandCallMethod("LightCullAdaptive"
+                                             , [&](const std::vector<Argument>& args)
+            {
+                if(currentLightCull == &lightCullAdaptive)
+                    return Argument("Already set to adaptive");
+
+                currentLightCull = &lightCullAdaptive;
+
+                if(!worldModel->drawBinds.ChangeShader(contentManager, GLEnums::SHADER_TYPE::FRAGMENT, currentLightCull->GetForwardShaderPath()))
+                    throw "Oh no";
+
+                currentLightCull->SetDrawBindData(worldModel->drawBinds);
+
+                return Argument("Set to adaptive");
+            }
+    ));
 
     console.AddCommand(new CommandCallMethod("light_lightCount"
                                              , [&](const std::vector<Argument>& args)
@@ -604,7 +642,8 @@ bool Main::InitShaders()
     if(!lightCullNormal.Init(contentManager, console))
         return false;
 
-    currentLightCull = &lightCullAdaptive;
+    //currentLightCull = &lightCullAdaptive;
+    currentLightCull = &lightCullNormal;
 
     ////////////////////////////////////////////////////////////
     // Lines

@@ -32,6 +32,11 @@ layout (std140) uniform Materials
 
 #include "tileLights.glsl"
 
+layout(std430) buffer ColorBuffer
+{
+    vec4 colors[];
+};
+
 vec2 ProjectedToTexel(vec2 projectedPosition)
 {
     return vec2((projectedPosition.x + 1.0f) * 0.5f * screenWidth, (projectedPosition.y + 1.0f) * 0.5f * screenHeight);
@@ -85,12 +90,17 @@ void main()
             finalColor *= materials[materialIndex].diffuseColor;
             finalColor *= textureColor;
         }
+
+        const int index = arrayIndex / MAX_LIGHTS_PER_TILE;
+        finalColor = vec3(finalColor * 0.5 + colors[index].xyz * 0.5f);
     }
     else
     {
         finalColor += ambientStrength;
         finalColor *= materials[materialIndex].diffuseColor;
         finalColor *= textureColor;
+        finalColor *= 0.5f;
+        finalColor += vec3(0.0f, 0.0f, 0.5f);
     }
 
     outColor = vec4(finalColor, materials[materialIndex].opacity);

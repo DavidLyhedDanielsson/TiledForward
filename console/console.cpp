@@ -579,6 +579,7 @@ bool Console::SubOnKeyDown(const KeyState& keyState)
 				DeletePressed();
 			break;
 		case KEY_CODE::ENTER:
+		case KEY_CODE::KP_ENTER:
 			EnterPressed();
 			break;
 		case KEY_CODE::END:

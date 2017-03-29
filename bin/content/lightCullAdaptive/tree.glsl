@@ -80,7 +80,7 @@ void PutTreeDataTile(int x, int y, int data)
 
 int GetTreeDataScreen(int screenX, int screenY)
 {
-    int lastIndex = -1;
+    /*int lastIndex = -1;
 
     int depthOffset = 0;
 
@@ -103,17 +103,29 @@ int GetTreeDataScreen(int screenX, int screenY)
 
         int potentialIndex = tree[depthOffset + index];
         if(potentialIndex < 0)
-            if(potentialIndex == -987654321)
-                return -1;
-            else
-                return lastIndex;
+            return lastIndex;
         else
             lastIndex = potentialIndex;
 
         depthOffset += int(pow(4, i));
+    }*/
+
+    int depthOffset = 0;
+
+    vec2 range = vec2(float(screenWidth), float(screenHeight)) / 2.0f;
+
+    for(int i = 1; i < treeMaxDepth; ++i)
+    {
+        range /= 2.0f;
+        depthOffset += int(pow(4, i));
     }
 
-    return lastIndex;
+    int x = int(screenX / range.x);
+    int y = int(screenY / range.y);
+
+    int index = GetTreeLinearIndex(x, y);
+
+    return tree[depthOffset + index];
 }
 
 int GetTreeDataGrid(int x, int y, int depth)

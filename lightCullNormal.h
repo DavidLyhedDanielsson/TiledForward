@@ -32,7 +32,7 @@ public:
     GLDrawBinds lightCullDrawBinds;
 
     std::string GetForwardShaderPath() override;
-
+    std::string GetForwardShaderDebugPath() override;
 protected:
 private:
     const static int MAX_DEPTH = 8;

@@ -47,8 +47,20 @@ void main()
         }
         else
         {
-            currentStartIndex = -987654321;
-            currentLightCount = -987654321;
+            currentStartIndex = -1;
+            currentLightCount = -1;
+
+            /*PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, currentStartIndex);
+
+            TileLightData data;
+            data.start = currentStartIndex;
+            data.numberOfLights = currentLightCount;
+            data.padding = ivec2(gl_WorkGroupID);
+
+            int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, treeMaxDepth);
+            int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+
+            SetTileLightData(startIndex, data);*/
         }
     }
 
@@ -62,10 +74,10 @@ void main()
         vec4 planes[4] = CreatePlanes(viewPositions);
 
         for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
-        //for(int i = int(gl_LocalInvocationIndex); i < int(lights.length()); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
+        //for(int i = int(gl_LocalInvocationIndex); i < lights.length(); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         {
             int lightIndex = GetLightIndex(i);
-            //int lightIndex = 0;
+            //int lightIndex = i;
 
             LightData light = lights[lightIndex];
 
@@ -74,6 +86,7 @@ void main()
             if(dot(zeroPos, zeroPos) > light.strength * light.strength)
             {
                 bool inside = false;
+                //bool inside = true;
 
                 vec3 planeForward = normalize(viewPositions[CENTER]);
                 if(dot(normalize(zeroPos), planeForward) > 0.0f)
@@ -87,6 +100,7 @@ void main()
                         //if(dist < 0.0f)
                         {
                             inside = false;
+                            //inside = true;
                             break;
                         }
                     }
@@ -122,9 +136,4 @@ void main()
             SetTileLightData(startIndex, data);
         }
     }
-    /*else
-    {
-        if(gl_LocalInvocationIndex == 0)
-            PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, -987654321);
-    }*/
 }

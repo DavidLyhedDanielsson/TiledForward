@@ -72,13 +72,26 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 512;
+    int lightCount = 256;
 
-    const float LIGHT_DEFAULT_AMBIENT = 1.0f;
+
+#ifdef CONSTANT_LIGHT
+    const float LIGHT_DEFAULT_AMBIENT = 0.0f;
+    float lightMinStrength = 5.0f;
+    float lightMaxStrength = 5.0f;
+    float lightLifetime = 99999999999999999.0f;
+#else
+    const float LIGHT_DEFAULT_AMBIENT = 0.0f;
     float lightMinStrength = 0.0f;
-    float lightMaxStrength = 2.0f;
+    float lightMaxStrength = 5.0f;
     float lightLifetime = 2500.0f;
+#endif
 
+#ifdef SINGLE_POSITION
+    const float LIGHT_RANGE_X = 0.0f;
+    const float LIGHT_MAX_Y = 0.0f;
+    const float LIGHT_RANGE_Z = 0.0f;
+#else
     const float LIGHT_RANGE_X = 14.0f;
     const float LIGHT_MAX_Y = 2.0f;
     const float LIGHT_RANGE_Z = 6.0f;
@@ -86,10 +99,7 @@ private:
     //const float LIGHT_RANGE_X = 14.0f;
     //const float LIGHT_MAX_Y = 8.0f;
     //const float LIGHT_RANGE_Z = 6.0f;
-
-    //const float LIGHT_RANGE_X = 0.0f;
-    //const float LIGHT_MAX_Y = 0.0f;
-    //const float LIGHT_RANGE_Z = 0.0f;
+#endif
 
     const static int DEFAULT_SCREEN_WIDTH = 1024;
     const static int DEFAULT_SCREEN_HEIGHT = 1024;
@@ -151,6 +161,7 @@ private:
 
     bool recompileShaders;
 
+    bool drawLightSpheres;
     bool drawLightCount;
     bool dumpPreBackBuffer;
     bool dumpPostBackBuffer;
@@ -190,6 +201,7 @@ Main::Main()
           , currentCamera(&camera)
           , recompileShaders(false)
           , cameraSpeed(0.01f)
+          , drawLightSpheres(false)
           , drawLightCount(false)
           , dumpPreBackBuffer(false)
           , dumpPostBackBuffer(false)
@@ -340,6 +352,7 @@ void Main::InitConsole()
                  , false
                  , false);
     console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
+    console.AddCommand(new CommandGetSet<bool>("light_drawSpheres", &drawLightSpheres));
     console.AddCommand(new CommandGetSet<bool>("light_drawCount", &drawLightCount));
     console.AddCommand(new CommandGetSet<float>("cameraSpeed", &cameraSpeed));
 
@@ -347,37 +360,59 @@ void Main::InitConsole()
     console.AddCommand(new CommandGetSet<float>("light_maxStrength", &lightMaxStrength));
     console.AddCommand(new CommandGetSet<float>("light_lifetime", &lightLifetime));
 
-    console.AddCommand(new CommandCallMethod("LightCullNormal"
+    console.AddCommand(new CommandCallMethod("light_SetCullMode"
                                              , [&](const std::vector<Argument>& args)
             {
-                if(currentLightCull == &lightCullNormal)
-                    return Argument("Already set to normal");
+                if(args.size() != 1)
+                    return Argument("Expected 1 argument");
 
-                currentLightCull = &lightCullNormal;
+                std::string arg = args.front().value;
 
-                if(!worldModel->drawBinds.ChangeShader(contentManager, GLEnums::SHADER_TYPE::FRAGMENT, currentLightCull->GetForwardShaderPath()))
-                    throw "Oh no";
+                bool validArg = true;
+                bool debug = false;
 
-                currentLightCull->SetDrawBindData(worldModel->drawBinds);
+                if(arg == "normal")
+                {
+                    currentLightCull = &lightCullNormal;
+                }
+                else if(arg == "adaptive")
+                {
+                    currentLightCull = &lightCullAdaptive;
+                }
+                else if(arg == "normalDebug")
+                {
+                    currentLightCull = &lightCullNormal;
+                    debug = true;
+                }
+                else if(arg == "adaptiveDebug")
+                {
+                    currentLightCull = &lightCullAdaptive;
+                    debug = true;
+                }
+                else
+                    validArg = false;
 
-                return Argument("Set to normal");
+                if(validArg)
+                {
+                    std::string shaderPath;
+
+                    if(debug)
+                        shaderPath = currentLightCull->GetForwardShaderDebugPath();
+                    else
+                        shaderPath = currentLightCull->GetForwardShaderPath();
+
+                    if(!worldModel->drawBinds.ChangeShader(contentManager, GLEnums::SHADER_TYPE::FRAGMENT, shaderPath))
+                        throw "Oh no";
+
+                    currentLightCull->SetDrawBindData(worldModel->drawBinds);
+                    return Argument("Set to normal");
+                }
+                else
+                    return Argument("Invalid argument");
             }
-    ));
-    console.AddCommand(new CommandCallMethod("LightCullAdaptive"
-                                             , [&](const std::vector<Argument>& args)
-            {
-                if(currentLightCull == &lightCullAdaptive)
-                    return Argument("Already set to adaptive");
-
-                currentLightCull = &lightCullAdaptive;
-
-                if(!worldModel->drawBinds.ChangeShader(contentManager, GLEnums::SHADER_TYPE::FRAGMENT, currentLightCull->GetForwardShaderPath()))
-                    throw "Oh no";
-
-                currentLightCull->SetDrawBindData(worldModel->drawBinds);
-
-                return Argument("Set to adaptive");
-            }
+            , FORCE_STRING_ARGUMENTS::PER_ARGUMENT
+            , AUTOCOMPLETE_TYPE::ONLY_CUSTOM
+            , "normal", "adaptive", "normalDebug", "adaptiveDebug"
     ));
 
     console.AddCommand(new CommandCallMethod("light_lightCount"
@@ -642,8 +677,8 @@ bool Main::InitShaders()
     if(!lightCullNormal.Init(contentManager, console))
         return false;
 
-    //currentLightCull = &lightCullAdaptive;
-    currentLightCull = &lightCullNormal;
+    currentLightCull = &lightCullAdaptive;
+    //currentLightCull = &lightCullNormal;
 
     ////////////////////////////////////////////////////////////
     // Lines
@@ -717,7 +752,8 @@ void Main::Update(Timer& deltaTimer)
             lightsBuffer.lights[i].color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
         }
 
-        primitiveDrawer.DrawSphere(lightsBuffer.lights[i].position, lightsBuffer.lights[i].strength, lightsBuffer.lights[i].color);
+        if(drawLightSpheres)
+            primitiveDrawer.DrawSphere(lightsBuffer.lights[i].position, lightsBuffer.lights[i].strength, lightsBuffer.lights[i].color);
     }
 }
 
@@ -773,7 +809,8 @@ void Main::Render(Timer& deltaTimer)
     GLuint64 opaqueTime;
     glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &opaqueTime);
 
-    primitiveDrawer.End();
+    if(drawLightSpheres)
+        primitiveDrawer.End();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

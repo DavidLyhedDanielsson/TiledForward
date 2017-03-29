@@ -606,6 +606,8 @@ KEY_CODE Input::OSKeyToKEY_CODE(
             return KEY_CODE::DELETE;
         case XK_Return:
             return KEY_CODE::ENTER;
+        case XK_KP_Enter:
+            return KEY_CODE::KP_ENTER;
         case XK_End:
             return KEY_CODE::END;
         case XK_Home:
@@ -869,6 +871,8 @@ Input::KEY_CODEToOSKey(KEY_CODE keyCode)
             return XK_Delete;
         case KEY_CODE::ENTER:
             return XK_Return;
+        case KEY_CODE::KP_ENTER:
+            return XK_KP_Enter;
         case KEY_CODE::END:
             return XK_End;
         case KEY_CODE::HOME:

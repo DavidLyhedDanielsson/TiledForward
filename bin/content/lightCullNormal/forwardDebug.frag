@@ -29,6 +29,11 @@ layout (std140) uniform Materials
     Material materials[MAX_MATERIALS];
 };
 
+layout(std430) buffer ColorBuffer
+{
+    vec4 colors[];
+};
+
 vec2 ProjectedToTexel(vec2 projectedPosition)
 {
     return vec2((projectedPosition.x + 1.0f) * 0.5f * screenWidth, (projectedPosition.y + 1.0f) * 0.5f * screenHeight);
@@ -87,5 +92,5 @@ void main()
         finalColor *= textureColor;
     }
 
-    outColor = vec4(finalColor, materials[materialIndex].opacity);
+    outColor = vec4(finalColor * 0.75f + colors[arrayIndex].xyz * 0.25f, materials[materialIndex].opacity);
 }

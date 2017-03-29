@@ -28,13 +28,14 @@ public:
     virtual void ResolutionChanged(int newWidth, int newHeight) = 0;
 
     virtual std::string GetForwardShaderPath() = 0;
+    virtual std::string GetForwardShaderDebugPath() = 0;
 protected:
     int screenWidth;
     int screenHeight;
 
     GLuint timeQuery;
 
-    const static int MAX_LIGHTS_PER_TILE = 512;
+    const static int MAX_LIGHTS_PER_TILE = 256;
 };
 
 #endif // LIGHTCULL_H__

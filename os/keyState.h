@@ -38,6 +38,7 @@ enum class KEY_CODE : int
 	, BACKSPACE
 	, DELETE
 	, ENTER
+	, KP_ENTER
 	, END
 	, HOME
 	, TAB

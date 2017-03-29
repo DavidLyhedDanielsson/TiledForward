@@ -171,3 +171,8 @@ std::string LightCullNormal::GetForwardShaderPath()
 {
     return "lightCullNormal/forward.frag";
 }
+
+std::string LightCullNormal::GetForwardShaderDebugPath()
+{
+    return "lightCullNormal/forwardDebug.frag";
+}

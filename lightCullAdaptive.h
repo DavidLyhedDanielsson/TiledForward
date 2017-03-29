@@ -29,8 +29,6 @@ public:
 
     void ResolutionChanged(int newWidth, int newHeight) override;
 
-    glm::uvec2 GetThreadsPerGroup() const;
-
     int GetMaxLightsPerTile() const;
     int GetMaxNumberOfTreeIndices() const;
     int GetMaxNumberOfTiles() const;
@@ -41,12 +39,13 @@ public:
     GLDrawBinds lightReductionDrawBinds;
 
     std::string GetForwardShaderPath() override;
+    std::string GetForwardShaderDebugPath() override;
 protected:
 private:
-    const static int TREE_MAX_DEPTH = 8;
+    const static int TREE_MAX_DEPTH = 5;
 
     int treeStartDepth = 1;
-    int treeMaxDepth = 8;
+    int treeMaxDepth = TREE_MAX_DEPTH;
 
     void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
     void Draw();

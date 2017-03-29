@@ -24,8 +24,8 @@ bool LightCullAdaptive::Init(ContentManager& contentManager, Console& console)
     GLCPPSharedContentParameters sharedParameters;
     sharedParameters.variables =
             {
-                    std::make_pair("THREADS_PER_GROUP_X", "2")
-                    , std::make_pair("THREADS_PER_GROUP_Y", "2")
+                    std::make_pair("THREADS_PER_GROUP_X", "16")
+                    , std::make_pair("THREADS_PER_GROUP_Y", "16")
                     , std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(GetMaxLightsPerTile()))
             };
     sharedParameters.outPath = std::string(contentManager.GetRootDir()) + "/lightCullAdaptive";
@@ -197,6 +197,13 @@ void LightCullAdaptive::Draw()
         glDeleteSync(writeSync);
         glMemoryBarrier(GL_ALL_BARRIER_BITS);
     }
+
+    readWriteOffsets.x = (treeMaxDepth + 1) % 2 * indexLength;
+    readWriteOffsets.y = (treeMaxDepth + 2) % 2 * indexLength;
+    readWriteOffsets.z = (treeMaxDepth + 1) % 2 * lightDataLength;
+    readWriteOffsets.w = (treeMaxDepth + 2) % 2 * lightDataLength;
+    lightCullDrawBinds["ReadWriteOffsets"] = readWriteOffsets;
+    lightCullDrawBinds.GetUBO("ReadWriteOffsets")->Update();
 }
 
 void LightCullAdaptive::PostDraw()
@@ -339,4 +346,9 @@ void LightCullAdaptive::SetDrawBindData(GLDrawBinds& binds)
 std::string LightCullAdaptive::GetForwardShaderPath()
 {
     return "lightCullAdaptive/forward.frag";
+}
+
+std::string LightCullAdaptive::GetForwardShaderDebugPath()
+{
+    return "lightCullAdaptive/forwardDebug.frag";
 }

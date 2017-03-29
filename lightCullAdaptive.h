@@ -42,7 +42,7 @@ public:
     std::string GetForwardShaderDebugPath() override;
 protected:
 private:
-    const static int TREE_MAX_DEPTH = 5;
+    const static int TREE_MAX_DEPTH = 6;
 
     int treeStartDepth = 1;
     int treeMaxDepth = TREE_MAX_DEPTH;

@@ -7,7 +7,6 @@ struct TileLightData
 
 layout(std430) buffer LightIndices
 {
-    int occupiedIndices; // TODO: REMOVE!
     int lightIndices[];
 };
 

@@ -74,10 +74,10 @@ void main()
 
     if(gl_LocalInvocationIndex == 0)
     {
-        int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), treeStartDepth, treeMaxDepth);
-        int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+        int treeIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), treeStartDepth, treeMaxDepth);
+        int startIndex = treeIndex * MAX_LIGHTS_PER_TILE;
 
-        PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), treeStartDepth, startIndex);
+        PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), treeStartDepth, treeIndex);
 
         int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
         for(int i = 0; i < cappedLightCount; ++i)
@@ -90,6 +90,6 @@ void main()
         data.numberOfLights = lightCount;
         data.padding = ivec2(gl_WorkGroupID);
 
-        SetTileLightData(startIndex, data);
+        SetTileLightData(treeIndex, data);
     }
 }

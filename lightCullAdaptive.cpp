@@ -56,9 +56,9 @@ bool LightCullAdaptive::Init(ContentManager& contentManager, Console& console)
         return false;
 
     // Light count + light indices
-    lightCullDrawBinds["LightIndices"] = std::vector<int>(1 + GetMaxNumberOfTiles() * MAX_LIGHTS_PER_TILE * 2, -1);
+    lightCullDrawBinds["LightIndices"] = std::vector<int>(GetMaxNumberOfTiles() * MAX_LIGHTS_PER_TILE * 2, -1);
     // start + numberOfLights + padding
-    lightCullDrawBinds["TileLights"] = std::vector<int>(GetMaxNumberOfTiles() * MAX_LIGHTS_PER_TILE * 4 * 2, -1);
+    lightCullDrawBinds["TileLights"] = std::vector<int>(GetMaxNumberOfTiles() * 4 * 2, -1);
     lightCullDrawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
     lightCullDrawBinds["TreeDepthData"] = glm::ivec2(treeStartDepth, treeMaxDepth);
 
@@ -123,9 +123,9 @@ void LightCullAdaptive::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix
     ////////////////////////////////////////////////////////////
     // Light culling
     int zero = 0;
-    //lightCullDrawBinds.GetSSBO("TileLights")->SetData(-1);
+    lightCullDrawBinds.GetSSBO("TileLights")->SetData(-1);
     //lightCullDrawBinds.GetSSBO("LightIndices")->SetData(-1);
-    lightCullDrawBinds.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
+    //lightCullDrawBinds.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
 
     lightCullDrawBinds["viewMatrix"] = viewMatrix;
     lightCullDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
@@ -167,7 +167,7 @@ void LightCullAdaptive::Draw()
 
     lightReductionDrawBinds.Bind();
 
-    int indexLength = ((lightReductionDrawBinds.GetSSBO("LightIndices")->GetSize() - sizeof(int)) / sizeof(int)) / 2;
+    int indexLength = ((lightReductionDrawBinds.GetSSBO("LightIndices")->GetSize()) / sizeof(int)) / 2;
     int lightDataLength = (lightReductionDrawBinds.GetSSBO("TileLights")->GetSize() / (sizeof(int) * 4)) / 2;
 
     glm::ivec4 readWriteOffsets(0);
@@ -232,31 +232,14 @@ int GetTreeLinearIndex(int x, int y)
 
 int LightCullAdaptive::GetTreeDataScreen(int screenX, int screenY, int* tree)
 {
-    int lastIndex = -1;
+    int depthOffset = 0;
 
-    int depthOffset = -1;
-
-    glm::vec2 range = glm::vec2(float(screenWidth), float(screenHeight));
-
-    for(int i = 0; i < treeMaxDepth; ++i)
-    {
+    for(int i = 1; i < treeMaxDepth; ++i)
         depthOffset += int(pow(4, i));
 
-        range /= 2.0f;
+    int index = GetTreeLinearIndex(screenX, screenY);
 
-        int x = int(screenX / range.x);
-        int y = int(screenY / range.y);
-
-        int index = GetTreeLinearIndex(x, y);
-
-        int potentialIndex = tree[depthOffset + index];
-        if(potentialIndex < 0)
-            return i;
-        else
-            lastIndex = i;
-    }
-
-    return lastIndex;
+    return tree[depthOffset + index];
 }
 
 void LightCullAdaptive::DrawLightCount(SpriteRenderer& spriteRenderer
@@ -265,9 +248,23 @@ void LightCullAdaptive::DrawLightCount(SpriteRenderer& spriteRenderer
 {
     auto tree = lightCullDrawBinds.GetSSBO("Tree")->GetData();
 
-    int startOffset = -1;
-    for(int i = 0; i < treeMaxDepth; ++i)
-        startOffset += std::pow(2, i) * std::pow(2, i);
+    struct TileLight
+    {
+        int start;
+        int count;
+        int padding0;
+        int padding1;
+    };
+
+    int indexLength = ((lightReductionDrawBinds.GetSSBO("LightIndices")->GetSize()) / sizeof(int)) / 2;
+    int lightDataLength = (lightReductionDrawBinds.GetSSBO("TileLights")->GetSize() / (sizeof(int) * 4)) / 2;
+    glm::ivec4 readWriteOffsets;
+    readWriteOffsets.x = (treeMaxDepth + 1) % 2 * indexLength;
+    readWriteOffsets.y = (treeMaxDepth + 2) % 2 * indexLength;
+    readWriteOffsets.z = (treeMaxDepth + 1) % 2 * lightDataLength;
+    readWriteOffsets.w = (treeMaxDepth + 2) % 2 * lightDataLength;
+
+    auto tileLights = lightCullDrawBinds.GetSSBO("TileLights")->GetData();
 
     int threadCount = (int)(std::pow(2, treeMaxDepth));
     int spacing = screenWidth / threadCount;
@@ -276,18 +273,33 @@ void LightCullAdaptive::DrawLightCount(SpriteRenderer& spriteRenderer
     {
         for(int x = 0; x < threadCount; ++x)
         {
-            int data = GetTreeDataScreen(x * spacing, (threadCount - y - 1) * spacing, (int*)tree.get());
+            int treeData = GetTreeDataScreen(x, (threadCount - y - 1), (int*)tree.get());
 
-            //spriteRenderer.DrawString(characterSet, std::to_string(((int*)tree.get())[startOffset + index]), glm::vec2(spacing * x, spacing * y));
+            if(treeData >= 0)
+            {
+                TileLight currentTile = ((TileLight*)tileLights.get())[readWriteOffsets.z + treeData];
 
-            std::string text = std::to_string(data);
-            auto textWidth = characterSetSmall->GetWidthAtIndex(text.c_str(), -1);
+                //spriteRenderer.DrawString(characterSet, std::to_string(((int*)tree.get())[startOffset + index]), glm::vec2(spacing * x, spacing * y));
 
-            glm::vec2 drawPosition = glm::vec2(x * spacing + spacing / 2 - textWidth / 2, y * spacing + spacing / 2 - characterSetSmall->GetLineHeight() / 2);
-            drawPosition = glm::clamp(drawPosition, glm::vec2(0.0f), glm::vec2(screenWidth - textWidth, screenHeight - characterSetSmall->GetLineHeight()));
+                std::string text = std::to_string(currentTile.count);
+                auto textWidth = characterSetSmall->GetWidthAtIndex(text.c_str(), -1);
 
-            spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSetSmall->GetLineHeight()), glm::vec4(0.0f, 0.0f, 0.0f, 0.85f));
-            spriteRenderer.DrawString(characterSetSmall, text, drawPosition, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+                glm::vec2 drawPosition = glm::vec2(x * spacing + spacing / 2 - textWidth / 2, y * spacing + spacing / 2 - characterSetSmall->GetLineHeight() / 2);
+                drawPosition = glm::clamp(drawPosition, glm::vec2(0.0f), glm::vec2(screenWidth - textWidth, screenHeight - characterSetSmall->GetLineHeight()));
+
+                spriteRenderer.Draw(Rect(drawPosition, textWidth, characterSetSmall->GetLineHeight()), glm::vec4(0.0f, 0.0f, 0.0f, 0.85f));
+
+                glm::vec4 textColor;
+
+                if(currentTile.count > MAX_LIGHTS_PER_TILE)
+                    textColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+                else if(currentTile.count == MAX_LIGHTS_PER_TILE)
+                    textColor = { 0.0f, 0.0f, 1.0f, 1.0f };
+                else
+                    textColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+                spriteRenderer.DrawString(characterSetSmall, text, drawPosition, textColor);
+            }
         }
     }
 }

@@ -47,47 +47,36 @@ void main()
     vec3 finalColor = vec3(0.0f);
     vec3 textureColor = texture(tex, TexCoord).xyz;
 
-    if(arrayIndex >= 0)
+    const TileLightData data = GetTileLightData(arrayIndex);
+
+    const int lightStart = data.start;
+    const int lightCount = data.numberOfLights;
+
+    if(lightCount > 0)
     {
-        const TileLightData data = GetTileLightData(arrayIndex);
-
-        const int lightStart = data.start;
-        const int lightCount = data.numberOfLights;
-
-        if(lightCount > MAX_LIGHTS_PER_TILE)
-            finalColor = vec3(1.0f, 0.0f, 0.0f);
-        else
+        for(int i = lightStart; i < lightStart + lightCount; ++i)
         {
-            for(int i = lightStart; i < lightStart + lightCount; ++i)
-            {
-                LightData light = lights[GetLightIndex(i)];
+            LightData light = lights[GetLightIndex(i)];
 
-                vec3 lightDirection = WorldPosition - light.position;
-                float lightDistance = length(lightDirection);
+            vec3 lightDirection = WorldPosition - light.position;
+            float lightDistance = length(lightDirection);
 
-                if(lightDistance > light.strength)
-                    continue;
+            if(lightDistance > light.strength)
+                continue;
 
-                lightDirection = normalize(lightDirection);
+            lightDirection = normalize(lightDirection);
 
-                float linearFactor = 2.0f / light.strength;
-                float quadraticFactor = 1.0f / (light.strength * light.strength);
+            float linearFactor = 2.0f / light.strength;
+            float quadraticFactor = 1.0f / (light.strength * light.strength);
 
-                float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
-                attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);
+            float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
+            attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);
 
-                float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
+            float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
 
-                finalColor += light.color * diffuse * attenuation;
-            }
-
-            finalColor += ambientStrength;
-            finalColor *= materials[materialIndex].diffuseColor;
-            finalColor *= textureColor;
+            finalColor += light.color * diffuse * attenuation;
         }
-    }
-    else
-    {
+
         finalColor += ambientStrength;
         finalColor *= materials[materialIndex].diffuseColor;
         finalColor *= textureColor;

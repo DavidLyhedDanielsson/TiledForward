@@ -42,6 +42,15 @@ int GetTreeLinearIndex(int x, int y, int oldDepth, int newDepth)
     int newTileX = oldScreenX / newTileSizeX;
     int newTileY = oldScreenY / newTileSizeY;
 
+    /*int newTileX = x;
+    int newTileY = y;
+
+    for(int i = oldDepth; i < newDepth; ++i)
+    {
+        newTileX *= 2;
+        newTileY *= 2;
+    }*/
+
     return GetTreeLinearIndex(newTileX, newTileY);
 }
 

@@ -72,9 +72,9 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 256;
+    int lightCount = 2048;
 
-
+//#define CONSTANT_LIGHT
 #ifdef CONSTANT_LIGHT
     const float LIGHT_DEFAULT_AMBIENT = 0.0f;
     float lightMinStrength = 5.0f;
@@ -83,22 +83,23 @@ private:
 #else
     const float LIGHT_DEFAULT_AMBIENT = 0.0f;
     float lightMinStrength = 0.0f;
-    float lightMaxStrength = 5.0f;
+    float lightMaxStrength = 2.0f;
     float lightLifetime = 2500.0f;
 #endif
 
+//#define SINGLE_POSITION
 #ifdef SINGLE_POSITION
     const float LIGHT_RANGE_X = 0.0f;
     const float LIGHT_MAX_Y = 0.0f;
     const float LIGHT_RANGE_Z = 0.0f;
 #else
-    const float LIGHT_RANGE_X = 14.0f;
-    const float LIGHT_MAX_Y = 2.0f;
-    const float LIGHT_RANGE_Z = 6.0f;
-
     //const float LIGHT_RANGE_X = 14.0f;
-    //const float LIGHT_MAX_Y = 8.0f;
+    //const float LIGHT_MAX_Y = 2.0f;
     //const float LIGHT_RANGE_Z = 6.0f;
+
+    const float LIGHT_RANGE_X = 14.0f;
+    const float LIGHT_MAX_Y = 8.0f;
+    const float LIGHT_RANGE_Z = 6.0f;
 #endif
 
     const static int DEFAULT_SCREEN_WIDTH = 1024;
@@ -849,7 +850,7 @@ void Main::Render(Timer& deltaTimer)
     //Logger::LogLine(LOG_TYPE::NONE, std::to_string(lightCullTime * 1e-6f), ", ", std::to_string(opaqueTime * 1e-6f));
 
     if(drawLightCount)
-        currentLightCull->DrawLightCount(spriteRenderer, characterSet8, nullptr);
+        currentLightCull->DrawLightCount(spriteRenderer, characterSet8, characterSet24);
 
     guiManager.Draw(&spriteRenderer);
 

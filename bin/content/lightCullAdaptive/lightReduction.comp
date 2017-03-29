@@ -67,17 +67,17 @@ void main()
     memoryBarrier();
     barrier();
 
-    if(currentLightCount > 0)
+    if(currentLightCount >= 0)
     {
         // Divide tile, check collision for all lights inside this tile again
         vec3 viewPositions[5] = CreateFarPoints(uvec2(newTileSizeX, newTileSizeY));
         vec4 planes[4] = CreatePlanes(viewPositions);
 
-        for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
-        //for(int i = int(gl_LocalInvocationIndex); i < lights.length(); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
+        //for(int i = currentStartIndex + int(gl_LocalInvocationIndex); i < currentStartIndex + currentLightCount; i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
+        for(int i = int(gl_LocalInvocationIndex); i < lights.length(); i += int(THREADS_PER_GROUP_X * THREADS_PER_GROUP_Y))
         {
-            int lightIndex = GetLightIndex(i);
-            //int lightIndex = i;
+            //int lightIndex = GetLightIndex(i);
+            int lightIndex = i;
 
             LightData light = lights[lightIndex];
 
@@ -117,10 +117,10 @@ void main()
 
         if(gl_LocalInvocationIndex == 0)
         {
-            int arrayIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, treeMaxDepth);
-            int startIndex = arrayIndex * MAX_LIGHTS_PER_TILE;
+            int treeIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, treeMaxDepth);
+            int startIndex = treeIndex * MAX_LIGHTS_PER_TILE;
 
-            PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, startIndex);
+            PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, treeIndex);
 
             int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
             for(int i = 0; i < cappedLightCount; ++i)
@@ -133,7 +133,7 @@ void main()
             data.numberOfLights = lightCount;
             data.padding = ivec2(gl_WorkGroupID);
 
-            SetTileLightData(startIndex, data);
+            SetTileLightData(treeIndex, data);
         }
     }
 }

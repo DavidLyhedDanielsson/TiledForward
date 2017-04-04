@@ -197,6 +197,9 @@ void PrimitiveDrawer::Begin()
 
 void PrimitiveDrawer::End()
 {
+    if(spheres.empty())
+        return;
+
     sphereInstanceBuffer.Update(&spheres[0], sizeof(InstanceData) * spheres.size());
 
     sphereBinds.Bind();

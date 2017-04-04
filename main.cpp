@@ -28,39 +28,11 @@
 #include "gl/glCPPShared.h"
 #include "lightCullAdaptive.h"
 #include "lightCullNormal.h"
+#include "lightManager.h"
 
 #include <glm/gtx/component_wise.hpp>
 #include <IL/il.h>
-
-struct LightData
-{
-    glm::vec3 position;
-    float strength;
-    glm::vec3 color;
-    float padding;
-};
-
-class LightsBuffer
-        : public GLDynamicBuffer
-{
-public:
-    size_t GetTotalSize() const override
-    {
-        return sizeof(glm::vec3) + sizeof(float) + sizeof(LightData) * lights.size();
-    }
-
-    void UploadData(void* location) const override
-    {
-        char* locationChar = (char*)location;
-
-        std::memcpy(locationChar + sizeof(padding), &ambientStrength, sizeof(float));
-        std::memcpy(locationChar + sizeof(padding) + sizeof(ambientStrength), &lights[0], sizeof(LightData) * lights.size());
-    }
-
-    glm::vec3 padding;
-    float ambientStrength;
-    std::vector<LightData> lights;
-};
+#include <glm/gtx/norm.hpp>
 
 class Main
 {
@@ -72,35 +44,6 @@ public:
     int Run();
 protected:
 private:
-    int lightCount = 2048;
-
-//#define CONSTANT_LIGHT
-#ifdef CONSTANT_LIGHT
-    const float LIGHT_DEFAULT_AMBIENT = 0.0f;
-    float lightMinStrength = 5.0f;
-    float lightMaxStrength = 5.0f;
-    float lightLifetime = 99999999999999999.0f;
-#else
-    const float LIGHT_DEFAULT_AMBIENT = 0.0f;
-    float lightMinStrength = 0.0f;
-    float lightMaxStrength = 2.0f;
-    float lightLifetime = 2500.0f;
-#endif
-
-//#define SINGLE_POSITION
-#ifdef SINGLE_POSITION
-    const float LIGHT_RANGE_X = 0.0f;
-    const float LIGHT_MAX_Y = 0.0f;
-    const float LIGHT_RANGE_Z = 0.0f;
-#else
-    //const float LIGHT_RANGE_X = 14.0f;
-    //const float LIGHT_MAX_Y = 2.0f;
-    //const float LIGHT_RANGE_Z = 6.0f;
-
-    const float LIGHT_RANGE_X = 14.0f;
-    const float LIGHT_MAX_Y = 8.0f;
-    const float LIGHT_RANGE_Z = 6.0f;
-#endif
 
     const static int DEFAULT_SCREEN_WIDTH = 1024;
     const static int DEFAULT_SCREEN_HEIGHT = 1024;
@@ -111,8 +54,6 @@ private:
     LightCullNormal lightCullNormal;
     LightCullAdaptive lightCullAdaptive;
     LightCull* currentLightCull;
-
-    LightsBuffer lightsBuffer;
 
     OSWindow window;
 
@@ -137,7 +78,6 @@ private:
 
     // Debug
     bool wireframe;
-    bool drawTiles;
     glm::ivec2 tileToDraw;
 
     GLuint frameBufferDepthOnly;
@@ -162,25 +102,23 @@ private:
 
     bool recompileShaders;
 
-    bool drawLightSpheres;
     bool drawLightCount;
     bool dumpPreBackBuffer;
     bool dumpPostBackBuffer;
 
+    LightManager lightManager;
+
     int InitContent();
     void InitConsole();
     void InitInput();
-    void InitLights();
     bool InitFrameBuffers();
     void InitQuieries();
     bool InitShaders();
 
     void Update(Timer& deltaTimer);
     void Render(Timer& deltaTimer);
-    void DrawTiles();
     bool ResizeFramebuffer(int width, int height, bool recreateBuffers);
 
-    LightData GetRandomLight();
     void DumpBackBuffer();
 };
 
@@ -193,7 +131,6 @@ int main(int argc, char* argv[])
 Main::Main()
         : contentManager("content")
           , wireframe(false)
-          , drawTiles(false)
           , tileToDraw(-1)
           , averageFrameTime(0.0f)
           , msaaCount(2)
@@ -202,7 +139,6 @@ Main::Main()
           , currentCamera(&camera)
           , recompileShaders(false)
           , cameraSpeed(0.01f)
-          , drawLightSpheres(false)
           , drawLightCount(false)
           , dumpPreBackBuffer(false)
           , dumpPostBackBuffer(false)
@@ -249,7 +185,7 @@ int Main::Run()
 
         primitiveDrawer.Init(contentManager);
 
-        InitLights();
+        lightManager.AddConsoleCommands(console);
         InitQuieries();
         console.Autoexec();
 
@@ -353,13 +289,8 @@ void Main::InitConsole()
                  , false
                  , false);
     console.AddCommand(new CommandGetSet<bool>("wireframe", &wireframe));
-    console.AddCommand(new CommandGetSet<bool>("light_drawSpheres", &drawLightSpheres));
     console.AddCommand(new CommandGetSet<bool>("light_drawCount", &drawLightCount));
     console.AddCommand(new CommandGetSet<float>("cameraSpeed", &cameraSpeed));
-
-    console.AddCommand(new CommandGetSet<float>("light_minStrength", &lightMinStrength));
-    console.AddCommand(new CommandGetSet<float>("light_maxStrength", &lightMaxStrength));
-    console.AddCommand(new CommandGetSet<float>("light_lifetime", &lightLifetime));
 
     console.AddCommand(new CommandCallMethod("light_SetCullMode"
                                              , [&](const std::vector<Argument>& args)
@@ -406,77 +337,17 @@ void Main::InitConsole()
                         throw "Oh no";
 
                     currentLightCull->SetDrawBindData(worldModel->drawBinds);
-                    return Argument("Set to normal");
+                    return Argument("Lighting cull mode updated");
                 }
                 else
                     return Argument("Invalid argument");
             }
-            , FORCE_STRING_ARGUMENTS::PER_ARGUMENT
-            , AUTOCOMPLETE_TYPE::ONLY_CUSTOM
-            , "normal", "adaptive", "normalDebug", "adaptiveDebug"
+                                             , FORCE_STRING_ARGUMENTS::PER_ARGUMENT
+                                             , AUTOCOMPLETE_TYPE::ONLY_CUSTOM
+                                             , "normal", "adaptive", "normalDebug", "adaptiveDebug"
     ));
 
-    console.AddCommand(new CommandCallMethod("light_lightCount"
-                                             , [&](const std::vector<Argument>& args)
-            {
-                if(args.size() == 0)
-                    return Argument("lightCount = " + std::to_string(lightCount));
-                else if(args.size() != 1)
-                    return Argument("Needs 1 parameter");
 
-                int newCount = std::stoi(args.front().value);
-
-                if(newCount > lightCount)
-                {
-                    lightsBuffer.lights.reserve(newCount);
-                    for(int i = 0; i < newCount - lightCount; ++i)
-                        lightsBuffer.lights.push_back(GetRandomLight());
-                }
-                else
-                    lightsBuffer.lights.resize(newCount);
-
-                lightCount = newCount;
-
-                return Argument("lightCount updated to " + std::to_string(lightCount));
-            }
-    ));
-
-    console.AddCommand(new CommandCallMethod("light_position"
-                                             , [&](const std::vector<Argument>& args)
-            {
-                if(args.size() != 1)
-                    return Argument("Needs 1 parameter");
-
-                glm::vec3 newPosition = camera.GetPosition();
-
-                lightsBuffer.lights[std::stoi(args.front().value)].position = newPosition;
-
-                Argument returnArgument;
-                newPosition >> returnArgument;
-                returnArgument.value.insert(0, "Position set to ");
-
-                return returnArgument;
-            }
-    ));
-    console.AddCommand(new CommandCallMethod("light_strength"
-                                             , [&](const std::vector<Argument>& args)
-            {
-                if(args.size() != 2)
-                    return Argument("Needs 2 parameter");
-
-                float newStrength = std::stof(args.back().value);
-
-                lightsBuffer.lights[std::stoi(args.front().value)].strength = newStrength;
-
-                Argument returnArgument;
-                newStrength >> returnArgument;
-                returnArgument.value.insert(0, "Strength set to ");
-
-                return returnArgument;
-            }
-    ));
-    //console.AddCommand(new CommandGetSet<float>("light_lightStrength", &worldModel->lightData.lightStrength));
-    console.AddCommand(new CommandGetSet<float>("light_ambientStrength", &lightsBuffer.ambientStrength));
 
     console.AddCommand(new CommandCallMethod("snapshot", [&](const std::vector<Argument>& args)
             {
@@ -486,7 +357,6 @@ void Main::InitConsole()
             }
     ));
 
-    console.AddCommand(new CommandGetSet<bool>("drawTiles", &drawTiles));
     console.AddCommand(new CommandGetSet<glm::ivec2>("tileToDraw", &tileToDraw));
 
     console.AddCommand(new CommandCallMethod("msaaCount"
@@ -614,17 +484,6 @@ void Main::InitInput()
     Input::Update();
 }
 
-void Main::InitLights()
-{
-    lightsBuffer.lights.reserve(lightCount);
-
-    lightsBuffer.padding = glm::vec3(1.0f, 1.2f, 1.23f);
-    lightsBuffer.ambientStrength = LIGHT_DEFAULT_AMBIENT;
-
-    for(int i = 0; i < lightCount; ++i)
-        lightsBuffer.lights.push_back(GetRandomLight());
-}
-
 void Main::InitQuieries()
 {
     glGenQueries(2, queries);
@@ -727,35 +586,7 @@ void Main::Update(Timer& deltaTimer)
 
     contentManager.HotReload();
 
-    for(int i = 0; i < lightCount; ++i)
-    {
-        lightsBuffer.lights[i].padding += deltaTimer.GetDeltaMillisecondsFraction();
-
-        float newStrength;
-        if(lightsBuffer.lights[i].padding <= lightLifetime * 0.5f)
-            newStrength = (lightsBuffer.lights[i].padding / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
-        else
-            newStrength = ((lightLifetime * 0.5f - (lightsBuffer.lights[i].padding - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
-
-
-        lightsBuffer.lights[i].strength = newStrength;
-
-        if(lightsBuffer.lights[i].padding >= lightLifetime)
-        {
-            lightsBuffer.lights[i].padding = 0.0f;
-
-            float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-            float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.5f;
-            float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z ;
-
-            lightsBuffer.lights[i].position = glm::vec3(xPos, yPos, zPos);
-            lightsBuffer.lights[i].strength = std::fmod(lightsBuffer.lights[i].padding, lightLifetime);
-            lightsBuffer.lights[i].color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
-        }
-
-        if(drawLightSpheres)
-            primitiveDrawer.DrawSphere(lightsBuffer.lights[i].position, lightsBuffer.lights[i].strength, lightsBuffer.lights[i].color);
-    }
+    lightManager.Update(deltaTimer, primitiveDrawer);
 }
 
 void Main::Render(Timer& deltaTimer)
@@ -768,7 +599,7 @@ void Main::Render(Timer& deltaTimer)
 
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
-    worldModel->drawBinds["Lights"] = &lightsBuffer;
+    worldModel->drawBinds["Lights"] = &lightManager.GetLightsBuffer();
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
@@ -810,8 +641,7 @@ void Main::Render(Timer& deltaTimer)
     GLuint64 opaqueTime;
     glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &opaqueTime);
 
-    if(drawLightSpheres)
-        primitiveDrawer.End();
+    primitiveDrawer.End();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -831,9 +661,6 @@ void Main::Render(Timer& deltaTimer)
        DumpBackBuffer();
 
     glDisable(GL_CULL_FACE);
-
-    if(drawTiles)
-        DrawTiles();
 
     glDisable(GL_DEPTH_TEST);
 
@@ -943,97 +770,6 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
     lightCullNormal.ResolutionChanged(width, height);
 
     return true;
-}
-
-void Main::DrawTiles()
-{
-    /*std::vector<LineVertex> linePositions;
-    std::vector<GLuint> lineIndices;
-
-    const static glm::ivec2 offsets[4] =
-            {
-                    glm::ivec2(0, 0)
-                    , glm::ivec2(1, 0)
-                    , glm::ivec2(1, 1)
-                    , glm::ivec2(0, 1)
-            };
-
-    auto startX = tileToDraw.x == -1 ? 0 : tileToDraw.x;
-    auto endX = tileToDraw.x == -1 ? (int)std::ceil(screenWidth / (float)workGroupWidth) : tileToDraw.x + 1;
-
-    auto startY = tileToDraw.y == -1 ? 0 : tileToDraw.y;
-    auto endY = tileToDraw.y == -1 ? (int)std::ceil(screenHeight / (float)workGroupHeight) : tileToDraw.y + 1;
-    for(int y = startY; y < endY; ++y)
-    {
-        for(int x = startX; x < endX; ++x)
-        {
-            const glm::ivec2 gl_WorkGroupID(x, y);
-            const glm::ivec2 gl_WorkGroupSize(workGroupWidth, workGroupHeight);
-
-            const glm::vec2 SCREEN_SIZE(screenWidth, screenHeight);
-
-            glm::vec3 viewPositions[4];
-
-            glm::mat4 projectionInverseMatrix = glm::inverse(snapshotCamera.GetProjectionMatrix());
-            glm::mat4 viewInverseMatrix = glm::inverse(snapshotCamera.GetViewMatrix());
-
-            for(int i = 0; i < 4; ++i)
-            {
-                glm::vec3 ndcPosition = glm::vec3(glm::vec2((gl_WorkGroupID + offsets[i]) * gl_WorkGroupSize) / SCREEN_SIZE, 1.0f);
-                ndcPosition.x *= 2.0f;
-                ndcPosition.x -= 1.0f;
-                ndcPosition.y *= -2.0f;
-                ndcPosition.y += 1.0f;
-
-                glm::vec4 unprojectedPosition = projectionInverseMatrix * glm::vec4(ndcPosition, 1.0f);
-                unprojectedPosition /= unprojectedPosition.w;
-
-                viewPositions[i] = glm::vec3(unprojectedPosition);
-            }
-
-            for(int i = 0; i < 4; ++i)
-            {
-                glm::vec3 eye(viewInverseMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-                glm::vec3 target(viewInverseMatrix * glm::vec4(viewPositions[i], 1.0f));
-
-                linePositions.push_back(LineVertex(eye));
-                linePositions.push_back(LineVertex(target));
-
-                lineIndices.push_back(lineIndices.size());
-                lineIndices.push_back(lineIndices.size());
-            }
-        }
-    }
-
-    lineVertexBuffer.Update(linePositions.data(), linePositions.size() * sizeof(linePositions[0]));
-    lineIndexBuffer.Update(lineIndices);
-
-    lineDrawBinds.Bind();
-    lineDrawBinds.DrawElements(GLEnums::DRAW_MODE::LINES);
-    lineDrawBinds.Unbind();*/
-}
-
-LightData Main::GetRandomLight()
-{
-    LightData light;
-
-    float xPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_X;
-    float yPos = (rand() / (float)RAND_MAX) * LIGHT_MAX_Y + 0.5f;
-    float zPos = ((rand() / (float)RAND_MAX) - 0.5f) * 2.0f * LIGHT_RANGE_Z;
-
-    light.position = glm::vec3(xPos, yPos, zPos);
-    light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
-    light.padding = rand() / (float)RAND_MAX * lightLifetime;
-
-    if(lightsBuffer.lights.size() == 0)
-        light.color = { 1.0f, 1.0f, 1.0f };
-
-    if(light.padding <= lightLifetime * 0.5f)
-        light.strength = (light.padding / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
-    else
-        light.strength = ((lightLifetime * 0.5f - (light.padding - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
-
-    return light;
 }
 
 void Main::DumpBackBuffer()

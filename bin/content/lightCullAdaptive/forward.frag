@@ -52,6 +52,7 @@ void main()
     const int lightStart = data.start;
     const int lightCount = data.numberOfLights;
 
+    // lightCount might be negative
     if(lightCount > 0)
     {
         for(int i = lightStart; i < lightStart + lightCount; ++i)
@@ -66,21 +67,24 @@ void main()
 
             lightDirection = normalize(lightDirection);
 
-            float linearFactor = 2.0f / light.strength;
+            /*float linearFactor = 2.0f / light.strength;
             float quadraticFactor = 1.0f / (light.strength * light.strength);
 
             float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
-            attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);
+            attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);*/
 
-            float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
+            float attenuation = 1.0f - (lightDistance / light.strength) * (lightDistance / light.strength);
+
+            //float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
+            float diffuse = 1.0f;
 
             finalColor += light.color * diffuse * attenuation;
         }
-
-        finalColor += ambientStrength;
-        finalColor *= materials[materialIndex].diffuseColor;
-        finalColor *= textureColor;
     }
+
+    finalColor += ambientStrength;
+    finalColor *= materials[materialIndex].diffuseColor;
+    finalColor *= textureColor;
 
     outColor = vec4(finalColor, materials[materialIndex].opacity);
 }

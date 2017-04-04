@@ -36,11 +36,11 @@ void main()
     {
         lightCount = 0;
 
-        int arrayIndex = GetTreeDataGrid(int(gl_WorkGroupID.x / 2), int(gl_WorkGroupID.y / 2), oldDepth);
+        int oldArrayIndex = GetTreeDataGrid(int(gl_WorkGroupID.x / 2), int(gl_WorkGroupID.y / 2), oldDepth);
 
-        if(arrayIndex >= 0)
+        if(oldArrayIndex >= 0)
         {
-            TileLightData tileData = GetTileLightData(arrayIndex);
+            TileLightData tileData = GetTileLightData(oldArrayIndex);
 
             currentStartIndex = tileData.start;
             currentLightCount = tileData.numberOfLights;
@@ -118,10 +118,10 @@ void main()
         if(gl_LocalInvocationIndex == 0)
         {
             int treeIndex = GetTreeLinearIndex(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, treeMaxDepth);
-            int startIndex = treeIndex * MAX_LIGHTS_PER_TILE;
 
             PutTreeDataTile(int(gl_WorkGroupID.x), int(gl_WorkGroupID.y), newDepth, treeIndex);
 
+            int startIndex = treeIndex * MAX_LIGHTS_PER_TILE;
             int cappedLightCount = min(lightCount, MAX_LIGHTS_PER_TILE);
             for(int i = 0; i < cappedLightCount; ++i)
                 SetLightIndex(startIndex + i, localLightIndices[i]);

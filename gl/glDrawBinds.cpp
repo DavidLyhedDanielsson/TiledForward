@@ -6,6 +6,7 @@
 
 #include <cstring>
 #include <set>
+#include <algorithm>
 
 GLDrawBinds::GLDrawBinds()
         : bound(false)
@@ -903,35 +904,19 @@ bool GLDrawBinds::ChangeShader(ContentManager& contentManager
 
     for(auto& pair : shaderBinds)
     {
+        auto iter = std::find(pair.second->shaderPrograms.begin(), pair.second->shaderPrograms.end(), this);
+        if(iter != pair.second->shaderPrograms.end())
+            pair.second->shaderPrograms.erase(iter);
+        glDetachShader(shaderProgram, pair.second->GetShader());
+
         if(pair.first == shaderType)
-        {
-            auto shaderPrograms = pair.second->shaderPrograms;
-
-            for(int i = 0; i < shaderPrograms.size(); ++i)
-            {
-                if(shaderPrograms[i] == this)
-                {
-                    glDetachShader(GetShaderProgram(), pair.second->GetShader());
-                    shaderPrograms.erase(shaderPrograms.begin() + i);
-                    break;
-                }
-            }
-
             pair.second = newShader;
-            pair.second->shaderPrograms.push_back(this);
-        }
     }
 
     Unbind();
 
     if(shaderProgram != 0)
     {
-        // If the shaders are unloaded first glDetachShader will be called from there
-        // and the shader will be set to 0
-        for(const auto& pair : shaderBinds)
-            if(pair.second->GetShader() != 0)
-                glDetachShader(shaderProgram, pair.second->GetShader());
-
         glDeleteProgram(shaderProgram);
         shaderProgram = 0;
     }

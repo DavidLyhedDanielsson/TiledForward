@@ -29,6 +29,7 @@
 #include "lightCullAdaptive.h"
 #include "lightCullNormal.h"
 #include "lightManager.h"
+#include "lightCullClustered.h"
 
 #include <glm/gtx/component_wise.hpp>
 #include <IL/il.h>
@@ -51,8 +52,10 @@ private:
     int screenWidth = DEFAULT_SCREEN_WIDTH;
     int screenHeight = DEFAULT_SCREEN_HEIGHT;
 
-    LightCullNormal lightCullNormal;
-    LightCullAdaptive lightCullAdaptive;
+    // TODO: Smart this up
+    LightCullNormal* lightCullNormal;
+    LightCullAdaptive* lightCullAdaptive;
+    LightCullClustered* lightCullClustered;
     LightCull* currentLightCull;
 
     OSWindow window;
@@ -142,6 +145,9 @@ Main::Main()
           , drawLightCount(false)
           , dumpPreBackBuffer(false)
           , dumpPostBackBuffer(false)
+          , lightCullNormal(nullptr)
+          , lightCullAdaptive(nullptr)
+          , lightCullClustered(nullptr)
 { }
 
 float currentFrameTime = 0.0f;
@@ -305,20 +311,103 @@ void Main::InitConsole()
 
                 if(arg == "normal")
                 {
-                    currentLightCull = &lightCullNormal;
+                    if(lightCullNormal == nullptr)
+                    {
+                        lightCullNormal = new LightCullNormal();
+
+                        lightCullNormal->InitShaderConstants(screenWidth, screenHeight);
+                        if(!lightCullNormal->Init(contentManager, console))
+                        {
+                            delete lightCullNormal;
+                            return Argument("Couldn't initialize shader");
+                        }
+                    }
+
+                    currentLightCull = lightCullNormal;
                 }
                 else if(arg == "adaptive")
                 {
-                    currentLightCull = &lightCullAdaptive;
+                    if(lightCullAdaptive == nullptr)
+                    {
+                        lightCullAdaptive = new LightCullAdaptive();
+
+                        lightCullAdaptive->InitShaderConstants(screenWidth, screenHeight);
+                        if(!lightCullAdaptive->Init(contentManager, console))
+                        {
+                            delete lightCullAdaptive;
+                            return Argument("Couldn't initialize shader");
+                        }
+                    }
+
+                    currentLightCull = lightCullAdaptive;
                 }
                 else if(arg == "normalDebug")
                 {
-                    currentLightCull = &lightCullNormal;
+                    if(lightCullNormal == nullptr)
+                    {
+                        lightCullNormal = new LightCullNormal();
+
+                        lightCullNormal->InitShaderConstants(screenWidth, screenHeight);
+                        if(!lightCullNormal->Init(contentManager, console))
+                        {
+                            delete lightCullNormal;
+                            return Argument("Couldn't initialize shader");
+                        }
+                    }
+
+                    currentLightCull = lightCullNormal;
                     debug = true;
                 }
                 else if(arg == "adaptiveDebug")
                 {
-                    currentLightCull = &lightCullAdaptive;
+                    if(lightCullAdaptive == nullptr)
+                    {
+                        lightCullAdaptive = new LightCullAdaptive();
+
+                        lightCullAdaptive->InitShaderConstants(screenWidth, screenHeight);
+                        if(!lightCullAdaptive->Init(contentManager, console))
+                        {
+                            delete lightCullAdaptive;
+                            return Argument("Couldn't initialize shader");
+                        }
+                    }
+
+                    currentLightCull = lightCullAdaptive;
+                    debug = true;
+                }
+                else if(arg == "clustered")
+                {
+                    if(lightCullClustered == nullptr)
+                    {
+                        lightCullClustered = new LightCullClustered();
+
+                        lightCullClustered->InitShaderConstants(screenWidth, screenHeight);
+                        if(!lightCullClustered->Init(contentManager, console))
+                        {
+                            delete lightCullClustered;
+                            return Argument("Couldn't initialize shader");
+                        }
+                    }
+
+                    currentLightCull = lightCullClustered;
+                    debug = true;
+                }
+                else if(arg == "clusteredDebug")
+                {
+
+                    if(lightCullClustered == nullptr)
+                    {
+                        lightCullClustered = new LightCullClustered();
+
+                        lightCullClustered->InitShaderConstants(screenWidth, screenHeight);
+                        if(!lightCullClustered->Init(contentManager, console))
+                        {
+                            delete lightCullClustered;
+                            return Argument("Couldn't initialize shader");
+                        }
+                    }
+
+                    currentLightCull = lightCullClustered;
                     debug = true;
                 }
                 else
@@ -344,10 +433,8 @@ void Main::InitConsole()
             }
                                              , FORCE_STRING_ARGUMENTS::PER_ARGUMENT
                                              , AUTOCOMPLETE_TYPE::ONLY_CUSTOM
-                                             , "normal", "adaptive", "normalDebug", "adaptiveDebug"
+                                             , "normal", "adaptive", "normalDebug", "adaptiveDebug", "clustered", "clusteredDebug"
     ));
-
-
 
     console.AddCommand(new CommandCallMethod("snapshot", [&](const std::vector<Argument>& args)
             {
@@ -529,15 +616,21 @@ bool Main::InitFrameBuffers()
 
 bool Main::InitShaders()
 {
-    lightCullAdaptive.InitShaderConstants(screenWidth, screenHeight);
+    /*lightCullAdaptive.InitShaderConstants(screenWidth, screenHeight);
     if(!lightCullAdaptive.Init(contentManager, console))
         return false;
 
     lightCullNormal.InitShaderConstants(screenWidth, screenHeight);
     if(!lightCullNormal.Init(contentManager, console))
-        return false;
+        return false;*/
 
-    currentLightCull = &lightCullAdaptive;
+    lightCullClustered = new LightCullClustered();
+
+    currentLightCull = lightCullClustered;
+
+    currentLightCull->InitShaderConstants(screenWidth, screenHeight);
+    if(!currentLightCull->Init(contentManager, console))
+        return false;
     //currentLightCull = &lightCullNormal;
 
     ////////////////////////////////////////////////////////////
@@ -599,7 +692,7 @@ void Main::Render(Timer& deltaTimer)
 
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
-    worldModel->drawBinds["Lights"] = &lightManager.GetLightsBuffer();
+    //worldModel->drawBinds["Lights"] = &lightManager.GetLightsBuffer();
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
@@ -625,7 +718,7 @@ void Main::Render(Timer& deltaTimer)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Light pass
-    auto lightCullTime = currentLightCull->TimedDraw(viewMatrix, projectionMatrixInverse);
+    auto lightCullTime = currentLightCull->TimedDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
     //worldModel->drawBinds.GetSSBO("TileLights")->Replace(lightCull.GetActiveTileLightsData());
 
@@ -766,8 +859,8 @@ bool Main::ResizeFramebuffer(int width, int height, bool recreateBuffers)
     if(recreateBuffers)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    lightCullAdaptive.ResolutionChanged(width, height);
-    lightCullNormal.ResolutionChanged(width, height);
+    //lightCullAdaptive.ResolutionChanged(width, height);
+    //lightCullNormal.ResolutionChanged(width, height);
 
     return true;
 }

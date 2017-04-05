@@ -16,18 +16,18 @@ public:
     LightCullAdaptive();
     ~LightCullAdaptive();
 
-    void InitShaderConstants(int screenWidth, int screenHeight) override;
-    bool Init(ContentManager& contentManager, Console& console) override;
-    void SetDrawBindData(GLDrawBinds& binds) override;
+    virtual void InitShaderConstants(int screenWidth, int screenHeight) override;
+    virtual bool Init(ContentManager& contentManager, Console& console) override;
+    virtual void SetDrawBindData(GLDrawBinds& binds) override;
 
-    void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse) override;
-    GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse) override;
+    virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) override;
+    virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) override;
 
-    void DrawLightCount(SpriteRenderer& spriteRenderer
+    virtual void DrawLightCount(SpriteRenderer& spriteRenderer
                             , CharacterSet* characterSetSmall
                             , CharacterSet* characterSetBig) override;
 
-    void ResolutionChanged(int newWidth, int newHeight) override;
+    virtual void ResolutionChanged(int newWidth, int newHeight) override;
 
     int GetMaxLightsPerTile() const;
     int GetMaxNumberOfTreeIndices() const;
@@ -38,18 +38,17 @@ public:
     GLDrawBinds lightCullDrawBinds;
     GLDrawBinds lightReductionDrawBinds;
 
-    std::string GetForwardShaderPath() override;
-    std::string GetForwardShaderDebugPath() override;
+    virtual std::string GetForwardShaderPath() override;
+    virtual std::string GetForwardShaderDebugPath() override;
 protected:
-private:
-    const static int TREE_MAX_DEPTH = 6;
+    const static int TREE_MAX_DEPTH = 2;
 
     int treeStartDepth = 1;
     int treeMaxDepth = TREE_MAX_DEPTH;
 
-    void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
-    void Draw();
-    void PostDraw();
+    virtual void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
+    virtual void Draw();
+    virtual void PostDraw();
     int GetTreeDataScreen(int screenX, int screenY, int* tree);
 
     std::vector<glm::vec4> colors;

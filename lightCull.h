@@ -6,6 +6,7 @@
 #include "content/contentManager.h"
 #include "console/console.h"
 #include "gl/glDrawBinds.h"
+#include "lightManager.h"
 
 class LightCull
 {
@@ -18,8 +19,8 @@ public:
 
     virtual void SetDrawBindData(GLDrawBinds& binds) = 0;
 
-    virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse) = 0;
-    virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse) = 0;
+    virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) = 0;
+    virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) = 0;
 
     virtual void DrawLightCount(SpriteRenderer& spriteRenderer
                                 , CharacterSet* characterSetSmall

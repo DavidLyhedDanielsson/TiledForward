@@ -15,8 +15,8 @@ public:
     bool Init(ContentManager& contentManager, Console& console);
     void SetDrawBindData(GLDrawBinds& binds);
 
-    void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
-    GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
+    void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
+    GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
 
     void DrawLightCount(SpriteRenderer& spriteRenderer
                         , CharacterSet* characterSetSmall
@@ -41,7 +41,7 @@ private:
     int maxDepth = 2;
     glm::ivec2 threadGroupCount;
 
-    void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse);
+    void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
     void Draw();
     void PostDraw();
 

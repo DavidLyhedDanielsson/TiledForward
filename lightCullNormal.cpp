@@ -67,20 +67,20 @@ bool LightCullNormal::Init(ContentManager& contentManager, Console& console)
     return true;
 }
 
-void LightCullNormal::Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
+void LightCullNormal::Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
 {
-    PreDraw(viewMatrix, projectionMatrixInverse);
+    PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
     Draw();
 
     PostDraw();
 }
 
-GLuint64 LightCullNormal::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
+GLuint64 LightCullNormal::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
 {
     GLuint64 lightCullTime;
 
-    PreDraw(viewMatrix, projectionMatrixInverse);
+    PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
     glBeginQuery(GL_TIME_ELAPSED, timeQuery);
     Draw();
@@ -100,13 +100,14 @@ GLuint64 LightCullNormal::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMa
     return lightCullTime;
 }
 
-void LightCullNormal::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
+void LightCullNormal::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
 {
     ////////////////////////////////////////////////////////////
     // Light culling
     int zero = 0;
     lightCullDrawBinds.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
 
+    lightCullDrawBinds["Lights"] = &lightManager.GetLightsBuffer();
     lightCullDrawBinds["viewMatrix"] = viewMatrix;
     lightCullDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
 

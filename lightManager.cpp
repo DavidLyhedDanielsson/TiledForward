@@ -4,7 +4,7 @@
 #include "primitiveDrawer.h"
 
 LightManager::LightManager()
-        : lightCount(16)
+        : lightCount(1)
           , lightClusters(1)
           , lightClusterRadius(1.0f)
           , lightPositionStrategy(CLUSTERED)

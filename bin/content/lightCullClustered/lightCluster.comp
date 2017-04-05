@@ -1,0 +1,100 @@
+#version 450 core
+
+//#include "commonIncludes.glsl"
+//#include "../lightCullAdaptive/tree.glsl"
+#include "../lightCullAdaptive/tileLights.glsl"
+
+cconst TREE_MAX_DEPTH;
+
+struct LightData
+{
+    vec3 position;
+    float strength;
+    vec3 color;
+    float padding;
+};
+
+layout(std430) buffer Lights
+{
+    vec3 padding;
+    float ambientStrength;
+    LightData lights[];
+};
+
+layout(std140) buffer FinalLights
+{
+    LightData[] finalLights;
+};
+
+layout(std430) buffer Tree
+{
+    int tree[];
+};
+
+int GetTreeLinearIndex(int x, int y)
+{
+    int index = 0;
+
+    for(int i = 0; i < 32; ++i)
+    {
+        int extractedBit;
+
+        if(i % 2 == 0)
+            extractedBit = ((x >> (i / 2)) & 1);
+        else
+            extractedBit = (y >> (i / 2)) & 1;
+
+        index |= (extractedBit << i);
+    }
+
+    return index;
+}
+
+int GetTreeDataGrid(int x, int y, int depth)
+{
+    int depthOffset = -1;
+
+    for(int i = 0; i < depth; ++i)
+        depthOffset += int(pow(4, i));
+
+    int index = GetTreeLinearIndex(x, y);
+    return tree[depthOffset + index];
+}
+
+layout(local_size_x = 1, local_size_y = 1) in;
+void main()
+{
+    int lightStartIndex;
+    int lightCount;
+
+    int index = GetTreeDataGrid(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y), TREE_MAX_DEPTH);
+
+    TileLightData lightData = GetTileLightData(index);
+
+    lightStartIndex = lightData.start;
+    lightCount = lightData.numberOfLights;
+
+    LightData finalLightData;
+    finalLightData.position = vec3(0.0f);
+    finalLightData.strength = 0.0f;
+    finalLightData.color = vec3(0.0f);
+    finalLightData.padding = 0.123f;
+
+    if(lightCount > 0)
+    {
+        for(int i = lightStartIndex; i < lightStartIndex + lightCount; ++i)
+        {
+            LightData light = lights[GetLightIndex(i)];
+
+            finalLightData.position += light.position;
+            finalLightData.color += light.color;
+            finalLightData.strength += light.strength;
+        }
+
+        finalLightData.position /= float(lightCount);
+        finalLightData.strength /= float(lightCount);
+    }
+
+    // One thread per group
+    finalLights[gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x] = finalLightData;
+}

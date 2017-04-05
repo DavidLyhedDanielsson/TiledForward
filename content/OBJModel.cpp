@@ -275,6 +275,8 @@ void OBJModel::DrawOpaque()
 {
     drawBinds.Bind();
 
+    glUniform1i(0, 4); 
+
     auto materialIndex = drawBinds["materialIndex"];
 
     for(const auto& data : opaqueDrawData)

@@ -88,20 +88,20 @@ bool LightCullAdaptive::Init(ContentManager& contentManager, Console& console)
     return true;
 }
 
-void LightCullAdaptive::Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
+void LightCullAdaptive::Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
 {
-    PreDraw(viewMatrix, projectionMatrixInverse);
+    PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
     Draw();
 
     PostDraw();
 }
 
-GLuint64 LightCullAdaptive::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
+GLuint64 LightCullAdaptive::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
 {
     GLuint64 lightCullTime;
 
-    PreDraw(viewMatrix, projectionMatrixInverse);
+    PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
     glBeginQuery(GL_TIME_ELAPSED, timeQuery);
     Draw();
@@ -118,7 +118,7 @@ GLuint64 LightCullAdaptive::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projection
     return lightCullTime;
 }
 
-void LightCullAdaptive::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse)
+void LightCullAdaptive::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
 {
     ////////////////////////////////////////////////////////////
     // Light culling
@@ -127,6 +127,7 @@ void LightCullAdaptive::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix
     //lightCullDrawBinds.GetSSBO("LightIndices")->SetData(-1);
     //lightCullDrawBinds.GetSSBO("LightIndices")->UpdateData(0, &zero, sizeof(int));
 
+    lightCullDrawBinds["Lights"] = &lightManager.GetLightsBuffer();
     lightCullDrawBinds["viewMatrix"] = viewMatrix;
     lightCullDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
     lightCullDrawBinds["TreeDepthData"] = glm::ivec2(treeStartDepth, treeMaxDepth);

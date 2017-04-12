@@ -30,6 +30,7 @@ public:
 
     virtual std::string GetForwardShaderPath() = 0;
     virtual std::string GetForwardShaderDebugPath() = 0;
+    virtual int GetTileCountX() const;
 protected:
     int screenWidth;
     int screenHeight;

@@ -22,6 +22,8 @@ public:
     std::string GetForwardShaderPath() override;
     std::string GetForwardShaderDebugPath() override;
 
+    int GetTileCountX() const;
+
 private:
     typedef LightCullAdaptive Base;
 

@@ -1,5 +1,7 @@
 #version 450 core
 
+#include "../lightCalculation.glsl"
+
 layout(location = 0) uniform int tileCountX;
 
 layout(std430) buffer ScreenSize
@@ -74,14 +76,26 @@ void main()
     vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
 
-    int tileX = int(texel.x / 256.0f);
-    int tileY = int(texel.y / 256.0f);
+    // tileCountX == tildCountY because it's a tree
+    int tileX = int(texel.x / (screenWidth / float(tileCountX)));
+    int tileY = int(texel.y / (screenHeight / float(tileCountX)));
 
     LightData light = finalLights[tileY * tileCountX + tileX];
 
-    vec3 finalColor = vec3(light.color);
-    //vec3 finalColor = vec3(0.0f);
+    vec3 lightDirection = WorldPosition - light.position;
+    float lightDistance = length(lightDirection);
+    lightDirection = normalize(lightDirection);
+
     vec3 textureColor = texture(tex, TexCoord).xyz;
+    vec3 finalColor = vec3(0.0f);
+
+    float attenuation;
+    float diffuse;
+
+    CalculateLighting(WorldPosition, Normal, light.position, light.strength, attenuation, diffuse);
+
+    finalColor += vec3(light.color) * attenuation * diffuse;
+    //vec3 finalColor = vec3(0.0f);
 
     finalColor += ambientStrength;
     finalColor *= materials[materialIndex].diffuseColor;

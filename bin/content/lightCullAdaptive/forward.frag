@@ -2,6 +2,7 @@
 
 #include "commonIncludes.glsl"
 #include "tree.glsl"
+#include "../lightCalculation.glsl"
 
 uniform mat4 viewProjectionMatrix;
 uniform mat4 worldMatrix;
@@ -52,36 +53,17 @@ void main()
     const int lightStart = data.start;
     const int lightCount = data.numberOfLights;
 
-    // lightCount might be negative
-    if(lightCount > 0)
+    for(int i = lightStart; i < lightStart + lightCount; ++i)
     {
-        for(int i = lightStart; i < lightStart + lightCount; ++i)
-        {
-            LightData light = lights[GetLightIndex(i)];
+        LightData light = lights[GetLightIndex(i)];
 
-            vec3 lightDirection = WorldPosition - light.position;
-            float lightDistance = length(lightDirection);
+        float attenuation;
+        float diffuse;
 
-            if(lightDistance > light.strength)
-                continue;
+        CalculateLighting(WorldPosition, Normal, light.position, light.strength, attenuation, diffuse);
 
-            lightDirection = normalize(lightDirection);
-
-            /*float linearFactor = 2.0f / light.strength;
-            float quadraticFactor = 1.0f / (light.strength * light.strength);
-
-            float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
-            attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);*/
-
-            float attenuation = 1.0f - (lightDistance / light.strength) * (lightDistance / light.strength);
-
-            //float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
-            float diffuse = 1.0f;
-
-            finalColor += light.color * diffuse * attenuation;
-        }
+        finalColor += light.color * diffuse * attenuation;
     }
-
     finalColor += ambientStrength;
     finalColor *= materials[materialIndex].diffuseColor;
     finalColor *= textureColor;

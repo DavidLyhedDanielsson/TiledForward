@@ -152,6 +152,8 @@ Main::Main()
 
 float currentFrameTime = 0.0f;
 
+GLDrawBinds sortDrawBinds;
+
 int Main::Run()
 {
     srand(1234);
@@ -166,6 +168,13 @@ int Main::Run()
             return 3;
         if(!InitFrameBuffers())
             return 2;
+
+        sortDrawBinds.AddShader(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "lightCullClustered/lightSort.comp");
+        sortDrawBinds.AddUniform("logSize", 0);
+        sortDrawBinds.AddUniform("startIndex", 0);
+
+        if(!sortDrawBinds.Init())
+            return -1234;
 
         InitInput();
 
@@ -298,6 +307,12 @@ void Main::InitConsole()
     console.AddCommand(new CommandGetSet<bool>("light_drawCount", &drawLightCount));
     console.AddCommand(new CommandGetSet<float>("cameraSpeed", &cameraSpeed));
 
+    console.AddCommand(new CommandCallMethod("printCameraPosition"
+                                             , [&](const std::vector<Argument>& args)
+            {
+               return Argument(std::to_string(camera.GetPosition().x) + ", " + std::to_string(camera.GetPosition().y) + ", " + std::to_string(camera.GetPosition().z));
+            }));
+
     console.AddCommand(new CommandCallMethod("light_SetCullMode"
                                              , [&](const std::vector<Argument>& args)
             {
@@ -341,6 +356,22 @@ void Main::InitConsole()
 
                     currentLightCull = lightCullAdaptive;
                 }
+                else if(arg == "clustered")
+                {
+                    if(lightCullClustered == nullptr)
+                    {
+                        lightCullClustered = new LightCullClustered();
+
+                        lightCullClustered->InitShaderConstants(screenWidth, screenHeight);
+                        if(!lightCullClustered->Init(contentManager, console))
+                        {
+                            delete lightCullClustered;
+                            return Argument("Couldn't initialize shader");
+                        }
+                    }
+
+                    currentLightCull = lightCullClustered;
+                }
                 else if(arg == "normalDebug")
                 {
                     if(lightCullNormal == nullptr)
@@ -373,23 +404,6 @@ void Main::InitConsole()
                     }
 
                     currentLightCull = lightCullAdaptive;
-                    debug = true;
-                }
-                else if(arg == "clustered")
-                {
-                    if(lightCullClustered == nullptr)
-                    {
-                        lightCullClustered = new LightCullClustered();
-
-                        lightCullClustered->InitShaderConstants(screenWidth, screenHeight);
-                        if(!lightCullClustered->Init(contentManager, console))
-                        {
-                            delete lightCullClustered;
-                            return Argument("Couldn't initialize shader");
-                        }
-                    }
-
-                    currentLightCull = lightCullClustered;
                     debug = true;
                 }
                 else if(arg == "clusteredDebug")
@@ -624,9 +638,13 @@ bool Main::InitShaders()
     if(!lightCullNormal.Init(contentManager, console))
         return false;*/
 
-    lightCullClustered = new LightCullClustered();
+    /*lightCullClustered = new LightCullClustered();
 
-    currentLightCull = lightCullClustered;
+    currentLightCull = lightCullClustered;*/
+
+    lightCullAdaptive = new LightCullAdaptive();
+
+    currentLightCull = lightCullAdaptive;
 
     currentLightCull->InitShaderConstants(screenWidth, screenHeight);
     if(!currentLightCull->Init(contentManager, console))
@@ -684,7 +702,82 @@ void Main::Update(Timer& deltaTimer)
 
 void Main::Render(Timer& deltaTimer)
 {
-    auto viewMatrix = currentCamera->GetViewMatrix();
+    const static int DATA_SIZE = 1024;
+    const static int VECTOR_SIZE = DATA_SIZE * 16 * 16;
+
+    std::vector<int> data;
+    for(int i = 0; i < VECTOR_SIZE; ++i)
+        data.push_back(i % DATA_SIZE);
+
+    for(int i = 0; i < 16 * 16; ++i)
+        for(int j = 0; j < DATA_SIZE; ++j)
+        {
+            int startIndex = i * DATA_SIZE + j;
+            int endIndex = i * DATA_SIZE + rand() % DATA_SIZE;
+
+            std::swap(data[startIndex], data[endIndex]);
+        }
+
+    sortDrawBinds["Data"] = data;
+
+    sortDrawBinds.Bind();
+    Timer timer;
+    timer.Start();
+    glBeginQuery(GL_TIME_ELAPSED, queries[0]);
+    sortDrawBinds["logSize"] = (int)std::log2(DATA_SIZE);
+
+    for(int y = 0; y < 16; ++y)
+    {
+        for(int x = 0; x < 16; ++x)
+        {
+            glUniform1i(0, (y * 16 + x) * DATA_SIZE);
+
+            glDispatchCompute(1, 1, 1);
+        }
+    }
+
+    auto writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    auto val = glClientWaitSync(writeSync, 0, 1000000000);
+    if(val == GL_TIMEOUT_EXPIRED
+       || val == GL_WAIT_FAILED)
+    {
+        assert(false);
+    }
+    glDeleteSync(writeSync);
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+    glEndQuery(GL_TIME_ELAPSED);
+
+    sortDrawBinds.Unbind();
+
+    GLint timeAvailable = 0;
+    while(!timeAvailable)
+        glGetQueryObjectiv(queries[0],  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
+
+    GLuint64 opaqueTime;
+    glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &opaqueTime);
+    timer.Stop();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+
+    glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    spriteRenderer.Begin();
+    spriteRenderer.DrawString(characterSet24, std::to_string(timer.GetTimeMillisecondsFraction()), glm::vec2(0.0f));
+    spriteRenderer.DrawString(characterSet24, std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, 24.0f));
+    spriteRenderer.End();
+
+    window.SwapBuffers();
+
+
+
+    /*auto viewMatrix = currentCamera->GetViewMatrix();
     auto viewMatrixInverse = glm::inverse(currentCamera->GetViewMatrix());
     auto projectionMatrix = currentCamera->GetProjectionMatrix();
     auto projectionMatrixInverse = glm::inverse(currentCamera->GetProjectionMatrix());
@@ -724,7 +817,7 @@ void Main::Render(Timer& deltaTimer)
 
     // Forward pass (opaque)
     glBeginQuery(GL_TIME_ELAPSED, queries[0]);
-    worldModel->DrawOpaque();
+    worldModel->DrawOpaque(currentLightCull->GetTileCountX());
     glEndQuery(GL_TIME_ELAPSED);
 
     GLint timeAvailable = 0;
@@ -777,7 +870,7 @@ void Main::Render(Timer& deltaTimer)
     spriteRenderer.End();
 
     if(dumpPostBackBuffer)
-        DumpBackBuffer();
+        DumpBackBuffer();*/
 
     window.SwapBuffers();
 }

@@ -31,6 +31,9 @@ OSWindow::OSWindow()
 	: width(-1)
 	, height(-1)
 	, paused(false)
+#ifndef _WIN32
+    , display(nullptr)
+#endif
 {
 #ifdef _WIN32
 	window = this;

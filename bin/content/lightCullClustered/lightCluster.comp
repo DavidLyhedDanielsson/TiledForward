@@ -1,3 +1,4 @@
+/*
 #version 450 core
 
 //#include "commonIncludes.glsl"
@@ -5,6 +6,7 @@
 #include "../lightCullAdaptive/tileLights.glsl"
 
 cconst TREE_MAX_DEPTH;
+cconst BUCKET_COUNT;
 
 struct LightData
 {
@@ -67,34 +69,67 @@ void main()
     int lightStartIndex;
     int lightCount;
 
+    //////////////////////////////////////////////////
+    // Get light data
     int index = GetTreeDataGrid(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y), TREE_MAX_DEPTH);
 
     TileLightData lightData = GetTileLightData(index);
-
     lightStartIndex = lightData.start;
     lightCount = lightData.numberOfLights;
 
-    LightData finalLightData;
-    finalLightData.position = vec3(0.0f);
-    finalLightData.strength = 0.0f;
-    finalLightData.color = vec3(0.0f);
-    finalLightData.padding = 0.123f;
-
     if(lightCount > 0)
     {
-        for(int i = lightStartIndex; i < lightStartIndex + lightCount; ++i)
-        {
-            LightData light = lights[GetLightIndex(i)];
+        int bucket = 0;
+        int lightsInBucket = 1;
 
-            finalLightData.position += light.position;
-            finalLightData.color += light.color;
-            finalLightData.strength += light.strength;
+        // Copy to local array
+        LightData localLights[MAX_LIGHTS_PER_TILE];
+        for(int i = 0; i < lightCount; ++i)
+            localLights[i] = lights[GetLightIndex(lightStartIndex + i)];
+
+        // Final array, this is written back to VRAM
+        LightData localFinalLights[BUCKET_COUNT];
+
+        //////////////////////////////////////////////////
+        // Cluster lights
+        LightData currentLightData = localLights[0];
+        vec3 bucketPosition = currentLightData.position;
+        for(int i = 1; i < lightCount; ++i)
+        {
+            LightData current = localLights[i];
+
+            float distance = distance(bucketPosition, current.position);
+
+            if(distance <= 1.0f)
+            {
+                // Add light to cluster
+                currentLightData.position += current.position;
+                currentLightData.strength += current.strength;
+                currentLightData.color += current.color;
+
+                ++lightsInBucket;
+            }
+            else
+            {
+                // Put final cluster info "localFinalLights"
+                // and increase bucket count
+                currentLightData.position /= lightsInBucket;
+                currentLightData.color /= lightsInBucket;
+                localFinalLights[bucket] = currentLightData;
+
+                ++bucket;
+                lightsInBucket = 1;
+
+                currentLightData = current;
+                bucketPosition = currentLightData.position;
+            }
         }
 
-        finalLightData.position /= float(lightCount);
-        finalLightData.strength /= float(lightCount);
-    }
+        // Write final lights to VRAM
+        for(int i = 0; i < bucket; ++i)
+            finalLights[(gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x) * BUCKET_COUNT + i] = localLights[i];
 
-    // One thread per group
-    finalLights[gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x] = finalLightData;
-}
+        if(bucket + 1 < BUCKET_COUNT)
+            finalLights[bucket + 1].padding = -123.456f;
+    }
+}*/

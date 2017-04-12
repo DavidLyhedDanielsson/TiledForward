@@ -1,6 +1,7 @@
 #version 450 core
 
 #include "commonIncludes.glsl"
+#include "../lightCalculation.glsl"
 
 uniform mat4 viewProjectionMatrix;
 uniform mat4 worldMatrix;
@@ -59,21 +60,10 @@ void main()
     {
         LightData light = lights[lightIndices[i]];
 
-        vec3 lightDirection = WorldPosition - light.position;
-        float lightDistance = length(lightDirection);
+        float attenuation;
+        float diffuse;
 
-        if(lightDistance > light.strength)
-            continue;
-
-        lightDirection = normalize(lightDirection);
-
-        float linearFactor = 2.0f / light.strength;
-        float quadraticFactor = 1.0f / (light.strength * light.strength);
-
-        float attenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
-        attenuation *= max((light.strength - lightDistance) / light.strength, 0.0f);
-
-        float diffuse = max(dot(-lightDirection, normalize(Normal)), 0.0f);
+        CalculateLighting(WorldPosition, Normal, light.position, light.strength, attenuation, diffuse);
 
         finalColor += light.color * diffuse * attenuation;
     }

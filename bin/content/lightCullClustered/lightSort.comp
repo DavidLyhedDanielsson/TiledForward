@@ -1,0 +1,48 @@
+#version 450
+
+layout(std430) buffer Data
+{
+    int data[];
+};
+
+layout(location = 0) uniform int startIndex;
+
+uniform int logSize;
+
+shared int loadedData[1024];
+
+layout(local_size_y = 1024) in;
+void main()
+{
+    int threadID = int(gl_GlobalInvocationID.y);
+
+    loadedData[threadID] = data[startIndex + threadID];
+
+    memoryBarrier();
+    barrier();
+
+    for(int pass = 0; pass < logSize; ++pass)
+    {
+        for(int section = 0; section <= pass; ++section)
+        {
+            const int distance = 1 << (pass - section);
+
+            bool up = ((threadID >> pass) & 2) == 0;
+
+            if((threadID & distance) == 0 && (loadedData[threadID] > loadedData[threadID | distance]) == up)
+            {
+                int temp = loadedData[threadID];
+                loadedData[threadID] = loadedData[threadID | distance];
+                loadedData[threadID | distance] = temp;
+            }
+
+            memoryBarrier();
+            barrier();
+        }
+
+        memoryBarrier();
+        barrier();
+    }
+
+    data[startIndex + threadID] = loadedData[threadID];
+}

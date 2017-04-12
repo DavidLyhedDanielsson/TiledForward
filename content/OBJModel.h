@@ -28,7 +28,7 @@ public:
     // FIXME
     GLDrawBinds drawBinds; // TODO
 
-    void DrawOpaque();
+    void DrawOpaque(int tileCountX);
     void DrawTransparent(const glm::vec3 cameraPosition);
 
 protected:

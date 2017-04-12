@@ -73,3 +73,8 @@ void LightCullClustered::SetDrawBindData(GLDrawBinds& binds)
     //Base::SetDrawBindData(binds);
     //return;
 }
+
+int LightCullClustered::GetTileCountX() const
+{
+    return (int)std::pow(2, GetTreeMaxDepth());
+}

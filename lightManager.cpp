@@ -1,13 +1,14 @@
+#include <glm/gtc/constants.hpp>
 #include "lightManager.h"
 #include "console/commandGetSet.h"
 #include "console/commandCallMethod.h"
 #include "primitiveDrawer.h"
 
 LightManager::LightManager()
-        : lightCount(1)
+        : lightCount(64)
           , lightClusters(1)
           , lightClusterRadius(1.0f)
-          , lightPositionStrategy(CLUSTERED)
+          , lightPositionStrategy(RANDOM)
           , LIGHT_DEFAULT_AMBIENT(0.0f)
           , freezeLights(false)
           , drawLightSpheres(false)
@@ -150,13 +151,7 @@ void LightManager::Update(Timer& deltaTimer, PrimitiveDrawer& primitiveDrawer)
     {
         lightsBuffer.lights[i].lifetime += deltaTimer.GetDeltaMillisecondsFraction();
 
-        float newStrength;
-        if(lightsBuffer.lights[i].lifetime <= lightLifetime * 0.5f)
-            newStrength = (lightsBuffer.lights[i].lifetime / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
-        else
-            newStrength = ((lightLifetime * 0.5f - (lightsBuffer.lights[i].lifetime - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
-
-        lightsBuffer.lights[i].strength = newStrength;
+        lightsBuffer.lights[i].strength = GetLightRadius(lightsBuffer.lights[i].lifetime);
 
         if(lightsBuffer.lights[i].lifetime >= lightLifetime)
         {
@@ -235,8 +230,9 @@ glm::vec3 LightManager::GetRandomLightPosition()
 
 float LightManager::GetLightRadius(float lifetime)
 {
-    if(lifetime <= lightLifetime * 0.5f)
-        return (lifetime / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
-    else
-        return ((lightLifetime * 0.5f - (lifetime - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
+    return std::sin((lifetime / lightLifetime) * glm::pi<float>()) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
+    //if(lifetime <= lightLifetime * 0.5f)
+    //    return (lifetime / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
+    //else
+    //    return ((lightLifetime * 0.5f - (lifetime - lightLifetime * 0.5f)) / (lightLifetime * 0.5f)) * (lightMaxStrength - lightMinStrength) + lightMinStrength;
 }

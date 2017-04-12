@@ -271,11 +271,12 @@ DiskContent* OBJModel::CreateInstance() const
     return new OBJModel;
 }
 
-void OBJModel::DrawOpaque()
+void OBJModel::DrawOpaque(int tileCountX)
 {
     drawBinds.Bind();
 
-    glUniform1i(0, 4); 
+    if(tileCountX != -1)
+        glUniform1i(0, tileCountX);
 
     auto materialIndex = drawBinds["materialIndex"];
 

@@ -40,20 +40,22 @@ void main()
         vec3 viewPositions[5] = CreateFarPoints(uvec2(workGroupSizeX, workGroupSizeY));
         vec4 planes[4] = CreatePlanes(viewPositions);
 
-        vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
+        vec3 lightViewPosition = vec3(viewMatrix * vec4(light.position, 1.0f));
 
-        if(dot(zeroPos, zeroPos) > light.strength * light.strength)
+        lights[i].position = lightViewPosition;
+
+        if(dot(lightViewPosition, lightViewPosition) > light.strength * light.strength)
         {
             bool inside = false;
 
             vec3 planeForward = normalize(viewPositions[CENTER]);
-            if(dot(normalize(zeroPos), planeForward) > 0.0f)
+            if(dot(normalize(lightViewPosition), planeForward) > 0.0f)
             {
                 inside = true;
 
                 for(int j = 0; j < 4; ++j)
                 {
-                    float dist = dot(zeroPos, vec3(planes[j])) + planes[j].w;
+                    float dist = dot(lightViewPosition, vec3(planes[j])) + planes[j].w;
                     if(dist < -light.strength)
                     //if(dist < 0.0f)
                     {

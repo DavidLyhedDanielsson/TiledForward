@@ -18,7 +18,7 @@ public:
 
     virtual void InitShaderConstants(int screenWidth, int screenHeight) override;
     virtual bool Init(ContentManager& contentManager, Console& console) override;
-    virtual void SetDrawBindData(GLDrawBinds& binds) override;
+    virtual void SetDrawBindData() override;
 
     virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) override;
     virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) override;
@@ -38,8 +38,13 @@ public:
     GLDrawBinds lightCullDrawBinds;
     GLDrawBinds lightReductionDrawBinds;
 
-    virtual std::string GetForwardShaderPath() override;
-    virtual std::string GetForwardShaderDebugPath() override;
+    GLDrawBinds forwardDrawBinds;
+
+    GLDrawBinds* GetForwardDrawBinds() override;
+    void UpdateUniforms(PerspectiveCamera* currentCamera, OBJModel* worldModel, LightManager* lightManager);
+
+    //virtual std::string GetForwardShaderPath() override;
+    //virtual std::string GetForwardShaderDebugPath() override;
 protected:
     const static int TREE_MAX_DEPTH = 6;
 

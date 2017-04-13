@@ -7,6 +7,8 @@
 #include "console/console.h"
 #include "gl/glDrawBinds.h"
 #include "lightManager.h"
+#include "perspectiveCamera.h"
+#include "content/OBJModel.h"
 
 class LightCull
 {
@@ -17,7 +19,7 @@ public:
     virtual void InitShaderConstants(int screenWidth, int screenHeight) = 0;
     virtual bool Init(ContentManager& contentManager, Console& console) = 0;
 
-    virtual void SetDrawBindData(GLDrawBinds& binds) = 0;
+    virtual void SetDrawBindData() = 0;
 
     virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) = 0;
     virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) = 0;
@@ -28,16 +30,20 @@ public:
 
     virtual void ResolutionChanged(int newWidth, int newHeight) = 0;
 
-    virtual std::string GetForwardShaderPath() = 0;
-    virtual std::string GetForwardShaderDebugPath() = 0;
+    virtual GLDrawBinds* GetForwardDrawBinds() = 0;
+
+    //virtual std::string GetForwardShaderPath() = 0;
+    //virtual std::string GetForwardShaderDebugPath() = 0;
     virtual int GetTileCountX() const;
+    virtual void UpdateUniforms(PerspectiveCamera* pCamera, OBJModel* pModel, LightManager* lightManager) = 0;
 protected:
     int screenWidth;
     int screenHeight;
 
     GLuint timeQuery;
 
-    const static int MAX_LIGHTS_PER_TILE = 1024;
+    // Must be power of two
+    const static int MAX_LIGHTS_PER_TILE = 4;
 };
 
 #endif // LIGHTCULL_H__

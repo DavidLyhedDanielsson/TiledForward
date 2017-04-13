@@ -2,7 +2,7 @@
 
 #include "commonIncludes.glsl"
 
-uniform mat4 viewMatrix;
+//uniform mat4 viewMatrix;
 uniform mat4 projectionInverseMatrix;
 
 #include "planes.glsl"
@@ -81,21 +81,21 @@ void main()
 
             LightData light = lights[lightIndex];
 
-            vec3 zeroPos = vec3(viewMatrix * vec4(light.position, 1.0f));
+            vec3 lightViewPosition = light.position;
 
-            if(dot(zeroPos, zeroPos) > light.strength * light.strength)
+            if(dot(lightViewPosition, lightViewPosition) > light.strength * light.strength)
             {
                 bool inside = false;
                 //bool inside = true;
 
                 vec3 planeForward = normalize(viewPositions[CENTER]);
-                if(dot(normalize(zeroPos), planeForward) > 0.0f)
+                if(dot(normalize(lightViewPosition), planeForward) > 0.0f)
                 {
                     inside = true;
 
                     for(int j = 0; j < 4; ++j)
                     {
-                        float dist = dot(zeroPos, vec3(planes[j])) + planes[j].w;
+                        float dist = dot(lightViewPosition, vec3(planes[j])) + planes[j].w;
                         if(dist < -light.strength)
                         //if(dist < 0.0f)
                         {

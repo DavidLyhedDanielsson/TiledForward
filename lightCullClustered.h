@@ -17,10 +17,10 @@ public:
     ~LightCullClustered();
 
     bool Init(ContentManager& contentManager, Console& console) override;
-    void SetDrawBindData(GLDrawBinds& binds) override;
+    void SetDrawBindData() override;
 
-    std::string GetForwardShaderPath() override;
-    std::string GetForwardShaderDebugPath() override;
+    //std::string GetForwardShaderPath() override;
+    //std::string GetForwardShaderDebugPath() override;
 
     int GetTileCountX() const;
 
@@ -28,9 +28,12 @@ private:
     typedef LightCullAdaptive Base;
 
     void Draw() override;
+    void PostDraw() override;
 
 private:
-    GLDrawBinds lightClusterDrawBinds;
+    GLDrawBinds lightSortDrawBinds;
+
+    bool sort;
 };
 
 #endif // LIGHTCULLCLUSTERED_H__

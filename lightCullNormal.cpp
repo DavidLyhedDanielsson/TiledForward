@@ -64,6 +64,16 @@ bool LightCullNormal::Init(ContentManager& contentManager, Console& console)
 
     glGenQueries(1, &timeQuery);
 
+    // Normal draw binds
+    if(!forwardDrawBinds.AddShaders(contentManager
+                                    , GLEnums::SHADER_TYPE::VERTEX, "lightCullNormal/forward.vert"
+                                    , GLEnums::SHADER_TYPE::FRAGMENT, "lightCullNormal/forward.frag"))
+        return false;
+
+    forwardDrawBinds.AddUniform("viewProjectionMatrix", glm::mat4x4());
+    forwardDrawBinds.AddUniform("worldMatrix", glm::mat4x4());
+    forwardDrawBinds.AddUniform("materialIndex", 0);
+
     return true;
 }
 
@@ -147,13 +157,13 @@ void LightCullNormal::ResolutionChanged(int newWidth, int newHeight)
     //lightCullDrawBinds["PixelToTile"] = data;gh
 }
 
-void LightCullNormal::SetDrawBindData(GLDrawBinds& binds)
+void LightCullNormal::SetDrawBindData()
 {
-    binds["Lights"] = lightCullDrawBinds["Lights"];
-    binds["LightIndices"] = lightCullDrawBinds["LightIndices"];
-    binds["TileLights"] = lightCullDrawBinds["TileLights"];
-    binds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
-    binds["ColorBuffer"] = colors;
+    forwardDrawBinds["Lights"] = lightCullDrawBinds["Lights"];
+    forwardDrawBinds["LightIndices"] = lightCullDrawBinds["LightIndices"];
+    forwardDrawBinds["TileLights"] = lightCullDrawBinds["TileLights"];
+    forwardDrawBinds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
+    forwardDrawBinds["ColorBuffer"] = colors;
 }
 
 int LightCullNormal::GetMaxNumberOfTiles() const
@@ -168,7 +178,25 @@ void LightCullNormal::DrawLightCount(SpriteRenderer& spriteRenderer
 
 }
 
-std::string LightCullNormal::GetForwardShaderPath()
+GLDrawBinds* LightCullNormal::GetForwardDrawBinds()
+{
+    return &forwardDrawBinds;
+}
+
+void LightCullNormal::UpdateUniforms(PerspectiveCamera* currentCamera, OBJModel* worldModel, LightManager* lightManager)
+{
+    auto viewMatrix = currentCamera->GetViewMatrix();
+    auto viewMatrixInverse = glm::inverse(currentCamera->GetViewMatrix());
+    auto projectionMatrix = currentCamera->GetProjectionMatrix();
+    auto projectionMatrixInverse = glm::inverse(currentCamera->GetProjectionMatrix());
+    auto viewProjectionMatrix = projectionMatrix * viewMatrix;
+
+    forwardDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
+    forwardDrawBinds["worldMatrix"] = worldModel->worldMatrix;
+    forwardDrawBinds["Lights"] = &lightManager->GetLightsBuffer();
+}
+
+/*std::string LightCullNormal::GetForwardShaderPath()
 {
     return "lightCullNormal/forward.frag";
 }
@@ -176,4 +204,4 @@ std::string LightCullNormal::GetForwardShaderPath()
 std::string LightCullNormal::GetForwardShaderDebugPath()
 {
     return "lightCullNormal/forwardDebug.frag";
-}
+}*/

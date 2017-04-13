@@ -5,7 +5,7 @@
 #include "primitiveDrawer.h"
 
 LightManager::LightManager()
-        : lightCount(64)
+        : lightCount(3)
           , lightClusters(1)
           , lightClusterRadius(1.0f)
           , lightPositionStrategy(RANDOM)
@@ -17,7 +17,6 @@ LightManager::LightManager()
 
     lightsBuffer.padding = glm::vec3(1.0f, 1.2f, 1.23f);
     lightsBuffer.ambientStrength = LIGHT_DEFAULT_AMBIENT;
-
 
     for(int i = 0; i < lightClusters; ++i)
     {
@@ -155,7 +154,9 @@ void LightManager::Update(Timer& deltaTimer, PrimitiveDrawer& primitiveDrawer)
 
         if(lightsBuffer.lights[i].lifetime >= lightLifetime)
         {
+            auto oldPosition = lightsBuffer.lights[i].position;
             lightsBuffer.lights[i] = GetNewLight();
+            lightsBuffer.lights[i].position = oldPosition;
 
             if(lightPositionStrategy == CLUSTERED)
                 lightsBuffer.lights[i].position += clusterPositions[i / (lightCount / lightClusters)];
@@ -199,6 +200,13 @@ LightData LightManager::GetRandomLight()
 
 glm::vec3 LightManager::GetRandomLightPosition()
 {
+    if(lightsBuffer.lights.size() == 0)
+        return glm::vec3(3.0f, 1.0f, 0.0f);
+    else if(lightsBuffer.lights.size() == 1)
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    else
+        return glm::vec3(-3.0f, 1.0f, 0.0f);
+
     glm::vec3 returnPosition;
 
     switch(lightPositionStrategy)

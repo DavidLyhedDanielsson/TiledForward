@@ -1,22 +1,49 @@
 #version 450
 
-layout(std430) buffer Data
+#include "../lightCullAdaptive/tileLights.glsl"
+
+cconst TREE_MAX_DEPTH;
+cconst MAX_LIGHTS_PER_TILE;
+
+struct LightData
 {
-    int data[];
+    vec3 position;
+    float strength;
+    vec3 color;
+    float padding;
 };
 
-layout(location = 0) uniform int startIndex;
+layout(std430) buffer Lights
+{
+    vec3 padding;
+    float ambientStrength;
+    LightData lights[];
+};
+
+layout(std430) buffer OutLightIndices
+{
+    int outLightIndices[];
+};
 
 uniform int logSize;
+uniform int startIndex;
 
-shared int loadedData[1024];
+shared int loadedData[MAX_LIGHTS_PER_TILE];
+shared float lightZPosition[MAX_LIGHTS_PER_TILE];
 
-layout(local_size_y = 1024) in;
+layout(local_size_y = MAX_LIGHTS_PER_TILE) in;
 void main()
 {
     int threadID = int(gl_GlobalInvocationID.y);
 
-    loadedData[threadID] = data[startIndex + threadID];
+    int lightIndex = GetLightIndex(startIndex + threadID);
+
+    loadedData[threadID] = lightIndex;
+
+    if(lightIndex != -1)
+        lightZPosition[threadID] = lights[loadedData[threadID]].position.x;
+    else
+        lightZPosition[threadID] = 3.4e30f;
 
     memoryBarrier();
     barrier();
@@ -29,11 +56,21 @@ void main()
 
             bool up = ((threadID >> pass) & 2) == 0;
 
-            if((threadID & distance) == 0 && (loadedData[threadID] > loadedData[threadID | distance]) == up)
+            int lhs = threadID;
+            int rhs = threadID | distance;
+
+            float lhsZ = lightZPosition[lhs];
+            float rhsZ = lightZPosition[rhs];
+
+            if((threadID & distance) == 0 && (lhsZ > rhsZ) == up)
             {
-                int temp = loadedData[threadID];
-                loadedData[threadID] = loadedData[threadID | distance];
-                loadedData[threadID | distance] = temp;
+                int temp = loadedData[lhs];
+                loadedData[lhs] = loadedData[rhs];
+                loadedData[rhs] = temp;
+
+                float tempf = lightZPosition[lhs];
+                lightZPosition[lhs] = lightZPosition[rhs];
+                lightZPosition[rhs] = tempf;
             }
 
             memoryBarrier();
@@ -44,5 +81,5 @@ void main()
         barrier();
     }
 
-    data[startIndex + threadID] = loadedData[threadID];
+    outLightIndices[startIndex + threadID] = loadedData[threadID];
 }

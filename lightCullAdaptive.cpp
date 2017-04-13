@@ -65,7 +65,7 @@ bool LightCullAdaptive::Init(ContentManager& contentManager, Console& console)
     ////////////////////////////////////////////////////////////
     // Light reduction
 
-    lightReductionDrawBinds.AddUniform("viewMatrix", glm::mat4());
+    //lightReductionDrawBinds.AddUniform("viewMatrix", glm::mat4());
     lightReductionDrawBinds.AddUniform("projectionInverseMatrix", glm::mat4());
 
     lightReductionDrawBinds.AddUniform("oldDepth", 1);
@@ -84,6 +84,15 @@ bool LightCullAdaptive::Init(ContentManager& contentManager, Console& console)
     lightReductionDrawBinds["TreeDepthData"] = lightCullDrawBinds["TreeDepthData"];
 
     glGenQueries(1, &timeQuery);
+
+    // Normal draw binds
+    if(!forwardDrawBinds.AddShaders(contentManager
+                             , GLEnums::SHADER_TYPE::VERTEX, "lightCullAdaptive/forward.vert"
+                             , GLEnums::SHADER_TYPE::FRAGMENT, "lightCullAdaptive/forward.frag"))
+        return false;
+
+    forwardDrawBinds.AddUniform("projectionMatrix", glm::mat4x4());
+    forwardDrawBinds.AddUniform("worldViewMatrix", glm::mat4x4());
 
     return true;
 }
@@ -134,7 +143,7 @@ void LightCullAdaptive::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix
 
     ////////////////////////////////////////////////////////////
     // Light reduction
-    lightReductionDrawBinds["viewMatrix"] = viewMatrix;
+    //lightReductionDrawBinds["viewMatrix"] = viewMatrix;
     lightReductionDrawBinds["projectionInverseMatrix"] = projectionMatrixInverse;
 
     int size = 0;
@@ -344,19 +353,38 @@ void LightCullAdaptive::ResolutionChanged(int newWidth, int newHeight)
     std::vector<int> data((unsigned long)(newWidth * newHeight), -1);
 }
 
-void LightCullAdaptive::SetDrawBindData(GLDrawBinds& binds)
+void LightCullAdaptive::SetDrawBindData()
 {
-    binds["Lights"] = lightCullDrawBinds["Lights"];
-    binds["LightIndices"] = lightCullDrawBinds["LightIndices"];
-    binds["TileLights"] = lightCullDrawBinds["TileLights"];
-    binds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
-    binds["Tree"] = lightCullDrawBinds["Tree"];
-    binds["ReadWriteOffsets"] = lightCullDrawBinds["ReadWriteOffsets"];
-    binds["TreeDepthData"] = lightCullDrawBinds["TreeDepthData"];
-    binds["ColorBuffer"] = colors;
+    forwardDrawBinds["Lights"] = lightCullDrawBinds["Lights"];
+    forwardDrawBinds["LightIndices"] = lightCullDrawBinds["LightIndices"];
+    forwardDrawBinds["TileLights"] = lightCullDrawBinds["TileLights"];
+    forwardDrawBinds["ScreenSize"] = lightCullDrawBinds["ScreenSize"];
+    forwardDrawBinds["Tree"] = lightCullDrawBinds["Tree"];
+    forwardDrawBinds["ReadWriteOffsets"] = lightCullDrawBinds["ReadWriteOffsets"];
+    forwardDrawBinds["TreeDepthData"] = lightCullDrawBinds["TreeDepthData"];
+    forwardDrawBinds["ColorBuffer"] = colors;
 }
 
-std::string LightCullAdaptive::GetForwardShaderPath()
+GLDrawBinds* LightCullAdaptive::GetForwardDrawBinds()
+{
+    return &forwardDrawBinds;
+}
+
+void LightCullAdaptive::UpdateUniforms(PerspectiveCamera* currentCamera, OBJModel* worldModel, LightManager* lightManager)
+{
+    auto viewMatrix = currentCamera->GetViewMatrix();
+    auto viewMatrixInverse = glm::inverse(currentCamera->GetViewMatrix());
+    auto projectionMatrix = currentCamera->GetProjectionMatrix();
+    auto projectionMatrixInverse = glm::inverse(currentCamera->GetProjectionMatrix());
+    auto viewProjectionMatrix = projectionMatrix * viewMatrix;
+    auto worldViewMatrix = viewMatrix * worldModel->worldMatrix;
+
+    forwardDrawBinds["projectionMatrix"] = projectionMatrix;
+    forwardDrawBinds["worldViewMatrix"] = worldViewMatrix;
+    forwardDrawBinds["Lights"] = &lightManager->GetLightsBuffer();
+}
+
+/*std::string LightCullAdaptive::GetForwardShaderPath()
 {
     return "lightCullAdaptive/forward.frag";
 }
@@ -364,4 +392,4 @@ std::string LightCullAdaptive::GetForwardShaderPath()
 std::string LightCullAdaptive::GetForwardShaderDebugPath()
 {
     return "lightCullAdaptive/forwardDebug.frag";
-}
+}*/

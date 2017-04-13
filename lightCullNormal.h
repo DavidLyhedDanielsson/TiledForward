@@ -13,7 +13,7 @@ public:
 
     void InitShaderConstants(int screenWidth, int screenHeight);
     bool Init(ContentManager& contentManager, Console& console);
-    void SetDrawBindData(GLDrawBinds& binds);
+    void SetDrawBindData();
 
     void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
     GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
@@ -30,9 +30,13 @@ public:
     int GetMaxNumberOfTiles() const;
 
     GLDrawBinds lightCullDrawBinds;
+    GLDrawBinds forwardDrawBinds;
 
-    std::string GetForwardShaderPath() override;
-    std::string GetForwardShaderDebugPath() override;
+    GLDrawBinds* GetForwardDrawBinds() override;
+    void UpdateUniforms(PerspectiveCamera* currentCamera, OBJModel* worldModel, LightManager* lightManager);
+
+    //std::string GetForwardShaderPath() override;
+    //std::string GetForwardShaderDebugPath() override;
 protected:
 private:
     const static int MAX_DEPTH = 8;

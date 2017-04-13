@@ -4,13 +4,12 @@
 #include "tree.glsl"
 #include "../lightCalculation.glsl"
 
-uniform mat4 viewProjectionMatrix;
-uniform mat4 worldMatrix;
+uniform mat4 projectionMatrix;
 
 uniform sampler2D tex;
 uniform int materialIndex;
 
-in vec3 WorldPosition;
+in vec3 ViewPosition;
 in vec3 Normal;
 in vec2 TexCoord;
 
@@ -40,7 +39,7 @@ vec2 ProjectedToTexel(vec2 projectedPosition)
 
 void main()
 {
-    vec4 projectedPosition = viewProjectionMatrix * vec4(WorldPosition, 1.0f);
+    vec4 projectedPosition = projectionMatrix * vec4(ViewPosition, 1.0f);
     vec2 texel = ProjectedToTexel(projectedPosition.xy / projectedPosition.w);
 
     const int arrayIndex = GetTreeDataScreen(int(texel.x), int(texel.y));
@@ -60,7 +59,7 @@ void main()
         float attenuation;
         float diffuse;
 
-        CalculateLighting(WorldPosition, Normal, light.position, light.strength, attenuation, diffuse);
+        CalculateLighting(ViewPosition, Normal, light.position, light.strength, attenuation, diffuse);
 
         finalColor += light.color * diffuse * attenuation;
     }

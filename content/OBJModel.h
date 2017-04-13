@@ -10,6 +10,7 @@ struct OBJModelParameters
         : ContentParameters
 {
     std::string shaderPath;
+    GLDrawBinds* forwardDrawBinds;
 };
 
 class OBJModel
@@ -26,11 +27,12 @@ public:
     bool CreateDefaultContent(const char* filePath, ContentManager* contentManager) override;
 
     // FIXME
-    GLDrawBinds drawBinds; // TODO
+    //GLDrawBinds drawBinds; // TODO
 
-    void DrawOpaque(int tileCountX);
-    void DrawTransparent(const glm::vec3 cameraPosition);
+    void DrawOpaque(int tileCountX, GLDrawBinds* drawBinds);
+    void DrawTransparent(const glm::vec3 cameraPosition, GLDrawBinds* drawBinds);
 
+    glm::mat4 worldMatrix;
 protected:
     CONTENT_ERROR_CODES Load(const char* filePath
                              , ContentManager* contentManager
@@ -102,7 +104,6 @@ private:
     GLIndexBuffer indexBuffer;
     GLVertexBuffer vertexBuffer;
 
-    glm::mat4 worldMatrix;
 };
 
 #endif // OBJMODEL_H__

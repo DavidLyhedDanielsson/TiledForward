@@ -18,7 +18,7 @@ void CalculateLighting(vec3 worldPosition, vec3 normal, vec3 lightPosition, floa
         float tempAttenuation = 1.0f / (1.0f + linearFactor * lightDistance + quadraticFactor * lightDistance * lightDistance);
         tempAttenuation *= max((lightStrength - lightDistance) / lightStrength, 0.0f);
 
-        attenuation = tempAttenuation*/
+        attenuation = tempAttenuation;*/
 
         ////////////////////////////////////////////////////////////
         // Squared lighting

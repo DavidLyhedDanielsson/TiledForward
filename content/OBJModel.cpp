@@ -212,27 +212,16 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
 
     auto parameters = TryCastTo<OBJModelParameters>(contentParameters);
 
-    // Normal draw binds
-    if(!drawBinds.AddShaders(*contentManager
-                             , GLEnums::SHADER_TYPE::VERTEX, "lightCullAdaptive/forward.vert"
-                             , GLEnums::SHADER_TYPE::FRAGMENT, parameters->shaderPath))
-        return CONTENT_ERROR_CODES::COULDNT_OPEN_CONTENT_FILE;
-
     GLInputLayout vertexBufferLayout;
     vertexBufferLayout.SetInputLayout<glm::vec3, glm::vec3, glm::vec2>();
 
-    drawBinds.AddBuffers(&indexBuffer
-                         , &vertexBuffer, vertexBufferLayout);
+    parameters->forwardDrawBinds->AddBuffers(&indexBuffer
+                                , &vertexBuffer, vertexBufferLayout);
 
-    drawBinds.AddUniform("viewProjectionMatrix", glm::mat4x4());
-    drawBinds.AddUniform("worldMatrix", worldMatrix);
-    drawBinds.AddUniform("materialIndex", 0);
-    //drawBinds.AddUniform("lightIndicesDataReadOffset", 0);
-    //drawBinds.AddUniform("lightIndicesDataWriteOffset", 0);
-    //drawBinds.AddUniform("tileLightDataReadOffset", 0);
-    //drawBinds.AddUniform("tileLightDataWriteOffset", 0);
+    //parameters->forwardDrawBinds->AddUniform("worldMatrix", worldMatrix);
+    parameters->forwardDrawBinds->AddUniform("materialIndex", 0);
 
-    if(!drawBinds.Init())
+    if(!parameters->forwardDrawBinds->Init())
         return CONTENT_ERROR_CODES::CREATE_FROM_MEMORY;
 
     std::vector<GPUMaterial> gpuMaterials;
@@ -241,7 +230,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     for(const auto& material : materials)
         gpuMaterials.push_back(GPUMaterial(material));
 
-    drawBinds["Materials"] = gpuMaterials;
+    (*parameters->forwardDrawBinds)["Materials"] = gpuMaterials;
 
     return CONTENT_ERROR_CODES::NONE;
 }
@@ -271,31 +260,31 @@ DiskContent* OBJModel::CreateInstance() const
     return new OBJModel;
 }
 
-void OBJModel::DrawOpaque(int tileCountX)
+void OBJModel::DrawOpaque(int tileCountX, GLDrawBinds* drawBinds)
 {
-    drawBinds.Bind();
+    drawBinds->Bind();
 
     if(tileCountX != -1)
         glUniform1i(0, tileCountX);
 
-    auto materialIndex = drawBinds["materialIndex"];
+    auto materialIndex = (*drawBinds)["materialIndex"];
 
     for(const auto& data : opaqueDrawData)
     {
         materialIndex = data.materialIndex;
 
         glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
-        drawBinds.DrawElements(data.indexCount, data.indexOffset);
+        drawBinds->DrawElements(data.indexCount, data.indexOffset);
     }
 
-    drawBinds.Unbind();
+    drawBinds->Unbind();
 }
 
-void OBJModel::DrawTransparent(const glm::vec3 cameraPosition)
+void OBJModel::DrawTransparent(const glm::vec3 cameraPosition, GLDrawBinds* drawBinds)
 {
-    drawBinds.Bind();
+    drawBinds->Bind();
 
-    auto materialIndex = drawBinds["materialIndex"];
+    auto materialIndex = (*drawBinds)["materialIndex"];
 
     // glm::distance might be overkill, distance squared?
     transparentDrawData[0].distanceToCamera = glm::distance(cameraPosition, transparentDrawData[0].centerPosition);
@@ -319,8 +308,8 @@ void OBJModel::DrawTransparent(const glm::vec3 cameraPosition)
         materialIndex = data.materialIndex;
 
         glBindTexture(GL_TEXTURE_2D, materials[data.materialIndex].texture->GetTexture());
-        drawBinds.DrawElements(data.indexCount, data.indexOffset);
+        drawBinds->DrawElements(data.indexCount, data.indexOffset);
     }
 
-    drawBinds.Unbind();
+    drawBinds->Unbind();
 }

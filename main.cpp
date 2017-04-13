@@ -152,7 +152,7 @@ Main::Main()
 
 float currentFrameTime = 0.0f;
 
-GLDrawBinds sortDrawBinds;
+//GLDrawBinds sortDrawBinds;
 
 int Main::Run()
 {
@@ -169,12 +169,12 @@ int Main::Run()
         if(!InitFrameBuffers())
             return 2;
 
-        sortDrawBinds.AddShader(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "lightCullClustered/lightSort.comp");
+        /*sortDrawBinds.AddShader(contentManager, GLEnums::SHADER_TYPE::COMPUTE, "lightCullClustered/lightSort.comp");
         sortDrawBinds.AddUniform("logSize", 0);
         sortDrawBinds.AddUniform("startIndex", 0);
 
         if(!sortDrawBinds.Init())
-            return -1234;
+            return -1234;*/
 
         InitInput();
 
@@ -283,12 +283,12 @@ int Main::InitContent()
     characterSet8 = contentManager.Load<CharacterSet>("UbuntuMono-R8.ttf");
 
     OBJModelParameters parameters;
-    parameters.shaderPath = currentLightCull->GetForwardShaderPath();
+    parameters.forwardDrawBinds = currentLightCull->GetForwardDrawBinds();
     worldModel = contentManager.Load<OBJModel>("models/sponza.obj", &parameters);
     if(worldModel == nullptr)
         return 3;
 
-    currentLightCull->SetDrawBindData(worldModel->drawBinds);
+    currentLightCull->SetDrawBindData();
 
     return 0;
 }
@@ -431,7 +431,9 @@ void Main::InitConsole()
                 {
                     std::string shaderPath;
 
-                    if(debug)
+                    throw "No you";
+
+                    /*if(debug)
                         shaderPath = currentLightCull->GetForwardShaderDebugPath();
                     else
                         shaderPath = currentLightCull->GetForwardShaderPath();
@@ -439,8 +441,8 @@ void Main::InitConsole()
                     if(!worldModel->drawBinds.ChangeShader(contentManager, GLEnums::SHADER_TYPE::FRAGMENT, shaderPath))
                         throw "Oh no";
 
-                    currentLightCull->SetDrawBindData(worldModel->drawBinds);
-                    return Argument("Lighting cull mode updated");
+                    currentLightCull->SetDrawBindData();
+                    return Argument("Lighting cull mode updated");*/
                 }
                 else
                     return Argument("Invalid argument");
@@ -638,13 +640,9 @@ bool Main::InitShaders()
     if(!lightCullNormal.Init(contentManager, console))
         return false;*/
 
-    /*lightCullClustered = new LightCullClustered();
+    lightCullClustered = new LightCullClustered();
 
-    currentLightCull = lightCullClustered;*/
-
-    lightCullAdaptive = new LightCullAdaptive();
-
-    currentLightCull = lightCullAdaptive;
+    currentLightCull = lightCullClustered;
 
     currentLightCull->InitShaderConstants(screenWidth, screenHeight);
     if(!currentLightCull->Init(contentManager, console))
@@ -702,90 +700,17 @@ void Main::Update(Timer& deltaTimer)
 
 void Main::Render(Timer& deltaTimer)
 {
-    const static int DATA_SIZE = 1024;
-    const static int VECTOR_SIZE = DATA_SIZE * 16 * 16;
-
-    std::vector<int> data;
-    for(int i = 0; i < VECTOR_SIZE; ++i)
-        data.push_back(i % DATA_SIZE);
-
-    for(int i = 0; i < 16 * 16; ++i)
-        for(int j = 0; j < DATA_SIZE; ++j)
-        {
-            int startIndex = i * DATA_SIZE + j;
-            int endIndex = i * DATA_SIZE + rand() % DATA_SIZE;
-
-            std::swap(data[startIndex], data[endIndex]);
-        }
-
-    sortDrawBinds["Data"] = data;
-
-    sortDrawBinds.Bind();
-    Timer timer;
-    timer.Start();
-    glBeginQuery(GL_TIME_ELAPSED, queries[0]);
-    sortDrawBinds["logSize"] = (int)std::log2(DATA_SIZE);
-
-    for(int y = 0; y < 16; ++y)
-    {
-        for(int x = 0; x < 16; ++x)
-        {
-            glUniform1i(0, (y * 16 + x) * DATA_SIZE);
-
-            glDispatchCompute(1, 1, 1);
-        }
-    }
-
-    auto writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    auto val = glClientWaitSync(writeSync, 0, 1000000000);
-    if(val == GL_TIMEOUT_EXPIRED
-       || val == GL_WAIT_FAILED)
-    {
-        assert(false);
-    }
-    glDeleteSync(writeSync);
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-    glEndQuery(GL_TIME_ELAPSED);
-
-    sortDrawBinds.Unbind();
-
-    GLint timeAvailable = 0;
-    while(!timeAvailable)
-        glGetQueryObjectiv(queries[0],  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
-
-    GLuint64 opaqueTime;
-    glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &opaqueTime);
-    timer.Stop();
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-
-    glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    spriteRenderer.Begin();
-    spriteRenderer.DrawString(characterSet24, std::to_string(timer.GetTimeMillisecondsFraction()), glm::vec2(0.0f));
-    spriteRenderer.DrawString(characterSet24, std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, 24.0f));
-    spriteRenderer.End();
-
-    window.SwapBuffers();
-
-
-
-    /*auto viewMatrix = currentCamera->GetViewMatrix();
+    auto viewMatrix = currentCamera->GetViewMatrix();
     auto viewMatrixInverse = glm::inverse(currentCamera->GetViewMatrix());
     auto projectionMatrix = currentCamera->GetProjectionMatrix();
     auto projectionMatrixInverse = glm::inverse(currentCamera->GetProjectionMatrix());
     auto viewProjectionMatrix = projectionMatrix * viewMatrix;
 
     primitiveDrawer.sphereBinds["viewProjectionMatrix"] = viewProjectionMatrix;
-    worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
+    //worldModel->drawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
     //worldModel->drawBinds["Lights"] = &lightManager.GetLightsBuffer();
+
+    currentLightCull->UpdateUniforms(currentCamera, worldModel, &lightManager);
 
     lineDrawBinds["viewProjectionMatrix"] = viewProjectionMatrix;
 
@@ -817,7 +742,7 @@ void Main::Render(Timer& deltaTimer)
 
     // Forward pass (opaque)
     glBeginQuery(GL_TIME_ELAPSED, queries[0]);
-    worldModel->DrawOpaque(currentLightCull->GetTileCountX());
+    worldModel->DrawOpaque(currentLightCull->GetTileCountX(), currentLightCull->GetForwardDrawBinds());
     glEndQuery(GL_TIME_ELAPSED);
 
     GLint timeAvailable = 0;
@@ -835,7 +760,7 @@ void Main::Render(Timer& deltaTimer)
     glDepthMask(GL_FALSE);
 
     // Forward pass (transparent)
-    worldModel->DrawTransparent(camera.GetPosition());
+    worldModel->DrawTransparent(camera.GetPosition(), currentLightCull->GetForwardDrawBinds());
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);
@@ -870,7 +795,7 @@ void Main::Render(Timer& deltaTimer)
     spriteRenderer.End();
 
     if(dumpPostBackBuffer)
-        DumpBackBuffer();*/
+        DumpBackBuffer();
 
     window.SwapBuffers();
 }

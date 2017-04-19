@@ -641,8 +641,10 @@ bool Main::InitShaders()
         return false;*/
 
     lightCullClustered = new LightCullClustered();
-
     currentLightCull = lightCullClustered;
+
+    //lightCullAdaptive = new LightCullAdaptive();
+    //currentLightCull = lightCullAdaptive;
 
     currentLightCull->InitShaderConstants(screenWidth, screenHeight);
     if(!currentLightCull->Init(contentManager, console))
@@ -736,7 +738,7 @@ void Main::Render(Timer& deltaTimer)
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Light pass
-    auto lightCullTime = currentLightCull->TimedDraw(viewMatrix, projectionMatrixInverse, lightManager);
+    auto times = currentLightCull->TimedDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
     //worldModel->drawBinds.GetSSBO("TileLights")->Replace(lightCull.GetActiveTileLightsData());
 
@@ -781,9 +783,15 @@ void Main::Render(Timer& deltaTimer)
     spriteRenderer.DrawString(characterSet24, frameString, glm::vec2(0.0f, screenHeight - 48));
     spriteRenderer.DrawString(characterSet24, std::to_string(currentFrameTime), glm::vec2(0.0f, screenHeight - 24));
 
-
-    spriteRenderer.DrawString(characterSet24, "Light cull: " + std::to_string(lightCullTime * 1e-6f), glm::vec2(0.0f, screenHeight - 72));
-    spriteRenderer.DrawString(characterSet24, "Opaque: " + std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, screenHeight - 96));
+    spriteRenderer.DrawString(characterSet24, "Opaque: " + std::to_string(opaqueTime * 1e-6f), glm::vec2(0.0f, screenHeight - 72));
+    int i = 0;
+    for(const auto& pair : times)
+    {
+        spriteRenderer.DrawString(characterSet24, pair.first + ": " + std::to_string(pair.second * 1e-6f), glm::vec2(
+                0.0f
+                , screenHeight - 96 - 24 * i));
+        ++i;
+    }
 
     //Logger::LogLine(LOG_TYPE::NONE, std::to_string(lightCullTime * 1e-6f), ", ", std::to_string(opaqueTime * 1e-6f));
 

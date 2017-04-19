@@ -6,6 +6,7 @@
 
 cconst TREE_MAX_DEPTH;
 cconst BUCKET_COUNT;
+cconst MAX_LIGHTS_PER_TILE;
 
 struct LightData
 {
@@ -97,18 +98,9 @@ void main()
         {
             LightData current = localLights[i];
 
-            float distance = distance(bucketPosition, current.position);
+            /*float distance = distance(bucketPosition, current.position);
 
-            if(distance <= 1.0f)
-            {
-                // Add light to cluster
-                currentLightData.position += current.position;
-                currentLightData.strength += current.strength;
-                currentLightData.color += current.color;
-
-                ++lightsInBucket;
-            }
-            else
+            if(distance > 1.0f)
             {
                 // Put final cluster info "localFinalLights"
                 // and increase bucket count
@@ -122,13 +114,25 @@ void main()
                 currentLightData = current;
                 bucketPosition = currentLightData.position;
             }
+            else*/
+            {
+                // Add light to cluster
+                currentLightData.position += current.position;
+                currentLightData.strength += current.strength;
+                currentLightData.color += current.color;
+
+                ++lightsInBucket;
+            }
         }
+
+        currentLightData.position /= lightsInBucket;
+        currentLightData.color /= lightsInBucket;
+        localFinalLights[bucket] = currentLightData;
+
+        ++bucket;
 
         // Write final lights to VRAM
         for(int i = 0; i < bucket; ++i)
-            finalLights[(gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x) * BUCKET_COUNT + i] = localLights[i];
-
-        if(bucket + 1 < BUCKET_COUNT)
-            finalLights[bucket + 1].padding = -123.456f;
+            finalLights[(gl_WorkGroupID.y * gl_NumWorkGroups.y + gl_WorkGroupID.x) * BUCKET_COUNT + i] = localFinalLights[i];
     }
 }

@@ -4,6 +4,7 @@
 
 cconst TREE_MAX_DEPTH;
 cconst MAX_LIGHTS_PER_TILE;
+cconst TILE_COUNT_X;
 
 struct LightData
 {
@@ -26,7 +27,7 @@ layout(std430) buffer OutLightIndices
 };
 
 uniform int logSize;
-uniform int startIndex;
+//uniform int startIndex;
 
 shared int loadedData[MAX_LIGHTS_PER_TILE];
 shared float lightZPosition[MAX_LIGHTS_PER_TILE];
@@ -34,8 +35,9 @@ shared float lightZPosition[MAX_LIGHTS_PER_TILE];
 layout(local_size_y = MAX_LIGHTS_PER_TILE) in;
 void main()
 {
-    int threadID = int(gl_GlobalInvocationID.y);
+    int threadID = int(gl_LocalInvocationID.y);
 
+    int startIndex = (int(gl_WorkGroupID.y) * TILE_COUNT_X + int(gl_WorkGroupID.x)) * MAX_LIGHTS_PER_TILE;
     int lightIndex = GetLightIndex(startIndex + threadID);
 
     loadedData[threadID] = lightIndex;

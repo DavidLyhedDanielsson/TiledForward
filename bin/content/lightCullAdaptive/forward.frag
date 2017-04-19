@@ -63,6 +63,7 @@ void main()
 
         finalColor += light.color * diffuse * attenuation;
     }
+
     finalColor += ambientStrength;
     finalColor *= materials[materialIndex].diffuseColor;
     finalColor *= textureColor;

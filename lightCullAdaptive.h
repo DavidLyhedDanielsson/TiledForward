@@ -21,7 +21,9 @@ public:
     virtual void SetDrawBindData() override;
 
     virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) override;
-    virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) override;
+    virtual std::vector<std::pair<std::string, GLuint64>> TimedDraw(glm::mat4 viewMatrix
+                                                                    , glm::mat4 projectionMatrixInverse
+                                                                    , LightManager& lightManager) override;
 
     virtual void DrawLightCount(SpriteRenderer& spriteRenderer
                             , CharacterSet* characterSetSmall
@@ -52,7 +54,7 @@ protected:
     int treeMaxDepth = TREE_MAX_DEPTH;
 
     virtual void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
-    virtual void Draw();
+    virtual void Draw(std::vector<std::pair<std::string, GLuint64>>& times);
     virtual void PostDraw();
     int GetTreeDataScreen(int screenX, int screenY, int* tree);
 

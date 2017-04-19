@@ -16,7 +16,9 @@ public:
     void SetDrawBindData();
 
     void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
-    GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
+    std::vector<std::pair<std::string, GLuint64>> TimedDraw(glm::mat4 viewMatrix
+                                               , glm::mat4 projectionMatrixInverse
+                                               , LightManager& lightManager);
 
     void DrawLightCount(SpriteRenderer& spriteRenderer
                         , CharacterSet* characterSetSmall
@@ -46,7 +48,7 @@ private:
     glm::ivec2 threadGroupCount;
 
     void PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager);
-    void Draw();
+    void Draw(std::vector<std::pair<std::string, GLuint64>>& times);
     void PostDraw();
 
     std::vector<glm::vec4> colors;

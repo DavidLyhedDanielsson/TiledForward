@@ -83,8 +83,6 @@ bool LightCullAdaptive::Init(ContentManager& contentManager, Console& console)
     lightReductionDrawBinds["ReadWriteOffsets"] = lightCullDrawBinds["ReadWriteOffsets"];
     lightReductionDrawBinds["TreeDepthData"] = lightCullDrawBinds["TreeDepthData"];
 
-    glGenQueries(1, &timeQuery);
-
     // Normal draw binds
     if(!forwardDrawBinds.AddShaders(contentManager
                              , GLEnums::SHADER_TYPE::VERTEX, "lightCullAdaptive/forward.vert"
@@ -101,30 +99,26 @@ void LightCullAdaptive::Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInv
 {
     PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
-    Draw();
+    std::vector<std::pair<std::string, GLuint64>> stuff;
+
+    Draw(stuff);
 
     PostDraw();
 }
 
-GLuint64 LightCullAdaptive::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
+std::vector<std::pair<std::string, GLuint64>> LightCullAdaptive::TimedDraw(glm::mat4 viewMatrix
+                                                                           , glm::mat4 projectionMatrixInverse
+                                                                           , LightManager& lightManager)
 {
-    GLuint64 lightCullTime;
+    std::vector<std::pair<std::string, GLuint64>> returnStuff;
 
     PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
-    glBeginQuery(GL_TIME_ELAPSED, timeQuery);
-    Draw();
-    glEndQuery(GL_TIME_ELAPSED);
-
-    GLint timeAvailable = 0;
-    while(!timeAvailable)
-        glGetQueryObjectiv(timeQuery,  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
-
-    glGetQueryObjectui64v(timeQuery, GL_QUERY_RESULT, &lightCullTime);
+    Draw(returnStuff);
 
     PostDraw();
 
-    return lightCullTime;
+    return returnStuff;
 }
 
 void LightCullAdaptive::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
@@ -157,14 +151,17 @@ void LightCullAdaptive::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix
     lightCullDrawBinds.Bind();
 }
 
-void LightCullAdaptive::Draw()
+void LightCullAdaptive::Draw(std::vector<std::pair<std::string, GLuint64>>& times)
 {
     GLuint threadGroupCount = (GLuint)std::pow(2, treeStartDepth);
 
+    StartTimeQuery();
     glDispatchCompute(threadGroupCount, threadGroupCount, 1);
+    times.push_back(std::make_pair("Light cull", StopTimeQuery()));
 
     lightCullDrawBinds.Unbind();
 
+    StartTimeQuery();
     GLsync writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     auto val = glClientWaitSync(writeSync, 0, 1000000000);
     if(val == GL_TIMEOUT_EXPIRED
@@ -214,6 +211,9 @@ void LightCullAdaptive::Draw()
     readWriteOffsets.w = (treeMaxDepth + 2) % 2 * lightDataLength;
     lightCullDrawBinds["ReadWriteOffsets"] = readWriteOffsets;
     lightCullDrawBinds.GetUBO("ReadWriteOffsets")->Update();
+
+    times.push_back(std::make_pair("Light reduction", StopTimeQuery()));
+
 }
 
 void LightCullAdaptive::PostDraw()

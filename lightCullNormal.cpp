@@ -62,8 +62,6 @@ bool LightCullNormal::Init(ContentManager& contentManager, Console& console)
                                                         , -1);
     lightCullDrawBinds["ScreenSize"] = glm::ivec2(screenWidth, screenHeight);
 
-    glGenQueries(1, &timeQuery);
-
     // Normal draw binds
     if(!forwardDrawBinds.AddShaders(contentManager
                                     , GLEnums::SHADER_TYPE::VERTEX, "lightCullNormal/forward.vert"
@@ -81,33 +79,25 @@ void LightCullNormal::Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInver
 {
     PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
-    Draw();
+    std::vector<std::pair<std::string, GLuint64>> stuff;
+    Draw(stuff);
 
     PostDraw();
 }
 
-GLuint64 LightCullNormal::TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
+std::vector<std::pair<std::string, GLuint64>> LightCullNormal::TimedDraw(glm::mat4 viewMatrix
+                                                            , glm::mat4 projectionMatrixInverse
+                                                            , LightManager& lightManager)
 {
-    GLuint64 lightCullTime;
+    std::vector<std::pair<std::string, GLuint64>> returnStuff;
 
     PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 
-    glBeginQuery(GL_TIME_ELAPSED, timeQuery);
-    Draw();
-    glEndQuery(GL_TIME_ELAPSED);
-
-    GLint timeAvailable = 0;
-    while(!timeAvailable)
-    {
-        glGetQueryObjectiv(timeQuery,  GL_QUERY_RESULT_AVAILABLE, &timeAvailable);
-        std::this_thread::sleep_for(std::chrono::nanoseconds(500));
-    }
-
-    glGetQueryObjectui64v(timeQuery, GL_QUERY_RESULT, &lightCullTime);
+    Draw(returnStuff);
 
     PostDraw();
 
-    return lightCullTime;
+    return returnStuff;
 }
 
 void LightCullNormal::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
@@ -124,9 +114,11 @@ void LightCullNormal::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixIn
     lightCullDrawBinds.Bind();
 }
 
-void LightCullNormal::Draw()
+void LightCullNormal::Draw(std::vector<std::pair<std::string, GLuint64>>& times)
 {
+    StartTimeQuery();
     glDispatchCompute((GLuint)threadGroupCount.x, (GLuint)threadGroupCount.y, 1);
+    times.push_back(std::make_pair("Light cull", StopTimeQuery()));
 
     lightCullDrawBinds.Unbind();
 }

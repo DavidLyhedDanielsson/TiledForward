@@ -22,7 +22,9 @@ public:
     virtual void SetDrawBindData() = 0;
 
     virtual void Draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) = 0;
-    virtual GLuint64 TimedDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager) = 0;
+    virtual std::vector<std::pair<std::string, GLuint64>> TimedDraw(glm::mat4 viewMatrix
+                                                                    , glm::mat4 projectionMatrixInverse
+                                                                    , LightManager& lightManager) = 0;
 
     virtual void DrawLightCount(SpriteRenderer& spriteRenderer
                                 , CharacterSet* characterSetSmall
@@ -40,10 +42,14 @@ protected:
     int screenWidth;
     int screenHeight;
 
-    GLuint timeQuery;
-
     // Must be power of two
     const static int MAX_LIGHTS_PER_TILE = 4;
+
+    void StartTimeQuery();
+    GLuint64 StopTimeQuery();
+
+private:
+    GLuint timeQuery;
 };
 
 #endif // LIGHTCULL_H__

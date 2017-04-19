@@ -16,13 +16,13 @@ bool LightCullClustered::Init(ContentManager& contentManager, Console& console)
     console.AddCommand(new CommandGetSet<bool>("light_sort", &sort));
 
     lightSortDrawBinds.AddUniform("logSize", 0);
-    lightSortDrawBinds.AddUniform("startIndex", 0);
 
-    ShaderContentParameters parameters;
-    parameters.type = GLEnums::SHADER_TYPE::COMPUTE;
-    parameters.variables.push_back(std::make_pair("TREE_MAX_DEPTH", std::to_string(GetTreeMaxDepth())));
-    parameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(GetMaxLightsPerTile())));
-    lightSortDrawBinds.AddShader(contentManager, parameters, "lightCullClustered/lightSort.comp");
+    ShaderContentParameters sortParameters;
+    sortParameters.type = GLEnums::SHADER_TYPE::COMPUTE;
+    sortParameters.variables.push_back(std::make_pair("TREE_MAX_DEPTH", std::to_string(GetTreeMaxDepth())));
+    sortParameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(GetMaxLightsPerTile())));
+    sortParameters.variables.push_back(std::make_pair("TILE_COUNT_X", std::to_string((GLuint)std::pow(2, GetTreeMaxDepth()))));
+    lightSortDrawBinds.AddShader(contentManager, sortParameters, "lightCullClustered/lightSort.comp");
     if(!lightSortDrawBinds.Init())
         return false;
 
@@ -36,10 +36,21 @@ bool LightCullClustered::Init(ContentManager& contentManager, Console& console)
                                                                              * GetMaxLightsPerTile())
                                                              , 0);
 
-    int tileCountX = (int)std::pow(2, GetTreeMaxDepth());
-    int tileCountY = (int)std::pow(2, GetTreeMaxDepth());
+    ShaderContentParameters clusterParameters;
+    clusterParameters.type = GLEnums::SHADER_TYPE::COMPUTE;
+    clusterParameters.variables.push_back(std::make_pair("TREE_MAX_DEPTH", std::to_string(GetTreeMaxDepth())));
+    clusterParameters.variables.push_back(std::make_pair("BUCKET_COUNT", std::to_string(BUCKET_COUNT)));
+    clusterParameters.variables.push_back(std::make_pair("MAX_LIGHTS_PER_TILE", std::to_string(GetMaxLightsPerTile())));
+    lightClusterDrawBinds.AddShader(contentManager, clusterParameters, "lightCullClustered/lightCluster.comp");
+    if(!lightClusterDrawBinds.Init())
+        return false;
 
-    //lightClusterDrawBinds.GetSSBO("FinalLights")->SetData(nullptr, tileCountX * tileCountY * sizeof(float) * 8);
+    lightClusterDrawBinds["Lights"] = lightCullDrawBinds["Lights"];
+    lightClusterDrawBinds["LightIndices"] = lightCullDrawBinds["LightIndices"];
+    lightClusterDrawBinds["ReadWriteOffsets"] = lightCullDrawBinds["ReadWriteOffsets"];
+    lightClusterDrawBinds["FinalLights"] = std::vector<float>((unsigned long)(GetMaxNumberOfTiles() * 8 * BUCKET_COUNT), 0);
+    lightClusterDrawBinds["TileLights"] = lightCullDrawBinds["TileLights"];
+    lightClusterDrawBinds["Tree"] = lightCullDrawBinds["Tree"];
 
     return true;
 }
@@ -56,31 +67,32 @@ std::string LightCullClustered::GetForwardShaderDebugPath()
     return Base::GetForwardShaderDebugPath();
 }*/
 
-void LightCullClustered::Draw()
+void LightCullClustered::Draw(std::vector<std::pair<std::string, GLuint64>>& times)
 {
-    Base::Draw();
+    Base::Draw(times);
 
     if(sort)
     {
-        lightReductionDrawBinds.Unbind();
+        StartTimeQuery();
 
-        lightSortDrawBinds.Bind();
+        lightReductionDrawBinds.Unbind();
 
         GLuint tileCountX = (GLuint)std::pow(2, GetTreeMaxDepth());
         GLuint tileCountY = (GLuint)std::pow(2, GetTreeMaxDepth());
 
-        for(int y = 0; y < tileCountY; ++y)
-        {
-            for(int x = 0; x < tileCountX; ++x)
-            {
-                lightSortDrawBinds["startIndex"] = (int)((y * tileCountX + x) * MAX_LIGHTS_PER_TILE);
+        lightSortDrawBinds.Bind();
+        glDispatchCompute(tileCountX, tileCountY, 1);
+        lightSortDrawBinds.Unbind();
 
-                glDispatchCompute(1, 1, 1);
-            }
-        }
+        times.push_back(std::make_pair("Light sort", StopTimeQuery()));
 
-        //glDispatchCompute(tileCountX, tileCountY, 1);
+        StartTimeQuery();
 
+        lightClusterDrawBinds.Bind();
+        glDispatchCompute(tileCountX, tileCountY, 1);
+        lightClusterDrawBinds.Unbind();
+
+        times.push_back(std::make_pair("Light cluster", StopTimeQuery()));
     }
 }
 
@@ -109,4 +121,24 @@ void LightCullClustered::SetDrawBindData()
 int LightCullClustered::GetTileCountX() const
 {
     return (int)std::pow(2, GetTreeMaxDepth());
+}
+
+std::vector<std::pair<std::string, GLuint64>> LightCullClustered::TimedDraw(glm::mat4 viewMatrix
+                                       , glm::mat4 projectionMatrixInverse
+                                       , LightManager& lightManager)
+{
+    std::vector<std::pair<std::string, GLuint64>> returnStuff;
+
+    PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
+
+    Draw(returnStuff);
+
+    PostDraw();
+
+    return returnStuff;
+}
+
+void LightCullClustered::PreDraw(glm::mat4 viewMatrix, glm::mat4 projectionMatrixInverse, LightManager& lightManager)
+{
+    LightCullAdaptive::PreDraw(viewMatrix, projectionMatrixInverse, lightManager);
 }

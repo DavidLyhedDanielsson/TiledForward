@@ -70,8 +70,8 @@ private:
 
     const float LIGHT_DEFAULT_AMBIENT;
 
-    float lightMinStrength = 50.0f;
-    float lightMaxStrength = 50.0f;
+    float lightMinStrength = 0.0f;
+    float lightMaxStrength = 1.0f;
     float lightLifetime = 2500.0f;
 
     const float CLUSTER_MAX_X = 0.0f;

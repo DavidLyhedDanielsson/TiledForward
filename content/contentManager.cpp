@@ -21,8 +21,8 @@ ContentManager::ContentManager(const std::string& contentRootDirectory /*= ""*/,
 	, uniqueID(0)
 	, contentToHotReload(false)
 {
-	if(watchDirectory)
-		WatchForFileChanges(contentRootDirectory);
+	//if(watchDirectory)
+		//WatchForFileChanges(contentRootDirectory);
 }
 
 ContentManager::~ContentManager()

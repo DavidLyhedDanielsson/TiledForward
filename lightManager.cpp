@@ -179,8 +179,8 @@ LightData LightManager::GetNewLight()
     LightData light;
 
     light.position = GetRandomLightPosition();
-    //light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
-    light.color = glm::vec3(1.0f, 204.0f / 255.0f, 0.0f);
+    light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
+    //light.color = glm::vec3(1.0f, 204.0f / 255.0f, 0.0f);
     light.lifetime = 0.0f;
     light.strength = GetLightRadius(0.0f);
 
@@ -192,13 +192,13 @@ LightData LightManager::GetRandomLight()
     LightData light;
 
     light.position = GetRandomLightPosition();
-    //light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
-    if(lightsBuffer.lights.size() == 0)
+    light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
+    /*if(lightsBuffer.lights.size() == 0)
         light.color = glm::vec3(1.0f, 0.0f, 0.0f);
     else if(lightsBuffer.lights.size() == 1)
         light.color = glm::vec3(0.0f, 1.0f, 0.0f);
     else
-        light.color = glm::vec3(0.0f, 0.0f, 1.0f);
+        light.color = glm::vec3(0.0f, 0.0f, 1.0f);*/
 
     light.lifetime = rand() / (float)RAND_MAX * lightLifetime;
     light.strength = GetLightRadius(light.lifetime);
@@ -208,12 +208,12 @@ LightData LightManager::GetRandomLight()
 
 glm::vec3 LightManager::GetRandomLightPosition()
 {
-    if(lightsBuffer.lights.size() == 0)
+    /*if(lightsBuffer.lights.size() == 0)
         return glm::vec3(3.0f, 1.0f, 0.0f);
     else if(lightsBuffer.lights.size() == 1)
         return glm::vec3(2.75f, 1.0f, 0.0f);
     else
-        return glm::vec3(2.5f, 1.0f, 0.0f);
+        return glm::vec3(2.5f, 1.0f, 0.0f);*/
 
     glm::vec3 returnPosition;
 

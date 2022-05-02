@@ -512,7 +512,7 @@ void Main::InitInput()
                     if(!keysDown.count(keyState.key))
                         keysDown.insert(keyState.key);
 
-                    if(keyState.key == KEY_CODE::SECTION)
+                    if(keyState.key == KEY_CODE::F2)
                     {
                         if(console.GetActive())
                         {
@@ -762,7 +762,7 @@ void Main::Render(Timer& deltaTimer)
     glDepthMask(GL_FALSE);
 
     // Forward pass (transparent)
-    worldModel->DrawTransparent(camera.GetPosition(), currentLightCull->GetForwardDrawBinds());
+    //worldModel->DrawTransparent(camera.GetPosition(), currentLightCull->GetForwardDrawBinds());
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBufferDepthOnly);

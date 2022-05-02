@@ -35,7 +35,7 @@ protected:
 
     GLuint timeQuery;
 
-    const static int MAX_LIGHTS_PER_TILE = 1024;
+    const static int MAX_LIGHTS_PER_TILE = 512;
 };
 
 #endif // LIGHTCULL_H__

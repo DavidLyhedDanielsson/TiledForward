@@ -1,6 +1,8 @@
 #ifndef GLHELPERS_H__
 #define GLHELPERS_H__
 
+#include <cstdlib>
+
 #include "glEnums.h"
 
 namespace GLHelpers

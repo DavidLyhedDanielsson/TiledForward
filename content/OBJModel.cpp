@@ -159,7 +159,7 @@ CONTENT_ERROR_CODES OBJModel::Load(const char* filePath
     }
 
     const static float SCALE = 0.01f;
-    worldMatrix = glm::scale(glm::mat4(), glm::vec3(SCALE)); // TODO
+    worldMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(SCALE)); // TODO
 
     for(aiMesh* mesh : transparentMeshes)
     {

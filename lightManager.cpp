@@ -7,7 +7,7 @@ LightManager::LightManager()
         : lightCount(16)
           , lightClusters(1)
           , lightClusterRadius(1.0f)
-          , lightPositionStrategy(CLUSTERED)
+          , lightPositionStrategy(RANDOM)
           , LIGHT_DEFAULT_AMBIENT(0.0f)
           , freezeLights(false)
           , drawLightSpheres(false)
@@ -181,8 +181,8 @@ LightData LightManager::GetNewLight()
     LightData light;
 
     light.position = GetRandomLightPosition();
-    //light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
-    light.color = glm::vec3(1.0f, 204.0f / 255.0f, 0.0f);
+    light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
+    //light.color = glm::vec3(1.0f, 204.0f / 255.0f, 0.0f);
     light.lifetime = 0.0f;
     light.strength = GetLightRadius(0.0f);
 
@@ -194,8 +194,7 @@ LightData LightManager::GetRandomLight()
     LightData light;
 
     light.position = GetRandomLightPosition();
-    //light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
-    light.color = glm::vec3(1.0f, 204.0f / 255.0f, 0.0f);
+    light.color = glm::vec3(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX);
     light.lifetime = rand() / (float)RAND_MAX * lightLifetime;
     light.strength = GetLightRadius(light.lifetime);
 

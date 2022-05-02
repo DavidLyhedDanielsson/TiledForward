@@ -97,9 +97,9 @@ CONTENT_ERROR_CODES Texture::ReadData(const char* filePath)
 
     // TODO: Windows config
 #ifndef NDEBUG
-    const std::string libraryName = "lib" + fileExtension + "_d.so";
+    const std::string libraryName = "./lib" + fileExtension + "_d.so";
 #else
-    const std::string libraryName = "lib" + fileExtension + ".so";
+    const std::string libraryName = "./lib" + fileExtension + ".so";
 #endif // NDEBUG
 
 #ifdef _WIN32

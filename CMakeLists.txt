@@ -33,7 +33,7 @@ else()
 endif()
 add_definitions(-DGL_ERROR_CALLBACK -DUSE_LOGGER -DGL_VERTEX_NO_WARNING -DGL_INDEX_NO_WARNING)
 
-include_directories(/usr/include/freetype2/)
+include_directories(/usr/include/freetype2/ include)
 
 file(GLOB SOURCE_FILES *.h *.hpp *.cpp *.c console/* gl/* content/* os/*)
 add_executable(opengl ${SOURCE_FILES})
